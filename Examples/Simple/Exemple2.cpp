@@ -20,22 +20,26 @@
 
 #include <EnvironmentMas.h>
 
+static std::unordered_map<std::string, std::string> s_name_id;
+
 class MyAgent1 : public cam::Agent {
 	public:
-		MyAgent1(const std::string& p_name): Agent(p_name) {}
+		MyAgent1(const std::string& p_name) : Agent(p_name) {
+			s_name_id.emplace(m_name, m_id);
+		}
 
 		void setup() override {
-			send("agent2", "start from 1");
+			send(s_name_id.at("agent2"), {{"data", "start"}, {"from", m_name}});
 			for (int i = 0; i < 10; i++) {
-				send("agent2", "in setup for: " + std::to_string(i));
+				send(s_name_id.at("agent2"), {{"data", "in setup #" + std::to_string(i)}, {"from", m_name}});
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << m_name << " has received " << p_message->format() << std::endl;
+			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
 			for (int i = 0; i < 10; i++) {
-				send("agent2", "in act for: " + std::to_string(i));
+				send(s_name_id.at("agent2"), {{"data", "in action #" + std::to_string(i)}, {"from", m_name}});
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
@@ -43,14 +47,16 @@ class MyAgent1 : public cam::Agent {
 
 class MyAgent2 : public cam::Agent {
 	public:
-		MyAgent2(const std::string& p_name): Agent(p_name) {}
+		MyAgent2(const std::string& p_name) : Agent(p_name) {
+			s_name_id.emplace(m_name, m_id);
+		}
 
 		void setup() override {
-			send("agent1", "start from 2");
+			send(s_name_id.at("agent1"), {{"data", "start"}, {"from", m_name}});
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << p_message->format() << std::endl;
+			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
 		}
 };
 

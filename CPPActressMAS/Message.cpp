@@ -18,9 +18,9 @@
 
 #include "Message.h"
 
-cam::Message::Message(const std::string& p_sender, const std::string& p_receiver, const json& p_message, const cam::MessageBinaryFormat& p_binary_format) : 
-	m_sender(p_sender),
-	m_receiver(p_receiver),
+cam::Message::Message(std::string p_sender, std::string p_receiver, const json& p_message, const MessageBinaryFormat& p_binary_format) :
+	m_sender(std::move(p_sender)),
+	m_receiver(std::move(p_receiver)),
 	m_binary_format(p_binary_format) {
 	switch (m_binary_format) {
 		case MessageBinaryFormat::BJData:
@@ -58,30 +58,31 @@ const std::vector<std::uint8_t>& cam::Message::get_binary_message() const {
 	return m_binary_message;
 }
 
-const json cam::Message::content() const {
+json cam::Message::content() const {
 	switch (m_binary_format) {
-		case cam::MessageBinaryFormat::BJData:
+		case MessageBinaryFormat::BJData:
 			return json::from_bjdata(m_binary_message);
 
-		case cam::MessageBinaryFormat::BSON:
+		case MessageBinaryFormat::BSON:
 			return json::from_bson(m_binary_message);
 
-		case cam::MessageBinaryFormat::CBOR:
+		case MessageBinaryFormat::CBOR:
 			return json::from_cbor(m_binary_message);
 			
-		case cam::MessageBinaryFormat::UBJSON:
+		case MessageBinaryFormat::UBJSON:
 			return json::from_ubjson(m_binary_message);
 		
-		case cam::MessageBinaryFormat::MessagePack:
+		case MessageBinaryFormat::MessagePack:
 		default:
 			return json::from_msgpack(m_binary_message);
 	}
 }
 
-const std::string cam::Message::to_string() const {
+std::string cam::Message::to_string() const {
 	return content().dump();
 }
 
-const std::string cam::Message::format() const {
+
+std::string cam::Message::format() const {
 	return "[" + m_sender + " -> " + m_receiver + "]: " + to_string();
 }

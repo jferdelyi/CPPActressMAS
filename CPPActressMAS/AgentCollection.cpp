@@ -18,60 +18,59 @@
 
 #include "AgentCollection.h"
 
-int cam::AgentCollection::count() const {
+#include <random>
+
+size_t cam::AgentCollection::count() const {
 	return m_agents.size();
 }
 
-void cam::AgentCollection::add(cam::AgentPointer& p_agent) {
-	m_agents.emplace(p_agent->get_name(), p_agent);
+void cam::AgentCollection::add(AgentPointer& p_agent) {
+	m_agents.emplace(p_agent->get_id(), p_agent);
 }
 
 const cam::AgentPointer& cam::AgentCollection::random_agent() const {
 	auto l_it = m_agents.begin();
-	std::advance(l_it, rand() % m_agents.size());
+
+	std::random_device l_rd;
+	std::uniform_int_distribution<size_t> l_dist(0, m_agents.size());
+
+	std::advance(l_it, l_dist(l_rd) );
 	return l_it->second;
 }
 
 bool cam::AgentCollection::contains(const AgentPointer& p_agent) const {
-	return m_agents.find(p_agent->get_name()) != m_agents.end();
+	return m_agents.contains(p_agent->get_id());
 }
 
-bool cam::AgentCollection::contains(const std::string& p_agent_name) const {
-	return m_agents.find(p_agent_name) != m_agents.end();
+bool cam::AgentCollection::contains(const std::string& p_id) const {
+	return m_agents.contains(p_id);
 }
 
-void cam::AgentCollection::remove(const std::string& p_agent_name) {
-	if (contains(p_agent_name)) {
-		m_agents.erase(p_agent_name);
+void cam::AgentCollection::remove(const std::string& p_id) {
+	if (contains(p_id)) {
+		m_agents.erase(p_id);
 	}
 }
 
-cam::AgentPointer cam::AgentCollection::get(const std::string& p_name) {
-	const auto& l_it = m_agents.find(p_name);
+cam::AgentPointer cam::AgentCollection::get(const std::string& p_id) {
+	const auto& l_it = m_agents.find(p_id);
 	if (l_it == m_agents.end()) {
-		return cam::AgentPointer(nullptr);
+		return { nullptr };
 	}
 	return l_it->second;
 }
 
-const std::vector<std::string> cam::AgentCollection::get_names() const {
+std::vector<std::string> cam::AgentCollection::get_ids() const {
 	std::vector<std::string> l_result;
-	for (const auto& l_it : m_agents) {
-		l_result.push_back(l_it.first);
+
+	l_result.reserve(m_agents.size());
+	for(auto& [l_id, _] : m_agents) {
+		l_result.push_back(l_id);
 	}
+
 	return l_result;
 }
 
 const std::map<std::string, cam::AgentPointer>& cam::AgentCollection::get_agents() const {
 	return m_agents;
-}
-
-const std::vector<cam::AgentPointer> cam::AgentCollection::filtered_agents(const std::string& p_name_fragment) {
-	std::vector<cam::AgentPointer> return_value;
-	for (const auto& p_agent : m_agents) {
-		if (p_agent.first.find(p_name_fragment) != std::string::npos) {
-			return_value.push_back(p_agent.second);
-		}
-	}
-	return return_value;
 }

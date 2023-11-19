@@ -23,23 +23,25 @@
 
 #include "Agent.h"
 
-cam::EnvironmentMas::EnvironmentMas(int p_no_turns, const EnvironmentMasMode& p_mode, int p_delay_after_turn, const unsigned int p_seed) : 
+cam::EnvironmentMas::EnvironmentMas(const int p_no_turns, const EnvironmentMasMode& p_mode, const int p_delay_after_turn, const unsigned int p_seed) :
 	m_no_turns(p_no_turns),
 	m_delay_after_turn(p_delay_after_turn),
 	m_random_order(p_mode == EnvironmentMasMode::SequentialRandom || p_mode == EnvironmentMasMode::Parallel),
-	m_parallel(p_mode == EnvironmentMasMode::Parallel),
-	m_seed(p_seed),
-	m_agents() {
-	srand(m_seed);
+	m_parallel(p_mode == EnvironmentMasMode::Parallel) {
+	srand(p_seed);
 }
 
-const std::string cam::EnvironmentMas::add(cam::AgentPointer&& p_agent) {
+std::string cam::EnvironmentMas::add(AgentPointer&& p_agent) {
 	p_agent->set_environment(this);
 	m_agents.add(p_agent);
 	return p_agent->get_id();
 }
 
-void cam::EnvironmentMas::continue_simulation(int p_no_turns) {
+cam::AgentPointer cam::EnvironmentMas::get(const std::string& p_id) {
+	return m_agents.get(p_id);
+}
+
+void cam::EnvironmentMas::continue_simulation(const int p_no_turns) {
 	int l_turn = 0;
 	while (true) {
 		run_turn(l_turn++);
@@ -54,33 +56,28 @@ void cam::EnvironmentMas::continue_simulation(int p_no_turns) {
 	simulation_finished();
 }
 
-const std::vector<cam::AgentPointer> cam::EnvironmentMas::filtered_agents(const std::string& p_name_fragment) {
-	return m_agents.filtered_agents(p_name_fragment);
-}
-
-const cam::AgentPointer& cam::EnvironmentMas::random_agent() {
+const cam::AgentPointer& cam::EnvironmentMas::random_agent() const {
 	return m_agents.random_agent();
 }
 
 void cam::EnvironmentMas::remove(const AgentPointer& p_agent) {
-	m_agents.remove(p_agent->get_name());
+	m_agents.remove(p_agent->get_id());
 }
 
-void cam::EnvironmentMas::remove(const std::string& p_agent_name) {
-	remove(m_agents.get(p_agent_name));
+void cam::EnvironmentMas::remove(const std::string& p_agent_id) {
+	remove(m_agents.get(p_agent_id));
 }
 
-void cam::EnvironmentMas::send(const cam::MessagePointer& p_message) {
-	const std::string& l_receiver_name = p_message->get_receiver();
-	AgentPointer l_agent = m_agents.get(l_receiver_name);
-	if (l_agent) {
+void cam::EnvironmentMas::send(const MessagePointer& p_message) {
+	const std::string& l_receiver_id = p_message->get_receiver();
+	if (const AgentPointer l_agent = m_agents.get(l_receiver_id); l_agent) {
 		l_agent->post(p_message);
 	}
 }
 
-void cam::EnvironmentMas::broadcast(const std::string& p_sender, const json& p_message) {
-	for (auto& p_agent : m_agents.get_agents()) {
-		p_agent.second->post(MessagePointer(new cam::Message(p_sender, p_agent.first, p_message)));
+void cam::EnvironmentMas::broadcast(const std::string& p_sender, const json& p_message) const {
+	for(auto& [l_id, l_agent] : m_agents.get_agents()) {
+		l_agent->post(std::make_shared<Message>(p_sender, l_id, p_message));
 	}
 }
 
@@ -100,7 +97,7 @@ void cam::EnvironmentMas::start() {
 	simulation_finished();
 }
 
-int cam::EnvironmentMas::agents_count() const {
+size_t cam::EnvironmentMas::agents_count() const {
 	return m_agents.count();
 }
 
@@ -108,32 +105,30 @@ void cam::EnvironmentMas::simulation_finished() {  }
 
 void cam::EnvironmentMas::turn_finished(int) {  }
 
-std::vector<cam::ObservableAgentPointer> cam::EnvironmentMas::get_list_of_observable_agents(const cam::Agent* p_perceiving_agent) {
-	std::vector<cam::ObservableAgentPointer> l_observable_agent_list;
+std::vector<const cam::ObservablesPointer> cam::EnvironmentMas::get_list_of_observable_agents(const Agent* p_perceiving_agent) const {
+	std::vector<const ObservablesPointer> l_observable_agent_list;
 
-	// Map name:agent
-	for (const auto& l_agent_it : m_agents.get_agents()) {
-		const AgentPointer& l_agent = l_agent_it.second;
-
-		if (l_agent_it.first == p_perceiving_agent->get_name() || !l_agent->is_using_observables()) {
+	// Map id:agent
+	for(auto& [l_id, l_agent] : m_agents.get_agents()) {
+		if (l_id == p_perceiving_agent->get_id() || !l_agent->is_using_observables()) {
 			continue;
 		}
 
 		if (p_perceiving_agent->perception_filter(l_agent->get_observables())) {
-			l_observable_agent_list.push_back(ObservableAgentPointer(new ObservableAgent(l_agent->get_observables())));
+			l_observable_agent_list.push_back(l_agent->get_observables());
 		}
 	}
 	return l_observable_agent_list;
 }
 
 std::future<void> cam::EnvironmentMas::execute_setup(AgentPointer& p_agent) {
-	return std::async(std::launch::async, [p_agent]() {
+	return std::async(std::launch::async, [p_agent] {
 		p_agent->internal_setup();
 	});
 }
 
 std::future<void> cam::EnvironmentMas::execute_see_action(AgentPointer& p_agent) {
-	return std::async(std::launch::async, [p_agent]() {
+	return std::async(std::launch::async, [p_agent] {
 		if (p_agent->is_using_observables()) {
 			p_agent->internal_see();
 		}
@@ -141,22 +136,16 @@ std::future<void> cam::EnvironmentMas::execute_see_action(AgentPointer& p_agent)
 	});
 }
 
-void cam::EnvironmentMas::run_turn(int p_turn) {
-	const std::vector<int> l_agent_order = m_random_order ? random_permutation(agents_count()) : sorted_permutation(agents_count());
-
-	std::vector<std::string> l_agents_left;
-	const std::vector<std::string> l_agent_names = m_agents.get_names();
-	for (int i = 0; i < agents_count(); i++) {
-		l_agents_left.push_back(l_agent_names[l_agent_order.at(i)]);
-	}
+void cam::EnvironmentMas::run_turn(const int p_turn) {
+	//const std::vector<int> l_agent_order = m_random_order ? random_permutation(agents_count()) : sorted_permutation(agents_count());
+	std::vector<std::string> l_agents_left = m_agents.get_ids();
 
 	std::vector<std::future<void>> l_asyncs;
-	while (l_agents_left.size() > 0) {
-		std::string l_agent_name = l_agents_left.at(0);
+	while (!l_agents_left.empty()) {
+		std::string l_agent_id = l_agents_left.at(0);
 		l_agents_left.erase(l_agents_left.begin());
 
-		AgentPointer l_agent = m_agents.get(l_agent_name);
-		if (l_agent) { 
+		if (AgentPointer l_agent = m_agents.get(l_agent_id); l_agent) {
 			if (!l_agent->is_setup()) {
 				if (!m_parallel) {
 					execute_setup(l_agent).wait();
@@ -179,15 +168,18 @@ void cam::EnvironmentMas::run_turn(int p_turn) {
 	turn_finished(p_turn);
 }
 
-const std::vector<int> cam::EnvironmentMas::random_permutation(int p_number) {
+std::vector<int> cam::EnvironmentMas::random_permutation(int p_number) {
 	std::vector<int> l_numbers(p_number);
 	for (int l_index = 0; l_index < p_number; l_index++) {
 		l_numbers[l_index] = l_index;
 	}
 
+	std::random_device l_rd;
 	while (p_number > 1) {
-		int l_k = rand() % p_number--;
-		int l_temp = l_numbers[p_number]; 
+		std::uniform_int_distribution l_dist(0, p_number--);
+
+		const int l_k = l_dist(l_rd);
+		const int l_temp = l_numbers[p_number];
 		l_numbers[p_number] = l_numbers[l_k]; 
 		l_numbers[l_k] = l_temp;
 	}
@@ -195,7 +187,7 @@ const std::vector<int> cam::EnvironmentMas::random_permutation(int p_number) {
 	return l_numbers;
 }
 
-const std::vector<int> cam::EnvironmentMas::sorted_permutation(int p_number) {
+std::vector<int> cam::EnvironmentMas::sorted_permutation(const int p_number) {
 	std::vector<int> l_numbers(p_number);
 	for (int l_index = 0; l_index < p_number; l_index++) {
 		l_numbers[l_index] = l_index;

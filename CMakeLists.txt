@@ -13,7 +13,7 @@ add_library(CPPActressMAS STATIC ${SOURCES})
 if(MSVC)
     target_compile_options(CPPActressMAS PRIVATE /W4 /WX /EHsc)
 else()
-    target_compile_options(CPPActressMAS PRIVATE -Wall -Wextra -Wpedantic -Werror -fno-exceptions)
+    target_compile_options(CPPActressMAS PRIVATE -Wall -Wextra -Wpedantic -fno-exceptions)
 endif()
 
 add_executable(Exemple1 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/Exemple1.cpp)

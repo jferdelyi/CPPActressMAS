@@ -20,7 +20,6 @@
 
 #include <string>
 #include <vector>
-#include <map>
 #include <mutex>
 #include <future>
 
@@ -74,11 +73,6 @@ namespace cam {
 			bool m_parallel;
 
 			/**
-			 * Random seed.
-			 **/
-			unsigned int m_seed;
-
-			/**
 			 * The agents in the environment
 			 **/
 			AgentCollection m_agents;
@@ -93,7 +87,7 @@ namespace cam {
 			 * @param p_delay_after_turn A delay (in miliseconds) after each turn.
 			 * @param p_seed A random number generator seed for non-deterministic but repeatable experiments.
 			 **/
-			EnvironmentMas(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel, int p_delay_after_turn = 0, const unsigned int p_seed = std::time(0));
+			explicit EnvironmentMas(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel, int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
 			
 			/**
 			 * Nothing to delete.
@@ -101,12 +95,18 @@ namespace cam {
 			virtual ~EnvironmentMas() = default;
 
 			/**
-			 * Adds an agent to the environment. The agent should already have a name and its name should be unique.
-			 *
+			 * Adds an agent to the environment.
 			 * @param p_agent The concurrent agent that will be added
 			 * @return Id of the agent
 			 **/
-			const std::string add(cam::AgentPointer&& p_agent);
+			std::string add(AgentPointer&& p_agent);
+
+			/**
+			 * Get an agent.
+			 * @param p_id Agent ID
+			 * @return Agent pointer
+			 **/
+			AgentPointer get(const std::string& p_id);
 
 			/**
 			 * Continues the simulation for an additional number of turns, after an initial simulation has finished.
@@ -118,17 +118,10 @@ namespace cam {
 			void continue_simulation(int p_no_turns = 0);
 
 			/**
-			 * Returns a std::vector with the names of all the agents that contain a certain std::string.
-			 *
-			 * @param p_name_fragment The name fragment that the agent names should contain
-			 **/
-			const std::vector<cam::AgentPointer> filtered_agents(const std::string& p_name_fragment);
-
-			/**
-			 * Returns the name of a randomly selected agent from the environment
+			 * Returns the id of a randomly selected agent from the environment
 			 * @retrun Randomly selected agent
 			 **/
-			const cam::AgentPointer& random_agent();
+			[[nodiscard]] const AgentPointer& random_agent() const;
 
 			/**
 			 * Stops the execution of the agent and removes it from the environment. Use the Remove method instead of Agent.Stop
@@ -139,12 +132,12 @@ namespace cam {
 			void remove(const AgentPointer& p_agent);
 
 			/**
-			 * Stops the execution of the agent identified by name and removes it from the environment. Use the Remove method instead of Agent.Stop
+			 * Stops the execution of the agent identified by id and removes it from the environment. Use the Remove method instead of Agent.Stop
 			 * when the decision to stop an agent does not belong to the agent itself, but to some other agent or to an external factor.
 			 *
-			 * @param p_agent_name The name of the agent to be removed
+			 * @param p_agent_id The id of the agent to be removed
 			 **/
-			void remove(const std::string& p_agent_name);
+			void remove(const std::string& p_agent_id);
 
 			/**
 			 * Sends a message from the outside of the multiagent system. Whenever possible, the agents should use the Send method of their own class,
@@ -159,7 +152,7 @@ namespace cam {
 			 * @param p_sender From
 			 * @param p_message The message
 			 **/
-			void broadcast(const std::string& p_sender, const json& p_message);
+			void broadcast(const std::string& p_sender, const json& p_message) const;
 
 			/**
 			 * Starts the simulation.
@@ -169,7 +162,7 @@ namespace cam {
 			/**
 			 * The number of agents in the environment
 			 **/
-			int agents_count() const;
+			[[nodiscard]] size_t agents_count() const;
 
 			/**
 			 * A method that may be optionally overriden to perform additional processing after the simulation has finished.
@@ -188,7 +181,11 @@ namespace cam {
 			 *
 			 * @param p_perceiving_agent Peceiving agent
 			 **/
-			std::vector<ObservableAgentPointer> get_list_of_observable_agents(const cam::Agent* p_perceiving_agent);
+			std::vector<const ObservablesPointer> get_list_of_observable_agents(const Agent* p_perceiving_agent) const;
+
+			// Delete copy constructor
+			EnvironmentMas(const EnvironmentMas&) = delete;
+			EnvironmentMas& operator=(EnvironmentMas&) = delete;
 
 		protected:
 
@@ -197,14 +194,14 @@ namespace cam {
 			 *
 			 * @param p_agent Agent to Execute See and Act
 			 **/
-			std::future<void> execute_setup(AgentPointer& p_agent);
+			static std::future<void> execute_setup(AgentPointer& p_agent);
 
 			/**
 			 * Execute See and Act of the given agent in parallel.
 			 *
 			 * @param p_agent Agent to Execute See and Act
 			 **/
-			std::future<void> execute_see_action(AgentPointer& p_agent);
+			static std::future<void> execute_see_action(AgentPointer& p_agent);
 
 			/**
 			 * Run one turn.
@@ -219,17 +216,13 @@ namespace cam {
 			 *
 			 * @param p_number Number of value in the returned vector
 			 **/
-			const std::vector<int> random_permutation(int p_number);
+			static std::vector<int> random_permutation(int p_number);
 			
 			/**
 			 * Return a vector (p_number length) of ordered index.
 			 *
 			 * @param p_number Number of value in the returned vector
 			 **/
-			const std::vector<int> sorted_permutation(int p_number);
-
-			// Delete copy constructor
-			EnvironmentMas(const EnvironmentMas&) = delete;
-			EnvironmentMas& operator=(EnvironmentMas&) = delete;
+			static std::vector<int> sorted_permutation(int p_number);
 	};
 }

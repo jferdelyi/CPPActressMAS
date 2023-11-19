@@ -17,13 +17,14 @@
  **************************************************************************/
 
 #include "Agent.h"
+
 #include "EnvironmentMas.h"
 
-cam::Agent::Agent(const std::string& p_name) : 
+cam::Agent::Agent(std::string p_name) :
 	m_id(UUID::generate_uuid()),
-	m_name(p_name),
+	m_name(std::move(p_name)),
 	m_is_setup(false),
-	m_observables(),
+	m_observables(new Observables()),
 	m_environment(nullptr) {
 }
 
@@ -36,10 +37,10 @@ const std::string& cam::Agent::get_name() const {
 }
 
 bool cam::Agent::is_using_observables() const {
-	return !m_observables.empty();
+	return !m_observables->empty();
 }
 
-const std::unordered_map<std::string, std::string>& cam::Agent::get_observables() const {
+cam::ObservablesPointer cam::Agent::get_observables() const {
 	return m_observables;
 }
 
@@ -47,14 +48,7 @@ bool cam::Agent::is_setup() const {
 	return m_is_setup;
 }
 
-void cam::Agent::set_name(const std::string& p_name) {
-	if (m_name == "") {
-		return;
-	}
-	m_name = p_name;
-}
-
-void cam::Agent::set_environment(cam::EnvironmentMas* p_environment) {
+void cam::Agent::set_environment(EnvironmentMas* p_environment) {
 	m_environment = p_environment;
 }
 
@@ -70,8 +64,7 @@ void cam::Agent::internal_see() {
 void cam::Agent::internal_action() {
 	if (m_messages.size_approx() > 0) {
 		while (m_messages.size_approx() > 0) {
-			MessagePointer l_message;
-			if (m_messages.try_dequeue(l_message)) {
+			if (MessagePointer l_message; m_messages.try_dequeue(l_message)) {
 				action(l_message);
 			}
 		}
@@ -80,31 +73,31 @@ void cam::Agent::internal_action() {
 	}
 }
 
-void cam::Agent::stop() {
-	m_environment->remove(m_name);
+void cam::Agent::stop() const {
+	m_environment->remove(m_id);
 }
 
-void cam::Agent::post(const cam::MessagePointer& p_message) {
+void cam::Agent::post(const MessagePointer& p_message) {
 	m_messages.enqueue(p_message);
 }
 
-void cam::Agent::send(const std::string& p_receiver, const json& p_message) {
-	m_environment->send(MessagePointer(new cam::Message(m_name, p_receiver, p_message)));
+void cam::Agent::send(const std::string& p_receiver_id, const json& p_message) {
+	m_environment->send(std::make_shared<Message>(m_id, p_receiver_id, p_message));
 }
 
-void cam::Agent::broadcast(const json& p_message) {
-	m_environment->broadcast(m_name, p_message);
+void cam::Agent::broadcast(const json& p_message) const {
+	m_environment->broadcast(m_id, p_message);
 }
 
-bool cam::Agent::perception_filter(const std::unordered_map<std::string, std::string>&) const {
+bool cam::Agent::perception_filter(const ObservablesPointer&) const {
 	return false;
 }
 
 void cam::Agent::setup() {}
 
-void cam::Agent::see(std::vector<ObservableAgentPointer>) {}
+void cam::Agent::see(const std::vector<const ObservablesPointer>&) {}
 
-void cam::Agent::action(const cam::MessagePointer&) {}
+void cam::Agent::action(const MessagePointer&) {}
 
 void cam::Agent::default_action() {}
 

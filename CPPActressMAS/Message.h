@@ -40,7 +40,7 @@ namespace cam {
 	/**
 	 * A message that the agents use to communicate. In an agent-based system, the communication between the agents is exclusively performed by exchanging messages.
 	 **/
-	class Message {
+	class Message final {
 		
 		protected:
 
@@ -71,49 +71,50 @@ namespace cam {
 			 * @param p_sender Sender.
 			 * @param p_receiver Receiver.
 			 * @param p_message Message.
+			 * @param p_binary_format Binary format used.
 			 **/
-			Message(const std::string& p_sender, const std::string& p_receiver, const json& p_message, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::MessagePack);
+			Message(std::string p_sender, std::string p_receiver, const json& p_message, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::MessagePack);
 
 			/**
 			 * Nothing to delete.
 			 **/
-			virtual ~Message() = default;
+			/*virtual*/ ~Message() = default;
 
 			/**
 			 * Get sender.
 			 * @return Sender.
 			 **/
-			const std::string& get_sender() const;
+			[[nodiscard]] const std::string& get_sender() const;
 
 			/**
 			 * Get receiver.
 			 * @return Receiver.
 			 **/
-			const std::string& get_receiver() const;
+			[[nodiscard]] const std::string& get_receiver() const;
 
 			/**
 			 * Get binary message.
 			 * @return binary message JSON
 			 **/
-			const std::vector<std::uint8_t>& get_binary_message() const;
+			[[nodiscard]] const std::vector<std::uint8_t>& get_binary_message() const;
 
 			/**
 			 * Get message.
 			 * @return message JSON
 			 **/
-			const json content() const;
+			[[nodiscard]] json content() const;
 
 			/**
 			 * Format message to string.
 			 * @return string message from JSON
 			 **/
-			const std::string to_string() const;
+			[[nodiscard]] std::string to_string() const;
 
 			/**
-			 * Format message "SENDER -> RECEIVER: CONTENT".
+			 * Format message.
 			 * @return string formated message
 			 **/
-			const std::string format() const;
+			[[nodiscard]] /*virtual*/ std::string format() const;
 
 			// Delete copy constructor
 			Message(const Message&) = delete;
@@ -121,5 +122,5 @@ namespace cam {
 	};
 
 	// Message pointer
-	using MessagePointer = std::shared_ptr<cam::Message>;
+	using MessagePointer = std::shared_ptr<Message>;
 }

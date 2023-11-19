@@ -20,40 +20,44 @@
 
 #include <EnvironmentMas.h>
 
-class MyAgent : public cam::Agent {
+static std::unordered_map<std::string, std::string> s_name_id;
+
+class MyAgent final : public cam::Agent {
 	public:
-		MyAgent(const std::string& p_name): Agent(p_name) {}
+		explicit MyAgent(const std::string& p_name) : Agent(p_name) {
+			s_name_id.emplace(m_name, m_id);
+		}
 
 		void setup() override {
-			std::cout << m_name << " starting" << std::endl;
+			std::cout << "[" + m_name + "]: starting" << std::endl;
+
+			std::random_device l_rd;
+			std::uniform_int_distribution l_dist(1, 1000);
 
 			for (int i = 1; i <= 10; i++) {
-				std::cout << m_name << " sending " << i << std::endl;
-
-				send("monitor", i);
-
-				int l_dt = 10 + (rand() % 90);
-				std::this_thread::sleep_for(std::chrono::milliseconds(l_dt));
+				std::cout << "[" + m_name + "]: sending " << i << std::endl;
+				send(s_name_id.at("monitor"), {{"data", i}, {"from", m_name}});
+				std::this_thread::sleep_for(std::chrono::milliseconds(l_dist(l_rd)));
 			}
 		}
 };
 
-class MonitorAgent : public cam::Agent {
+class MonitorAgent final : public cam::Agent  {
 	public:
-		MonitorAgent(const std::string& p_name): Agent(p_name) {}
+		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) {
+			s_name_id.emplace(m_name, m_id);
+		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << m_name << " has received " << p_message->format() << std::endl;
+			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
 		}
 };
 
 int main() {
 	cam::EnvironmentMas l_environment(100);
-	
 	l_environment.add(cam::AgentPointer(new MyAgent("agent1")));
 	l_environment.add(cam::AgentPointer(new MyAgent("agent2")));
 	l_environment.add(cam::AgentPointer(new MonitorAgent("monitor")));
-	
 	l_environment.start();
 	return 0;
 }

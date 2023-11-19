@@ -28,13 +28,12 @@ namespace cam {
 	/**
 	 * A collection of agents
 	 **/
-	class AgentCollection {
+	class AgentCollection final {
 
 		protected:
 
 			/**
-			 * Agents: name, content
-			 * Multiple names are allowed
+			 * Agents: id, content
 			 **/
 			std::map<std::string, AgentPointer> m_agents;
 
@@ -48,13 +47,13 @@ namespace cam {
 			/**
 			 * Nothing to delete
 			 **/
-			virtual ~AgentCollection() = default;
+			/*virtual*/ ~AgentCollection() = default;
 
 			/**
 			 * Return number of agents
 			 * @return Number of agents
 			 **/
-			int count() const;
+			[[nodiscard]] size_t count() const;
 
 			/**
 			 * Add new agent
@@ -63,60 +62,48 @@ namespace cam {
 			void add(AgentPointer& p_agent);
 
 			/**
-			 * Returns the name of a randomly selected agent from the environment
+			 * Returns a randomly selected agent from the environment
 			 * @return Random agent
 			 **/
-			const cam::AgentPointer& random_agent() const;
+			[[nodiscard]] const AgentPointer& random_agent() const;
 
 			/**
 			 * Return true if the agent exists
 			 * @return True if exists
 			 **/
-			bool contains(const AgentPointer& p_agent) const;
+			[[nodiscard]] bool contains(const AgentPointer& p_agent) const;
 
 			/**
 			 * Return true if the agent exists
-			 * @param p_agent_name The agent id
+			 * @param p_id The agent id
 			 * @return True if exists
 			 **/
-			bool contains(const std::string& p_agent_name) const;
+			[[nodiscard]] bool contains(const std::string& p_id) const;
 
 			/**
 			 * Remove agent
-			 * @param p_agent_name The agent id
+			 * @param p_id The agent id
 			 **/
-			void remove(const std::string& p_agent_name);
+			void remove(const std::string& p_id);
 
 			/**
 			 * Get agent by id
-			 * @param p_agent_name The agent id
-			 * @return The agent
+			 * @param p_id The agent id
+			 * @return The agentx
 			 **/
-			AgentPointer get(const std::string& p_agent_name);
-
-			/**
-			 * Get all names
-			 * @return All names
-			 **/
-			const std::vector<std::string> get_names() const;
+			AgentPointer get(const std::string& p_id);
 
 			/**
 			 * Get all ids
 			 * @return All ids
 			 **/
-			const std::vector<std::string> get_ids() const;
+			[[nodiscard]] std::vector<std::string> get_ids() const;
 
 			/**
 			 * Get all agents
-			 * @return All names
+			 * @return All agents
 			 **/
-			const std::map<std::string, AgentPointer>& get_agents() const;
-
-			/**
-			 * Returns a std::vector with the names of all the agents that contain a certain std::string
-			 * @param p_name_fragment The name fragment that the agent names should contain
-			 **/
-			const std::vector<cam::AgentPointer> filtered_agents(const std::string& p_name_fragment);
+			[[nodiscard]] const std::map<std::string, AgentPointer>& get_agents() const;
 
 			// Delete copy constructor
 			AgentCollection(const AgentCollection&) = delete;

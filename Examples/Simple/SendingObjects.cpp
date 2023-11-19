@@ -20,7 +20,7 @@
 
 #include <EnvironmentMas.h>
 
-
+static std::unordered_map<std::string, std::string> s_name_id;
 
 class ContentInfo {
 	public:
@@ -49,40 +49,46 @@ class ContentInfo {
 
 class Agent1 : public cam::Agent {
 	public:
-		Agent1(const std::string& p_name): Agent(p_name) {}
+		Agent1(const std::string& p_name) : 
+			Agent(p_name) {
+			s_name_id.emplace(m_name, m_id);
+		}
 
 		void setup() override {
 			for (int i = 0; i < 10; i++) {
-				std::cout << "a1* sending: setup " + std::to_string(i + 1) + " from a1*" << std::endl;
-				ContentInfo l_content(i + 1, "setup a1*");
-				send("a2", l_content.serialize());
+				std::cout << "[" + m_name + "]: setup " << std::to_string(i + 1) << std::endl;
+				ContentInfo l_content(i + 1, "setup from a1*");
+				send(s_name_id.at("a2"), l_content.serialize());
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 			ContentInfo l_content(p_message->content());
-			std::cout << "a1* receiving: " + l_content.m_text + " - " +  std::to_string(l_content.m_number) << std::endl;
+			std::cout << "[" + m_name + "]: has received {" << l_content.m_text << ", " <<  std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 };
 
 class Agent2 : public cam::Agent {
 	public:
-		Agent2(const std::string& p_name): Agent(p_name) {}
+		Agent2(const std::string& p_name) : 
+			Agent(p_name) {
+			s_name_id.emplace(m_name, m_id);
+		}
 
 		void setup() override {
 			for (int i = 0; i < 3; i++) {
-				std::cout << "a2 sending: setup " + std::to_string(i + 1) + " from a2" << std::endl;
-				ContentInfo l_content(i + 1, "setup a2");
-				send("a1*", l_content.serialize());
+				std::cout << "[" + m_name + "]: setup " << std::to_string(i + 1) << std::endl;
+				ContentInfo l_content(i + 1, "setup from a2");
+				send(s_name_id.at("a1*"), l_content.serialize());
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 			ContentInfo l_content(p_message->content());
-			std::cout << "a2 receiving: " + l_content.m_text + " - " +  std::to_string(l_content.m_number) << std::endl;
+			std::cout << "[" + m_name + "]: has received {" << l_content.m_text << ", " <<  std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 };

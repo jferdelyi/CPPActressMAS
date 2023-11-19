@@ -20,12 +20,17 @@
 
 #include <EnvironmentMas.h>
 
+static std::unordered_map<std::string, std::string> s_name_id;
+
 class MyAgent : public cam::Agent {
 	protected:
 		int m_turn = 1;
 
 	public:
-		MyAgent(const std::string& p_name): Agent(p_name) {}
+		MyAgent(const std::string& p_name) : 
+			Agent(p_name) {
+			s_name_id.emplace(m_name, m_id);
+		}
 
 		void default_action() override {
 			if (m_turn > 3) {
@@ -34,7 +39,7 @@ class MyAgent : public cam::Agent {
 			}
 
 			for (int i = 1; i <= 3; i++) {
-				send("writer", "Agent " + m_name + " turn " + std::to_string(m_turn) + " index " + std::to_string(i));
+				send(s_name_id.at("writer"), {{"turn", m_turn}, {"index", i}, {"from", m_name}});
 			}
 
 			m_turn++;
@@ -43,10 +48,13 @@ class MyAgent : public cam::Agent {
 
 class WriterAgent : public cam::Agent {
 	public:
-		WriterAgent(const std::string& p_name): Agent(p_name) {}
+		WriterAgent(const std::string& p_name) : 
+			Agent(p_name) {
+			s_name_id.emplace(m_name, m_id);
+		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << p_message->format() << std::endl;
+			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
 		}
 };
 
