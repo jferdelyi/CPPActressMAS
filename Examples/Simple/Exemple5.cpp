@@ -22,9 +22,9 @@
 
 static std::unordered_map<std::string, std::string> s_name_id;
 
-class Agent1 : public cam::Agent {
+class Agent1 final : public cam::Agent {
 	public:
-		Agent1(const std::string& p_name): Agent(p_name) {
+		explicit Agent1(const std::string& p_name): Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
@@ -49,9 +49,9 @@ class Agent1 : public cam::Agent {
 		}
 };
 
-class Agent2 : public cam::Agent {
+class Agent2 final : public cam::Agent {
 	public:
-		Agent2(const std::string& p_name): Agent(p_name) {
+		explicit Agent2(const std::string& p_name): Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 

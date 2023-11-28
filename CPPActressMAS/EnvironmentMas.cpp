@@ -77,7 +77,9 @@ void cam::EnvironmentMas::send(const MessagePointer& p_message) {
 
 void cam::EnvironmentMas::broadcast(const std::string& p_sender, const json& p_message) const {
 	for(auto& [l_id, l_agent] : m_agents.get_agents()) {
-		l_agent->post(std::make_shared<Message>(p_sender, l_id, p_message));
+		if (l_id != p_sender) {
+			l_agent->post(std::make_shared<Message>(p_sender, l_id, p_message));
+		}
 	}
 }
 

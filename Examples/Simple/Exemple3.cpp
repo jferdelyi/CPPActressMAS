@@ -20,13 +20,14 @@
 
 #include <EnvironmentMas.h>
 
+// For convenience only to be closest as possible to the C# version
 static std::unordered_map<std::string, std::string> s_name_id;
 
-class MyEnvironment : public cam::EnvironmentMas {
+class MyEnvironment final : public cam::EnvironmentMas {
 	public:
 		MyEnvironment() : EnvironmentMas(10, cam::EnvironmentMasMode::Parallel, 100) {}
 
-		void turn_finished(int p_turn) override {
+		void turn_finished(const int p_turn) override {
 			std::cout << std::endl << "Turn " + std::to_string(p_turn + 1) + " finished" << std::endl << std::endl;
 		}
 
@@ -35,15 +36,15 @@ class MyEnvironment : public cam::EnvironmentMas {
 		}
 };
 
-class MonitorAgent : public cam::Agent {
+class MonitorAgent final : public cam::Agent {
 	protected:
-		int m_round;
-		int m_max_rounds;
+		int m_round{};
+		int m_max_rounds{};
 		std::map<std::string, bool> m_finished;
 		std::vector<std::string> m_agent_names;
 
 	public:
-		MonitorAgent(const std::string& p_name) : Agent(p_name) {
+		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
@@ -54,20 +55,20 @@ class MonitorAgent : public cam::Agent {
 			std::cout << "[" + m_name + "]: start round 1 in setup " << std::endl;
 
 			// In C# version the order is alway 3,2,1,4
-			// In C++ version the order is always 1,2,3,4
+			// In C++ version the order is always 4,3,2,1
 			// Probably explained by the type of container and 
 			// find algorithme. I think this is not really critical
-			for (const auto& l_agent_it : s_name_id) {
-				if (l_agent_it.first.find("agent") != std::string::npos) {
-					const auto& l_agent = m_environment->get(l_agent_it.second);
+			for (const auto& [l_agent_name, l_agent_id] : s_name_id) {
+				if (l_agent_name.find("agent") != std::string::npos) {
+					const auto& l_agent = m_environment->get(l_agent_id);
 					m_agent_names.push_back(l_agent->get_name());
 					m_finished.emplace(l_agent->get_id(), false);
 				}
 			}
 
-			for (int i = 0; i < m_agent_names.size(); i++) {
-				std::cout << "[" + m_name + "]: sending to " << m_agent_names[i] << std::endl;
-				send(s_name_id.at(m_agent_names[i]), {{"data", "start"},{"from", m_name}});
+			for (const auto & m_agent_name : m_agent_names) {
+				std::cout << "[" + m_name + "]: sending to " << m_agent_name << std::endl;
+				send(s_name_id.at(m_agent_name), {{"data", "start"},{"from", m_name}});
 			}
 		}
 
@@ -83,33 +84,28 @@ class MonitorAgent : public cam::Agent {
 					return;
 				}
 
-				for (int i = 0; i < m_agent_names.size(); i++) {
-					m_finished[s_name_id.at(m_agent_names[i])] = false;
+				for (const auto & m_agent_name : m_agent_names) {
+					m_finished[s_name_id.at(m_agent_name)] = false;
 				}
 
 				std::cout << "[" + m_name + "]: start round " + std::to_string(m_round + 1) + " in action";
 
-				for (int i = 0; i < m_agent_names.size(); i++) {
-					std::cout << "[" + m_name + "]: sending to " << m_agent_names[i] << std::endl;
-					send(s_name_id.at(m_agent_names[i]), {{"data", "continue"},{"from", m_name}});
+				for (const auto & m_agent_name : m_agent_names) {
+					std::cout << "[" + m_name + "]: sending to " << m_agent_name << std::endl;
+					send(s_name_id.at(m_agent_name), {{"data", "continue"},{"from", m_name}});
 				}
 			}
 		}
 
 	protected:
-		inline bool all_finished() const {
-			for (const auto& l_finished : m_finished) {
-				if (!l_finished.second) {
-					return false;
-				}
-			}
-			return true;
+		bool all_finished() const {
+			return std::ranges::all_of(m_finished.cbegin(), m_finished.cend(), [](const auto& l_data) { return l_data.second; });
 		}
 };
 
-class MyAgent : public cam::Agent {
+class MyAgent final : public cam::Agent {
 	public:
-		MyAgent(const std::string& p_name) : Agent(p_name) {
+		explicit MyAgent(const std::string& p_name) : Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 

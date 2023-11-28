@@ -74,6 +74,12 @@ namespace cam {
 			 **/
 			moodycamel::ConcurrentQueue<MessagePointer> m_messages;
 
+			/**
+			 * Producer token.
+			 **/
+			moodycamel::ProducerToken m_producer_token;
+
+
 		public:
 			
 			/**

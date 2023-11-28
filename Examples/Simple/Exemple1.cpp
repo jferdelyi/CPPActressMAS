@@ -32,7 +32,7 @@ class MyAgent final : public cam::Agent {
 			std::cout << "[" + m_name + "]: starting" << std::endl;
 
 			std::random_device l_rd;
-			std::uniform_int_distribution l_dist(1, 1000);
+			std::uniform_int_distribution l_dist(10, 100);
 
 			for (int i = 1; i <= 10; i++) {
 				std::cout << "[" + m_name + "]: sending " << i << std::endl;

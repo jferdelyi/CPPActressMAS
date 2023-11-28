@@ -22,9 +22,9 @@
 
 static std::unordered_map<std::string, std::string> s_name_id;
 
-class ManagerAgent : public cam::Agent {
+class ManagerAgent final : public cam::Agent {
 	public:
-		ManagerAgent(const std::string& p_name) :
+		explicit ManagerAgent(const std::string& p_name) :
 			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
@@ -34,10 +34,10 @@ class ManagerAgent : public cam::Agent {
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			const std::string& l_action = p_message->content()["action"];
+
 			//const std::vector<std::string>& l_parameters = p_message->content()["parameters"];
 
-			if (l_action == "report") {
+			if (const std::string& l_action = p_message->content()["action"]; l_action == "report") {
 				std::cout << "[" + m_name + "]: reporting from " << p_message->content()["from"] << std::endl;
 			} else if (l_action == "reply") {
 				std::cout << "[" + m_name + "]: replaying from " << p_message->content()["from"] << std::endl;
@@ -45,30 +45,32 @@ class ManagerAgent : public cam::Agent {
 		}
 };
 
-class WorkerAgent : public cam::Agent {
+class WorkerAgent final : public cam::Agent {
 
 	protected:
-		inline const std::string next_worker() const {
-			int l_workers_count = 5;
+		 std::string next_worker() const {
 			std::string l_name = m_name;
+
+			std::random_device l_rd;
+			std::uniform_int_distribution l_dist(1, 5);
+
 			while (l_name == m_name) {
-				l_name = "Worker" + std::to_string(1 + rand() % l_workers_count);
+				l_name = "Worker" + std::to_string(l_dist(l_rd));
 			}
 			return l_name;
 		}
 
 	public:
-		WorkerAgent(const std::string& p_name) :
+		explicit WorkerAgent(const std::string& p_name) :
 			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
-			const std::string& l_action = p_message->content()["action"];
 			//const std::vector<std::string>& l_parameters = p_message->content()["parameters"];
 
-			if (l_action == "start") {
+			if (const std::string& l_action = p_message->content()["action"]; l_action == "start") {
 				send(s_name_id.at("Manager"), {{"action","report"}, {"from", m_name}});
 				send(s_name_id.at(next_worker()), {{"action","request"}, {"from", m_name}});		
 			} else if (l_action == "request") {

@@ -25,7 +25,8 @@ cam::Agent::Agent(std::string p_name) :
 	m_name(std::move(p_name)),
 	m_is_setup(false),
 	m_observables(new Observables()),
-	m_environment(nullptr) {
+	m_environment(nullptr),
+	m_producer_token(m_messages) {
 }
 
 const std::string& cam::Agent::get_id() const {
@@ -62,11 +63,10 @@ void cam::Agent::internal_see() {
 }
 
 void cam::Agent::internal_action() {
-	if (m_messages.size_approx() > 0) {
-		while (m_messages.size_approx() > 0) {
-			if (MessagePointer l_message; m_messages.try_dequeue(l_message)) {
-				action(l_message);
-			}
+	if (m_messages.size_approx()) {
+		MessagePointer l_message;
+		while (m_messages.try_dequeue(l_message)) {
+			action(l_message);
 		}
 	} else {
 		default_action();
@@ -78,7 +78,7 @@ void cam::Agent::stop() const {
 }
 
 void cam::Agent::post(const MessagePointer& p_message) {
-	m_messages.enqueue(p_message);
+	m_messages.enqueue(m_producer_token, p_message);
 }
 
 void cam::Agent::send(const std::string& p_receiver_id, const json& p_message) {

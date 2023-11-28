@@ -22,12 +22,12 @@
 
 static std::unordered_map<std::string, std::string> s_name_id;
 
-class MyAgent : public cam::Agent {
+class MyAgent final : public cam::Agent {
 	protected:
 		int m_turn = 1;
 
 	public:
-		MyAgent(const std::string& p_name) : 
+		explicit MyAgent(const std::string& p_name) :
 			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
@@ -46,9 +46,9 @@ class MyAgent : public cam::Agent {
 		}
 };
 
-class WriterAgent : public cam::Agent {
+class WriterAgent final : public cam::Agent {
 	public:
-		WriterAgent(const std::string& p_name) : 
+		explicit WriterAgent(const std::string& p_name) :
 			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
