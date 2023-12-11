@@ -27,7 +27,7 @@ cam::EnvironmentMas::EnvironmentMas(const int p_no_turns, const EnvironmentMasMo
 	m_no_turns(p_no_turns),
 	m_delay_after_turn(p_delay_after_turn),
 	m_random_order(p_mode == EnvironmentMasMode::SequentialRandom || p_mode == EnvironmentMasMode::Parallel),
-	m_parallel(p_mod == EnvironmentMasMode::Parallel),
+	m_parallel(p_mode == EnvironmentMasMode::Parallel),
 	m_random_generator(p_seed) {}
 
 std::string cam::EnvironmentMas::add(AgentPointer&& p_agent) {
