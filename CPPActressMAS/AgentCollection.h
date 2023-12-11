@@ -31,14 +31,18 @@ namespace cam {
 	class AgentCollection final {
 
 		protected:
-
 			/**
 			 * Agents: id, content
 			 **/
 			std::map<std::string, AgentPointer> m_agents;
 
+			/**
+			 * Mutex for the map
+			 **/
+			std::mutex m_mutex;
+			std::condition_variable m_cond;
+
 		public:
-		
 			/**
 			 * Initializes a new instance of a collection of agents
 			 **/
@@ -65,7 +69,7 @@ namespace cam {
 			 * Returns a randomly selected agent from the environment
 			 * @return Random agent
 			 **/
-			[[nodiscard]] const AgentPointer& random_agent() const;
+			[[nodiscard]] const AgentPointer& random_agent();
 
 			/**
 			 * Return true if the agent exists
@@ -97,7 +101,7 @@ namespace cam {
 			 * Get all ids
 			 * @return All ids
 			 **/
-			[[nodiscard]] std::vector<std::string> get_ids() const;
+			[[nodiscard]] std::vector<std::string> get_ids();
 
 			/**
 			 * Get all agents
@@ -106,7 +110,7 @@ namespace cam {
 			[[nodiscard]] const std::map<std::string, AgentPointer>& get_agents() const;
 
 			// Delete copy constructor
-			AgentCollection(const AgentCollection&) = delete;
-			AgentCollection& operator=(AgentCollection&) = delete;
+			AgentCollection(const AgentCollection& ) = delete;
+			AgentCollection& operator=(AgentCollection& ) = delete;
 	};
-}
+} // namespace cam

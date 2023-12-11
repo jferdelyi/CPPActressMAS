@@ -18,32 +18,32 @@
 
 #pragma once
 
-#include <moodycamel/concurrentqueue.h>
 #include <uuid/UUID.hpp>
 
+#include "ConcurrentQueue.hpp"
 #include "Message.h"
 
 /**
  * CPPActressMAS
  */
 namespace cam {
-	
 	class EnvironmentMas;
-	
+
 	/**
-	 * Represents the observable properties of an agent. They depend on the set of Observables properties of an agent and
-	 * on the PerceptionFilter function of an agent who wants to observe other agents.
+	 * Represents the observable properties of an agent. They depend on the set of
+	 * Observables properties of an agent and on the PerceptionFilter function of an
+	 * agent who wants to observe other agents.
 	 **/
 	using Observables = std::unordered_map<std::string, json>;
 	using ObservablesPointer = std::shared_ptr<const Observables>;
 
 	/**
-	 * The base class for an agent that runs on a turn-based manner in its environment. You must create your own agent classes derived from this abstract class.
+	 * The base class for an agent that runs on a turn-based manner in its
+	 * environment. You must create your own agent classes derived from this abstract class.
 	 **/
 	class Agent {
 
 		protected:
-
 			/**
 			 * Unique ID.
 			 **/
@@ -67,27 +67,20 @@ namespace cam {
 			/**
 			 * The environment where the agent is.
 			 **/
-			EnvironmentMas* m_environment;
+			EnvironmentMas *m_environment;
 
 			/**
 			 * Messages arrived.
 			 **/
-			moodycamel::ConcurrentQueue<MessagePointer> m_messages;
-
-			/**
-			 * Producer token.
-			 **/
-			moodycamel::ProducerToken m_producer_token;
-
+			ConcurrentQueue<MessagePointer> m_messages;
 
 		public:
-			
 			/**
 			 * Create a new agent.
 			 * @param p_name Name of the new agent
 			 **/
 			explicit Agent(std::string p_name);
-			
+
 			/**
 			 * Nothing to delete.
 			 **/
@@ -97,37 +90,37 @@ namespace cam {
 			 * Return id.
 			 * @return Id of the agent
 			 **/
-			const std::string& get_id() const;
+			[[nodiscard]] const std::string& get_id() const { return m_id; }
 
 			/**
 			 * Return name.
 			 * @return Name of the agent
 			 **/
-			const std::string& get_name() const;
+			[[nodiscard]] const std::string& get_name() const { return m_name; }
 
 			/**
 			 * True if using observables.
 			 * @return True if using observables
 			 **/
-			bool is_using_observables() const;
+			[[nodiscard]] bool is_using_observables() const { return !m_observables->empty(); }
 
 			/**
 			 * Get observables.
 			 * @return Observables
 			 **/
-			ObservablesPointer get_observables() const;
+			[[nodiscard]] ObservablesPointer get_observables() const { return m_observables; }
 
 			/**
 			 * True is must run setup.
 			 * @return True is must run setup
 			 **/
-			bool is_setup() const;
+			[[nodiscard]] bool is_setup() const { return m_is_setup; }
 
 			/**
 			 * Set environment.
 			 * @param p_environment The environment
 			 **/
-			void set_environment(EnvironmentMas* p_environment);
+			void set_environment(EnvironmentMas *p_environment) { m_environment = p_environment; }
 
 			/**
 			 * Internal setup called by the environment.
@@ -145,7 +138,7 @@ namespace cam {
 			void internal_action();
 
 			/**
-			 * Stops the execution of the agent and removes it from the environment. 
+			 * Stops the execution of the agent and removes it from the environment.
 			 * Use the Stop method instead of Environment.
 			 * Remove when the decision to be stopped belongs to the agent itself.
 			 **/
@@ -175,8 +168,8 @@ namespace cam {
 			 * @param p_observed Observed properties
 			 * @return True if the agent is observable
 			 **/
-			virtual bool perception_filter(const ObservablesPointer& p_observed) const;
-			
+			[[nodiscard]] virtual bool perception_filter(const ObservablesPointer& p_observed) const;
+
 			/**
 			 * Setup the agent.
 			 **/
@@ -193,17 +186,17 @@ namespace cam {
 			 * @param p_message The message to compute
 			 **/
 			virtual void action(const MessagePointer& p_message);
-		
+
 			/**
 			 * Compute action if there is no message.
 			 **/
 			virtual void default_action();
 
 			// Delete copy constructor
-			Agent(const Agent&) = delete;
-			Agent& operator=(Agent&) = delete;
+			Agent(const Agent& ) = delete;
+			Agent& operator=(Agent& ) = delete;
 	};
-	
+
 	// Agent pointer
 	using AgentPointer = std::shared_ptr<Agent>;
-}
+} // namespace cam

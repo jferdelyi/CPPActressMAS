@@ -24,7 +24,8 @@ static std::unordered_map<std::string, std::string> s_name_id;
 
 class MyAgent final : public cam::Agent {
 	public:
-		explicit MyAgent(const std::string& p_name) : Agent(p_name) {
+		explicit MyAgent(const std::string& p_name) :
+			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
@@ -42,14 +43,16 @@ class MyAgent final : public cam::Agent {
 		}
 };
 
-class MonitorAgent final : public cam::Agent  {
+class MonitorAgent final : public cam::Agent {
 	public:
-		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) {
+		explicit MonitorAgent(const std::string& p_name) :
+			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+			std::cout << "[" + m_name + "]: has received " << p_message->to_string()
+					  << std::endl;
 		}
 };
 

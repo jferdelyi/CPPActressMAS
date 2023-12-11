@@ -25,33 +25,7 @@ cam::Agent::Agent(std::string p_name) :
 	m_name(std::move(p_name)),
 	m_is_setup(false),
 	m_observables(new Observables()),
-	m_environment(nullptr),
-	m_producer_token(m_messages) {
-}
-
-const std::string& cam::Agent::get_id() const {
-	return m_id;
-}
-
-const std::string& cam::Agent::get_name() const {
-	return m_name;
-}
-
-bool cam::Agent::is_using_observables() const {
-	return !m_observables->empty();
-}
-
-cam::ObservablesPointer cam::Agent::get_observables() const {
-	return m_observables;
-}
-
-bool cam::Agent::is_setup() const {
-	return m_is_setup;
-}
-
-void cam::Agent::set_environment(EnvironmentMas* p_environment) {
-	m_environment = p_environment;
-}
+	m_environment(nullptr) {}
 
 void cam::Agent::internal_setup() {
 	m_is_setup = true;
@@ -63,9 +37,10 @@ void cam::Agent::internal_see() {
 }
 
 void cam::Agent::internal_action() {
-	if (m_messages.size_approx()) {
+	if (const auto& l_size = m_messages.size()) {
 		MessagePointer l_message;
-		while (m_messages.try_dequeue(l_message)) {
+		for (size_t i = 0; i < l_size; ++i) {
+			m_messages.dequeue(l_message);
 			action(l_message);
 		}
 	} else {
@@ -78,7 +53,7 @@ void cam::Agent::stop() const {
 }
 
 void cam::Agent::post(const MessagePointer& p_message) {
-	m_messages.enqueue(m_producer_token, p_message);
+	m_messages.enqueue(p_message);
 }
 
 void cam::Agent::send(const std::string& p_receiver_id, const json& p_message) {
@@ -89,15 +64,14 @@ void cam::Agent::broadcast(const json& p_message) const {
 	m_environment->broadcast(m_id, p_message);
 }
 
-bool cam::Agent::perception_filter(const ObservablesPointer&) const {
+bool cam::Agent::perception_filter(const ObservablesPointer& ) const {
 	return false;
 }
 
 void cam::Agent::setup() {}
 
-void cam::Agent::see(const std::vector<const ObservablesPointer>&) {}
+void cam::Agent::see(const std::vector<const ObservablesPointer>& ) {}
 
-void cam::Agent::action(const MessagePointer&) {}
+void cam::Agent::action(const MessagePointer& ) {}
 
 void cam::Agent::default_action() {}
-

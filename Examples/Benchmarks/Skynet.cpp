@@ -16,53 +16,67 @@
  *                                                                        *
  **************************************************************************/
 
+#include <chrono>
 #include <iostream>
 
 #include <EnvironmentMas.h>
 
-static std::unordered_map<std::string, std::string> s_name_id;
+static constexpr int CHILD_COUNT = 10;
+static constexpr int AGENT_COUNT = 10000;
 
 class MyAgent final : public cam::Agent {
 	protected:
-		int m_turn = 1;
+		std::string m_parent_id;
+		int m_sum;
+		int m_sum_id;
+		int m_message_left;
 
 	public:
-		explicit MyAgent(const std::string& p_name) : Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+		explicit MyAgent(const std::string& p_name, const int p_sum_id, std::string p_parent_id) :
+			Agent(p_name),
+			m_parent_id(std::move(p_parent_id)),
+			m_sum(p_sum_id),
+			m_sum_id(p_sum_id),
+			m_message_left(0) {}
 
-		void default_action() override {
-			if (m_turn > 3) {
+		void setup() override {
+			for (int i = 1; i <= CHILD_COUNT; i++) {
+				if (const int l_new_id = m_sum_id * 10 + i;
+					l_new_id < AGENT_COUNT) {
+					m_environment->add(cam::AgentPointer(new MyAgent("a" + std::to_string(l_new_id), l_new_id, m_id)));
+					m_message_left++;
+				}
+			}
+
+			if (m_message_left == 0) {
+				send(m_parent_id, {{"sum", m_sum_id}}); // send id to parent
 				stop();
-				return; // Diference from the C# version
 			}
-
-			for (int i = 1; i <= 3; i++) {
-				send(s_name_id.at("writer"), {{"turn", m_turn}, {"index", i}, {"from", m_name}});
-			}
-
-			m_turn++;
-		}
-};
-
-class WriterAgent final : public cam::Agent {
-	public:
-		explicit WriterAgent(const std::string& p_name) : Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+			m_sum += static_cast<int>(p_message->content()["sum"]);
+			m_message_left--;
+
+			if (m_message_left == 0) {
+				if (m_name == "a0") {
+					std::cout << "Sum " << m_sum << std::endl;
+				} else {
+					send(m_parent_id, {{"sum", m_sum}}); // send id to parent
+				}
+				stop();
+			}
 		}
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(5, cam::EnvironmentMasMode::Parallel, 1000);
+	const auto& l_start_time = std::chrono::high_resolution_clock::now();
 
-	l_environment.add(cam::AgentPointer(new WriterAgent("writer")));
-	for (int i = 1; i <= 5; i++) {
-		l_environment.add(cam::AgentPointer(new MyAgent("a" + std::to_string(i))));
-	}
+	cam::EnvironmentMas l_environment;
+	l_environment.add(cam::AgentPointer(new MyAgent("a0", 0, "")));
 	l_environment.start();
-	return 0;
+
+	const auto& l_end_time = std::chrono::high_resolution_clock::now();
+	const auto& l_elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(l_end_time - l_start_time).count();
+	std::cout << l_elapsed_time << "ms" << std::endl;
 }

@@ -22,6 +22,7 @@ cam::Message::Message(std::string p_sender, std::string p_receiver, const json& 
 	m_sender(std::move(p_sender)),
 	m_receiver(std::move(p_receiver)),
 	m_binary_format(p_binary_format) {
+
 	switch (m_binary_format) {
 		case MessageBinaryFormat::BJData:
 			m_binary_message = json::to_bjdata(p_message);
@@ -34,11 +35,11 @@ cam::Message::Message(std::string p_sender, std::string p_receiver, const json& 
 		case MessageBinaryFormat::CBOR:
 			m_binary_message = json::to_cbor(p_message);
 			break;
-			
+
 		case MessageBinaryFormat::UBJSON:
 			m_binary_message = json::to_ubjson(p_message);
 			break;
-		
+
 		case MessageBinaryFormat::MessagePack:
 		default:
 			m_binary_message = json::to_msgpack(p_message);
@@ -46,42 +47,29 @@ cam::Message::Message(std::string p_sender, std::string p_receiver, const json& 
 	}
 }
 
-const std::string& cam::Message::get_sender() const {
-	return m_sender;
-}
-
-const std::string& cam::Message::get_receiver() const {
-	return m_receiver;
-}
-
-const std::vector<std::uint8_t>& cam::Message::get_binary_message() const {
-	return m_binary_message;
-}
-
 json cam::Message::content() const {
 	switch (m_binary_format) {
-		case MessageBinaryFormat::BJData:
-			return json::from_bjdata(m_binary_message);
+	case MessageBinaryFormat::BJData:
+		return json::from_bjdata(m_binary_message);
 
-		case MessageBinaryFormat::BSON:
-			return json::from_bson(m_binary_message);
+	case MessageBinaryFormat::BSON:
+		return json::from_bson(m_binary_message);
 
-		case MessageBinaryFormat::CBOR:
-			return json::from_cbor(m_binary_message);
-			
-		case MessageBinaryFormat::UBJSON:
-			return json::from_ubjson(m_binary_message);
-		
-		case MessageBinaryFormat::MessagePack:
-		default:
-			return json::from_msgpack(m_binary_message);
+	case MessageBinaryFormat::CBOR:
+		return json::from_cbor(m_binary_message);
+
+	case MessageBinaryFormat::UBJSON:
+		return json::from_ubjson(m_binary_message);
+
+	case MessageBinaryFormat::MessagePack:
+	default:
+		return json::from_msgpack(m_binary_message);
 	}
 }
 
 std::string cam::Message::to_string() const {
 	return content().dump();
 }
-
 
 std::string cam::Message::format() const {
 	return "[" + m_sender + " -> " + m_receiver + "]: " + to_string();

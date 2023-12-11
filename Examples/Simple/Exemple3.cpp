@@ -24,16 +24,21 @@
 static std::unordered_map<std::string, std::string> s_name_id;
 
 class MyEnvironment final : public cam::EnvironmentMas {
-	public:
-		MyEnvironment() : EnvironmentMas(10, cam::EnvironmentMasMode::Parallel, 100) {}
+  public:
+	MyEnvironment() :
+		EnvironmentMas(10, cam::EnvironmentMasMode::Parallel, 100) {}
 
-		void turn_finished(const int p_turn) override {
-			std::cout << std::endl << "Turn " + std::to_string(p_turn + 1) + " finished" << std::endl << std::endl;
-		}
+	void turn_finished(const int p_turn) override {
+		std::cout << std::endl
+				  << "Turn " + std::to_string(p_turn + 1) + " finished" << std::endl
+				  << std::endl;
+	}
 
-		void simulation_finished() override {
-			std::cout << std::endl << "Simulation finished" << std::endl << std::endl;
-		}
+	void simulation_finished() override {
+		std::cout << std::endl
+				  << "Simulation finished" << std::endl
+				  << std::endl;
+	}
 };
 
 class MonitorAgent final : public cam::Agent {
@@ -56,7 +61,7 @@ class MonitorAgent final : public cam::Agent {
 
 			// In C# version the order is alway 3,2,1,4
 			// In C++ version the order is always 4,3,2,1
-			// Probably explained by the type of container and 
+			// Probably explained by the type of container and
 			// find algorithme. I think this is not really critical
 			for (const auto& [l_agent_name, l_agent_id] : s_name_id) {
 				if (l_agent_name.find("agent") != std::string::npos) {
@@ -66,9 +71,9 @@ class MonitorAgent final : public cam::Agent {
 				}
 			}
 
-			for (const auto & m_agent_name : m_agent_names) {
+			for (const auto& m_agent_name : m_agent_names) {
 				std::cout << "[" + m_name + "]: sending to " << m_agent_name << std::endl;
-				send(s_name_id.at(m_agent_name), {{"data", "start"},{"from", m_name}});
+				send(s_name_id.at(m_agent_name),{{"data", "start"}, {"from", m_name}});
 			}
 		}
 
@@ -84,35 +89,38 @@ class MonitorAgent final : public cam::Agent {
 					return;
 				}
 
-				for (const auto & m_agent_name : m_agent_names) {
+				for (const auto& m_agent_name : m_agent_names) {
 					m_finished[s_name_id.at(m_agent_name)] = false;
 				}
 
 				std::cout << "[" + m_name + "]: start round " + std::to_string(m_round + 1) + " in action";
 
-				for (const auto & m_agent_name : m_agent_names) {
+				for (const auto& m_agent_name : m_agent_names) {
 					std::cout << "[" + m_name + "]: sending to " << m_agent_name << std::endl;
-					send(s_name_id.at(m_agent_name), {{"data", "continue"},{"from", m_name}});
+					send(s_name_id.at(m_agent_name), {{"data", "continue"}, {"from", m_name}});
 				}
 			}
 		}
 
 	protected:
-		bool all_finished() const {
-			return std::ranges::all_of(m_finished.cbegin(), m_finished.cend(), [](const auto& l_data) { return l_data.second; });
+		[[nodiscard]] bool all_finished() const {
+			return std::ranges::all_of(m_finished.cbegin(), m_finished.cend(),[](const auto& l_data) {
+				return l_data.second;
+			});
 		}
 };
 
 class MyAgent final : public cam::Agent {
 	public:
-		explicit MyAgent(const std::string& p_name) : Agent(p_name) {
+		explicit MyAgent(const std::string& p_name) :
+			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
 			if (p_message->get_sender() == s_name_id.at("monitor") && (p_message->content()["data"] == "start" || p_message->content()["data"] == "continue")) {
-				send(s_name_id.at("monitor"), {{"data", "done"},{"from", m_name}});
+				send(s_name_id.at("monitor"), {{"data", "done"}, {"from", m_name}});
 			}
 		}
 };

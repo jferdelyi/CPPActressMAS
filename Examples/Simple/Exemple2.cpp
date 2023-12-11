@@ -24,40 +24,43 @@ static std::unordered_map<std::string, std::string> s_name_id;
 
 class MyAgent1 final : public cam::Agent {
 	public:
-		explicit MyAgent1(const std::string& p_name) : Agent(p_name) {
+		explicit MyAgent1(const std::string& p_name) :
+			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
 		void setup() override {
 			send(s_name_id.at("agent2"), {{"data", "start"}, {"from", m_name}});
 			for (int i = 0; i < 10; i++) {
-				send(s_name_id.at("agent2"), {{"data", "in setup #" + std::to_string(i)}, {"from", m_name}});
+				send(s_name_id.at("agent2"),{{"data", "in setup #" + std::to_string(i)}, {"from", m_name}});
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+			std::cout << "[" + m_name + "]: has received " << p_message->to_string()
+					  << std::endl;
 			for (int i = 0; i < 10; i++) {
-				send(s_name_id.at("agent2"), {{"data", "in action #" + std::to_string(i)}, {"from", m_name}});
+				send(s_name_id.at("agent2"),{{"data", "in action #" + std::to_string(i)}, {"from", m_name}});
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 };
 
 class MyAgent2 final : public cam::Agent {
-	public:
-		explicit MyAgent2(const std::string& p_name) : Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+  public:
+	explicit MyAgent2(const std::string& p_name) :
+		Agent(p_name) {
+		s_name_id.emplace(m_name, m_id);
+	}
 
-		void setup() override {
-			send(s_name_id.at("agent1"), {{"data", "start"}, {"from", m_name}});
-		}
+	void setup() override {
+		send(s_name_id.at("agent1"), {{"data", "start"}, {"from", m_name}});
+	}
 
-		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
-		}
+	void action(const cam::MessagePointer& p_message) override {
+		std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+	}
 };
 
 int main() {

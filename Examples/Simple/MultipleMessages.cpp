@@ -30,12 +30,12 @@ class ManagerAgent final : public cam::Agent {
 		}
 
 		void setup() override {
-			broadcast({{"action","start"}});
+			broadcast({{"action", "start"}});
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 
-			//const std::vector<std::string>& l_parameters = p_message->content()["parameters"];
+			// const std::vector<std::string>& l_parameters = p_message->content()["parameters"];
 
 			if (const std::string& l_action = p_message->content()["action"]; l_action == "report") {
 				std::cout << "[" + m_name + "]: reporting from " << p_message->content()["from"] << std::endl;
@@ -48,7 +48,7 @@ class ManagerAgent final : public cam::Agent {
 class WorkerAgent final : public cam::Agent {
 
 	protected:
-		 std::string next_worker() const {
+		[[nodiscard]] std::string next_worker() const {
 			std::string l_name = m_name;
 
 			std::random_device l_rd;
@@ -61,23 +61,23 @@ class WorkerAgent final : public cam::Agent {
 		}
 
 	public:
-		explicit WorkerAgent(const std::string& p_name) :
-			Agent(p_name) {
+		explicit WorkerAgent(const std::string& p_name) : Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
-			//const std::vector<std::string>& l_parameters = p_message->content()["parameters"];
+			// const std::vector<std::string>& l_parameters = p_message->content()["parameters"];
 
-			if (const std::string& l_action = p_message->content()["action"]; l_action == "start") {
-				send(s_name_id.at("Manager"), {{"action","report"}, {"from", m_name}});
-				send(s_name_id.at(next_worker()), {{"action","request"}, {"from", m_name}});		
+			if (const std::string& l_action = p_message->content()["action"];
+				l_action == "start") {
+				send(s_name_id.at("Manager"), {{"action", "report"}, {"from", m_name}});
+				send(s_name_id.at(next_worker()), {{"action", "request"}, {"from", m_name}});
 			} else if (l_action == "request") {
-				send(p_message->get_sender(), {{"action","reply"}, {"from", m_name}});
+				send(p_message->get_sender(), {{"action", "reply"}, {"from", m_name}});
 			} else if (l_action == "request_reply") {
-				send(s_name_id.at("Manager"), {{"action","reply"}, {"from", m_name}});
-				send(s_name_id.at(next_worker()), {{"action","request"}, {"from", m_name}});
+				send(s_name_id.at("Manager"), {{"action", "reply"}, {"from", m_name}});
+				send(s_name_id.at(next_worker()), {{"action", "request"}, {"from", m_name}});
 			}
 		}
 };
@@ -88,7 +88,8 @@ int main() {
 	l_environment.add(cam::AgentPointer(new ManagerAgent("Manager")));
 	for (int i = 1; i <= 5; i++) {
 		l_environment.add(cam::AgentPointer(new WorkerAgent("Worker" + std::to_string(i))));
-	}	l_environment.start();
+	}
+	l_environment.start();
 
 	return 0;
 }

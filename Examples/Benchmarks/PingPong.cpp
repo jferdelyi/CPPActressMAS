@@ -16,53 +16,59 @@
  *                                                                        *
  **************************************************************************/
 
+#include <chrono>
 #include <iostream>
 
 #include <EnvironmentMas.h>
 
+static constexpr int MESSAGE_COUNT_MAX = 10 * 1000 * 1000;
+static constexpr int AGENT_COUNT = 10;
+
 static std::unordered_map<std::string, std::string> s_name_id;
+static size_t s_message_count = 0;
 
 class MyAgent final : public cam::Agent {
-	protected:
-		int m_turn = 1;
-
 	public:
-		explicit MyAgent(const std::string& p_name) : Agent(p_name) {
+		explicit MyAgent(const std::string& p_name) :
+			Agent(p_name) {
 			s_name_id.emplace(m_name, m_id);
 		}
 
-		void default_action() override {
-			if (m_turn > 3) {
-				stop();
-				return; // Diference from the C# version
-			}
-
-			for (int i = 1; i <= 3; i++) {
-				send(s_name_id.at("writer"), {{"turn", m_turn}, {"index", i}, {"from", m_name}});
-			}
-
-			m_turn++;
-		}
-};
-
-class WriterAgent final : public cam::Agent {
-	public:
-		explicit WriterAgent(const std::string& p_name) : Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
+		void setup() override {
+			broadcast({});
+			s_message_count += s_name_id.size() - 1;
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
-		}
+			if (s_message_count < MESSAGE_COUNT_MAX) {
+				send(p_message->get_sender(), {});
+				s_message_count++;
+			}
+	}
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(5, cam::EnvironmentMasMode::Parallel, 1000);
+	constexpr int l_trial_max = 5;
+	double l_sum = 0;
 
-	l_environment.add(cam::AgentPointer(new WriterAgent("writer")));
-	for (int i = 1; i <= 5; i++) {
-		l_environment.add(cam::AgentPointer(new MyAgent("a" + std::to_string(i))));
+	for (int l_trial = 1; l_trial <= l_trial_max; l_trial++) {
+		const auto& l_start_time = std::chrono::high_resolution_clock::now();
+		std::cout << "Trial " << l_trial << std::endl;
+		s_message_count = 0;
+		s_name_id.clear();
+
+		cam::EnvironmentMas l_environment(10000, cam::EnvironmentMasMode::Parallel);
+		for (int i = 0; i < AGENT_COUNT; i++) {
+			l_environment.add(cam::AgentPointer(new MyAgent("agent " + std::to_string(i))));
+		}
+		l_environment.start();
+
+		const auto& l_end_time = std::chrono::high_resolution_clock::now();
+		const auto& l_elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(l_end_time - l_start_time).count();
+		std::cout << s_message_count << "messages" << std::endl;
+		std::cout << l_elapsed_time << "ms" << std::endl;
+		l_sum += static_cast<double>(s_message_count) / static_cast<double>(l_elapsed_time);
 	}
-	l_environment.start();
-	return 0;
+
+	std::cout << l_sum / l_trial_max << "msg/ms" << std::endl;
 }

@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 include_directories(Externals)
 include_directories(CPPActressMAS)
 
-file(GLOB SOURCES ${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h ${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp)
+file(GLOB SOURCES ${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h ${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.hpp ${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp)
 
 add_library(CPPActressMAS STATIC ${SOURCES})
 
@@ -36,3 +36,9 @@ target_link_libraries(MultipleMessages CPPActressMAS)
 
 add_executable(SendingObjects ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/SendingObjects.cpp)
 target_link_libraries(SendingObjects CPPActressMAS)
+
+add_executable(PingPong ${CMAKE_CURRENT_LIST_DIR}/Examples/Benchmarks/PingPong.cpp)
+target_link_libraries(PingPong CPPActressMAS)
+
+add_executable(Skynet ${CMAKE_CURRENT_LIST_DIR}/Examples/Benchmarks/Skynet.cpp)
+target_link_libraries(Skynet CPPActressMAS)

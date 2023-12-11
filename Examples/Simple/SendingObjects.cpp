@@ -27,10 +27,9 @@ class ContentInfo {
 		int m_number;
 		std::string m_text;
 
-		explicit ContentInfo(const int l_number, std::string  l_text) :
+		explicit ContentInfo(const int l_number, std::string l_text) :
 			m_number(l_number),
-			m_text(std::move(l_text)) {
-		}
+			m_text(std::move(l_text)) {}
 
 		explicit ContentInfo(const json& p_serialized_data) :
 			m_number(0) {
@@ -46,7 +45,6 @@ class ContentInfo {
 			m_text = p_serialized_data["text"];
 		}
 };
-
 
 class Agent1 final : public cam::Agent {
 	public:
@@ -66,7 +64,7 @@ class Agent1 final : public cam::Agent {
 
 		void action(const cam::MessagePointer& p_message) override {
 			const ContentInfo l_content(p_message->content());
-			std::cout << "[" + m_name + "]: has received {" << l_content.m_text << ", " <<  std::to_string(l_content.m_number) << "}" << std::endl;
+			std::cout << "[" + m_name + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 };
@@ -89,7 +87,7 @@ class Agent2 final : public cam::Agent {
 
 		void action(const cam::MessagePointer& p_message) override {
 			const ContentInfo l_content(p_message->content());
-			std::cout << "[" + m_name + "]: has received {" << l_content.m_text << ", " <<  std::to_string(l_content.m_number) << "}" << std::endl;
+			std::cout << "[" + m_name + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 };
