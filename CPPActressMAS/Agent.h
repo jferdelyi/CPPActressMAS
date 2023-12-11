@@ -67,7 +67,7 @@ namespace cam {
 			/**
 			 * The environment where the agent is.
 			 **/
-			EnvironmentMas *m_environment;
+			EnvironmentMas* m_environment;
 
 			/**
 			 * Messages arrived.

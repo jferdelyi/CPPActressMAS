@@ -23,15 +23,12 @@
 
 #include "Agent.h"
 
-cam::EnvironmentMas::EnvironmentMas(const int p_no_turns,
-									const EnvironmentMasMode& p_mode,
-									const int p_delay_after_turn,
-									const unsigned int p_seed)
-	: m_no_turns(p_no_turns), m_delay_after_turn(p_delay_after_turn),
-	  m_random_order(p_mode == EnvironmentMasMode::SequentialRandom ||
-					 p_mode == EnvironmentMasMode::Parallel),
-	  m_parallel(p_mode == EnvironmentMasMode::Parallel),
-	  m_random_generator(p_seed) {}
+cam::EnvironmentMas::EnvironmentMas(const int p_no_turns, const EnvironmentMasMode& p_mode, const int p_delay_after_turn, const unsigned int p_seed) :
+	m_no_turns(p_no_turns),
+	m_delay_after_turn(p_delay_after_turn),
+	m_random_order(p_mode == EnvironmentMasMode::SequentialRandom || p_mode == EnvironmentMasMode::Parallel),
+	m_parallel(p_mod == EnvironmentMasMode::Parallel),
+	m_random_generator(p_seed) {}
 
 std::string cam::EnvironmentMas::add(AgentPointer&& p_agent) {
 	p_agent->set_environment(this);
@@ -116,8 +113,7 @@ cam::EnvironmentMas::get_list_of_observable_agents(
 
 	// Map id:agent
 	for (auto& [l_id, l_agent] : m_agents.get_agents()) {
-		if (l_id == p_perceiving_agent->get_id() ||
-			!l_agent->is_using_observables()) {
+		if (l_id == p_perceiving_agent->get_id() || !l_agent->is_using_observables()) {
 			continue;
 		}
 

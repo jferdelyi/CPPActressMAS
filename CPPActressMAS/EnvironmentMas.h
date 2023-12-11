@@ -45,8 +45,7 @@ namespace cam {
 	class Agent;
 
 	/**
-	 * An abstract base class for the multiagent environment, where all the agents
-	 *are executed.
+	 * An abstract base class for the multiagent environment, where all the agents are executed.
 	 **/
 	class EnvironmentMas {
 
