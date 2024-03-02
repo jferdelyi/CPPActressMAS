@@ -16,67 +16,44 @@
  *                                                                        *
  **************************************************************************/
 
-#include <chrono>
 #include <iostream>
 
 #include <EnvironmentMas.h>
+
 #include <Agent.h>
 
-static constexpr int CHILD_COUNT = 10;
-static constexpr int AGENT_COUNT = 10000;
-
 class MyAgent : public cam::Agent {
-	protected:
-		std::string m_parent_id;
-		int m_sum;
-		int m_sum_id;
-		int m_message_left;
-
 	public:
-		explicit MyAgent(const std::string& p_name, const int p_sum_id, std::string p_parent_id) :
-			Agent(p_name),
-			m_parent_id(std::move(p_parent_id)),
-			m_sum(p_sum_id),
-			m_sum_id(p_sum_id),
-			m_message_left(0) {}
+		explicit MyAgent(const std::string& p_name) : Agent(p_name) { }
 
 		void setup() override {
-			for (int i = 1; i <= CHILD_COUNT; i++) {
-				if (const int l_new_id = m_sum_id * 10 + i; l_new_id < AGENT_COUNT) {
-					m_environment->add<MyAgent>("a" + std::to_string(l_new_id), l_new_id, m_id);
-					m_message_left++;
-				}
-			}
+			std::cout << "[" + m_name + "]: starting" << std::endl;
 
-			if (m_message_left == 0) {
-				send(m_parent_id, {{"sum", m_sum_id}}); // send id to parent
-				stop();
-			}
-		}
+			std::random_device l_rd;
+			std::uniform_int_distribution l_dist(10, 100);
 
-		void action(const cam::MessagePointer& p_message) override {
-			m_sum += static_cast<int>(p_message->content()["sum"]);
-			m_message_left--;
-
-			if (m_message_left == 0) {
-				if (m_name == "a0") {
-					std::cout << "Sum " << m_sum << std::endl;
-				} else {
-					send(m_parent_id, {{"sum", m_sum}}); // send id to parent
-				}
-				stop();
+			for (int i = 1; i <= 10; i++) {
+				std::cout << "[" + m_name + "]: sending " << i << std::endl;
+				send_by_name("monitor",{{"data", i}, {"from", m_name}});
+				std::this_thread::sleep_for(std::chrono::milliseconds(l_dist(l_rd)));
 			}
 		}
 };
 
+class MonitorAgent final : public cam::Agent {
+	public:
+		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) { }
+
+		void action(const cam::MessagePointer& p_message) override {
+			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+		}
+};
+
 int main() {
-	const auto& l_start_time = std::chrono::high_resolution_clock::now();
-
-	cam::EnvironmentMas l_environment(0, cam::EnvironmentMasMode::Parallel);
-	l_environment.add<MyAgent>("a0", 0, "");
+	cam::EnvironmentMas l_environment(100, cam::EnvironmentMasMode::Parallel);
+	l_environment.add<MyAgent>("agent1");
+	l_environment.add<MyAgent>("agent2");
+	l_environment.add<MonitorAgent>("monitor");
 	l_environment.start();
-
-	const auto& l_end_time = std::chrono::high_resolution_clock::now();
-	const auto& l_elapsed_time = std::chrono::duration_cast<std::chrono::milliseconds>(l_end_time - l_start_time).count();
-	std::cout << l_elapsed_time << "ms" << std::endl;
+	return 0;
 }

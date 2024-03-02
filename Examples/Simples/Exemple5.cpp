@@ -20,55 +20,62 @@
 
 #include <EnvironmentMas.h>
 
-static std::unordered_map<std::string, std::string> s_name_id;
-
-class MyAgent1 final : public cam::Agent {
-	public:
-		explicit MyAgent1(const std::string& p_name) :
-			Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
-
-		void setup() override {
-			send(s_name_id.at("agent2"), {{"data", "start"}, {"from", m_name}});
-			for (int i = 0; i < 10; i++) {
-				send(s_name_id.at("agent2"),{{"data", "in setup #" + std::to_string(i)}, {"from", m_name}});
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			}
-		}
-
-		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string()
-					  << std::endl;
-			for (int i = 0; i < 10; i++) {
-				send(s_name_id.at("agent2"),{{"data", "in action #" + std::to_string(i)}, {"from", m_name}});
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			}
-		}
-};
-
-class MyAgent2 final : public cam::Agent {
+class Agent1 final : public cam::Agent {
   public:
-	explicit MyAgent2(const std::string& p_name) :
-		Agent(p_name) {
-		s_name_id.emplace(m_name, m_id);
-	}
+	explicit Agent1(const std::string& p_name) : Agent(p_name) {}
 
 	void setup() override {
-		send(s_name_id.at("agent1"), {{"data", "start"}, {"from", m_name}});
+		for (int i = 0; i < 10; i++) {
+			std::cout << "[" + m_name + "]: setup " + std::to_string(i + 1) << std::endl;
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+		send_by_name("a2", "msg");
 	}
 
-	void action(const cam::MessagePointer& p_message) override {
-		std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+	void action(const cam::MessagePointer&) override {
+		for (int i = 0; i < 3; i++) {
+			std::cout << "[" + m_name + "]: action " + std::to_string(i + 1) << std::endl;
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
 	}
+
+	void default_action() override {
+		std::cout << "[" + m_name + "]: no messages" << std::endl;
+		stop();
+	}
+};
+
+class Agent2 final : public cam::Agent {
+	public:
+		explicit Agent2(const std::string& p_name) : Agent(p_name) { }
+
+		void setup() override {
+			for (int i = 0; i < 3; i++) {
+				std::cout << "[" + m_name + "]: setup " + std::to_string(i + 1) << std::endl;
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+			send_by_name("a1", "msg");
+		}
+
+		void action(const cam::MessagePointer&) override {
+			for (int i = 0; i < 10; i++) {
+				std::cout << "[" + m_name + "]: action " + std::to_string(i + 1) << std::endl;
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+		}
+
+		void default_action() override {
+			std::cout << "[" + m_name + "]: no messages" << std::endl;
+			stop();
+		}
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(100, cam::EnvironmentMasMode::SequentialRandom);
+	cam::EnvironmentMas l_environment;
 
-	l_environment.add(cam::AgentPointer(new MyAgent1("agent1")));
-	l_environment.add(cam::AgentPointer(new MyAgent2("agent2")));
-
+	l_environment.add<Agent1>("a1");
+	l_environment.add<Agent2>("a2");
 	l_environment.start();
+
 	return 0;
 }

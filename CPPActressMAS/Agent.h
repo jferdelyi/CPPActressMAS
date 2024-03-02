@@ -20,7 +20,7 @@
 
 #include <uuid/UUID.hpp>
 
-#include "ConcurrentQueue.hpp"
+#include "MPSCQueue.hpp"
 #include "Message.h"
 
 /**
@@ -60,6 +60,11 @@ namespace cam {
 			bool m_is_setup;
 
 			/**
+			 * True if setup.
+			 **/
+			bool m_is_dead;
+
+			/**
 			 * List of observables.
 			 **/
 			std::shared_ptr<Observables> m_observables;
@@ -72,7 +77,7 @@ namespace cam {
 			/**
 			 * Messages arrived.
 			 **/
-			ConcurrentQueue<MessagePointer> m_messages;
+			MPSCQueue<MessagePointer> m_messages;
 
 		public:
 			/**
@@ -117,6 +122,12 @@ namespace cam {
 			[[nodiscard]] bool is_setup() const { return m_is_setup; }
 
 			/**
+			 * True if is dead.
+			 * @return True if is dead
+			 **/
+			[[nodiscard]] bool is_dead() const { return m_is_dead; }
+
+			/**
 			 * Set environment.
 			 * @param p_environment The environment
 			 **/
@@ -142,7 +153,7 @@ namespace cam {
 			 * Use the Stop method instead of Environment.
 			 * Remove when the decision to be stopped belongs to the agent itself.
 			 **/
-			void stop() const;
+			void stop();
 
 			/**
 			 * Receive a new message.
@@ -151,16 +162,40 @@ namespace cam {
 			void post(const MessagePointer& p_message);
 
 			/**
-			 * Send a new message.
+			 * Send a new message by ID.
 			 * @param p_receiver_id The id of the receiver
 			 * @param p_message The message
+			 * @param p_length The message size
 			 **/
-			void send(const std::string& p_receiver_id, const json& p_message);
+			void send(const std::string& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
+			void send(const std::string& p_receiver_id, const json& p_message) const;
+
+			/**
+			 * Send a new message by name.
+			 * @param p_receiver_name The name of the receiver
+			 * @param p_message The message
+			 * @param p_length The message size
+			 * @param p_first_only If true, only the first agent found
+			 **/
+			void send_by_name(const std::string& p_receiver_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0, bool p_first_only = true) const;
+			void send_by_name(const std::string& p_receiver_name, const json& p_message, bool p_first_only = true) const;
+
+			/**
+			 * Send a new message by fragment name.
+			 * @param p_fragment_name The fragment of the receivers
+			 * @param p_message The message
+			 * @param p_length The message size
+			 * @param p_first_only If true, only the first agent found
+			 **/
+			void send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0, bool p_first_only = true) const;
+			void send_by_fragment_name(const std::string& p_fragment_name, const json& p_message, bool p_first_only = true) const;
 
 			/**
 			 * Send a new message to all agents.
 			 * @param p_message The message
+			 * @param p_length The message size
 			 **/
+			void broadcast(const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
 			void broadcast(const json& p_message) const;
 
 			/**

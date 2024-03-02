@@ -20,7 +20,7 @@
 
 #include <EnvironmentMas.h>
 
-static std::unordered_map<std::string, std::string> s_name_id;
+//static std::unordered_map<std::string, std::string> s_name_id;
 
 class ContentInfo {
 	public:
@@ -48,16 +48,13 @@ class ContentInfo {
 
 class Agent1 final : public cam::Agent {
 	public:
-		explicit Agent1(const std::string& p_name) :
-			Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+		explicit Agent1(const std::string& p_name) : Agent(p_name) { }
 
 		void setup() override {
 			for (int i = 0; i < 10; i++) {
 				std::cout << "[" + m_name + "]: setup " << std::to_string(i + 1) << std::endl;
 				ContentInfo l_content(i + 1, "setup from a1*");
-				send(s_name_id.at("a2"), l_content.serialize());
+				send_by_name("a2", l_content.serialize());
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
@@ -71,16 +68,13 @@ class Agent1 final : public cam::Agent {
 
 class Agent2 final : public cam::Agent {
 	public:
-		explicit Agent2(const std::string& p_name) :
-			Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+		explicit Agent2(const std::string& p_name) : Agent(p_name) { }
 
 		void setup() override {
 			for (int i = 0; i < 3; i++) {
 				std::cout << "[" + m_name + "]: setup " << std::to_string(i + 1) << std::endl;
 				ContentInfo l_content(i + 1, "setup from a2");
-				send(s_name_id.at("a1*"), l_content.serialize());
+				send(m_environment->get_first_agent_by_name("a1*").value(), l_content.serialize());
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
@@ -95,8 +89,8 @@ class Agent2 final : public cam::Agent {
 int main() {
 	cam::EnvironmentMas l_environment(10);
 
-	l_environment.add(cam::AgentPointer(new Agent1("a1*")));
-	l_environment.add(cam::AgentPointer(new Agent2("a2")));
+	l_environment.add<Agent1>("a1*");
+	l_environment.add<Agent2>("a2");
 	l_environment.start();
 
 	return 0;

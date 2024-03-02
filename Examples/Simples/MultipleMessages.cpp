@@ -20,23 +20,15 @@
 
 #include <EnvironmentMas.h>
 
-static std::unordered_map<std::string, std::string> s_name_id;
-
 class ManagerAgent final : public cam::Agent {
 	public:
-		explicit ManagerAgent(const std::string& p_name) :
-			Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+		explicit ManagerAgent(const std::string& p_name) : Agent(p_name) { }
 
 		void setup() override {
 			broadcast({{"action", "start"}});
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-
-			// const std::vector<std::string>& l_parameters = p_message->content()["parameters"];
-
 			if (const std::string& l_action = p_message->content()["action"]; l_action == "report") {
 				std::cout << "[" + m_name + "]: reporting from " << p_message->content()["from"] << std::endl;
 			} else if (l_action == "reply") {
@@ -61,23 +53,20 @@ class WorkerAgent final : public cam::Agent {
 		}
 
 	public:
-		explicit WorkerAgent(const std::string& p_name) : Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+		explicit WorkerAgent(const std::string& p_name) : Agent(p_name) {}
 
 		void action(const cam::MessagePointer& p_message) override {
 			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
-			// const std::vector<std::string>& l_parameters = p_message->content()["parameters"];
 
 			if (const std::string& l_action = p_message->content()["action"];
 				l_action == "start") {
-				send(s_name_id.at("Manager"), {{"action", "report"}, {"from", m_name}});
-				send(s_name_id.at(next_worker()), {{"action", "request"}, {"from", m_name}});
+				send_by_name("Manager", {{"action", "report"}, {"from", m_name}});
+				send_by_name(next_worker(), {{"action", "request"}, {"from", m_name}});
 			} else if (l_action == "request") {
 				send(p_message->get_sender(), {{"action", "reply"}, {"from", m_name}});
 			} else if (l_action == "request_reply") {
-				send(s_name_id.at("Manager"), {{"action", "reply"}, {"from", m_name}});
-				send(s_name_id.at(next_worker()), {{"action", "request"}, {"from", m_name}});
+				send_by_name("Manager", {{"action", "reply"}, {"from", m_name}});
+				send_by_name(next_worker(), {{"action", "request"}, {"from", m_name}});
 			}
 		}
 };
@@ -85,9 +74,9 @@ class WorkerAgent final : public cam::Agent {
 int main() {
 	cam::EnvironmentMas l_environment(20);
 
-	l_environment.add(cam::AgentPointer(new ManagerAgent("Manager")));
+	l_environment.add<ManagerAgent>("Manager");
 	for (int i = 1; i <= 5; i++) {
-		l_environment.add(cam::AgentPointer(new WorkerAgent("Worker" + std::to_string(i))));
+		l_environment.add<WorkerAgent>("Worker" + std::to_string(i));
 	}
 	l_environment.start();
 

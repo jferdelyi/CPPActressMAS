@@ -27,9 +27,9 @@ using json = nlohmann::json;
 namespace cam {
 
 	/**
-	 * Message binary format for JSON
+	 * Message binary format
 	 */
-	enum class MessageBinaryFormat { BJData, BSON, CBOR, MessagePack, UBJSON };
+	enum class MessageBinaryFormat { BJData, BSON, CBOR, MessagePack, UBJSON, RAW };
 
 	/**
 	 * A message that the agents use to communicate. In an agent-based system, the
@@ -67,9 +67,8 @@ namespace cam {
 			 * @param p_message Message.
 			 * @param p_binary_format Binary format used.
 			 **/
-			Message(std::string p_sender, std::string p_receiver, const json& p_message,
-					const MessageBinaryFormat& p_binary_format =
-						MessageBinaryFormat::MessagePack);
+			Message(std::string p_sender, std::string p_receiver, const json& p_message, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::MessagePack);
+			Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW);
 
 			/**
 			 * Nothing to delete.
@@ -95,6 +94,12 @@ namespace cam {
 			[[nodiscard]] const std::vector<std::uint8_t>& get_binary_message() const { return m_binary_message; }
 
 			/**
+			 * Get binary message.
+			 * @return binary message JSON
+			 **/
+			[[nodiscard]] const MessageBinaryFormat& get_binary_format() const { return m_binary_format; }
+
+			/**
 			 * Get message.
 			 * @return message JSON
 			 **/
@@ -118,5 +123,5 @@ namespace cam {
 	};
 
 	// Message pointer
-	using MessagePointer = std::shared_ptr<Message>;
+	using MessagePointer = std::shared_ptr<const Message>;
 } // namespace cam

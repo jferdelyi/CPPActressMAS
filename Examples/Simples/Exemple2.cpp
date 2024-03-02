@@ -20,47 +20,47 @@
 
 #include <EnvironmentMas.h>
 
-static std::unordered_map<std::string, std::string> s_name_id;
 
-class MyAgent final : public cam::Agent {
+class MyAgent1 final : public cam::Agent {
 	public:
-		explicit MyAgent(const std::string& p_name) :
-			Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+		explicit MyAgent1(const std::string& p_name) : Agent(p_name) { }
 
 		void setup() override {
-			std::cout << "[" + m_name + "]: starting" << std::endl;
+			send_by_name("agent2",{{"data", "start"}, {"from", m_name}});
+			for (int i = 0; i < 10; i++) {
+				send_by_name("agent2",{{"data", "in setup #" + std::to_string(i)}, {"from", m_name}});
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+		}
 
-			std::random_device l_rd;
-			std::uniform_int_distribution l_dist(10, 100);
-
-			for (int i = 1; i <= 10; i++) {
-				std::cout << "[" + m_name + "]: sending " << i << std::endl;
-				send(s_name_id.at("monitor"), {{"data", i}, {"from", m_name}});
-				std::this_thread::sleep_for(std::chrono::milliseconds(l_dist(l_rd)));
+		void action(const cam::MessagePointer& p_message) override {
+			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+			for (int i = 0; i < 10; i++) {
+				send_by_name("agent2",{{"data", "in action #" + std::to_string(i)}, {"from", m_name}});
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 };
 
-class MonitorAgent final : public cam::Agent {
-	public:
-		explicit MonitorAgent(const std::string& p_name) :
-			Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+class MyAgent2 final : public cam::Agent {
+  public:
+	explicit MyAgent2(const std::string& p_name) : Agent(p_name) { }
 
-		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string()
-					  << std::endl;
-		}
+	void setup() override {
+		send_by_name("agent1",{{"data", "start"}, {"from", m_name}});
+	}
+
+	void action(const cam::MessagePointer& p_message) override {
+		std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+	}
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(100);
-	l_environment.add(cam::AgentPointer(new MyAgent("agent1")));
-	l_environment.add(cam::AgentPointer(new MyAgent("agent2")));
-	l_environment.add(cam::AgentPointer(new MonitorAgent("monitor")));
+	cam::EnvironmentMas l_environment(100, cam::EnvironmentMasMode::SequentialRandom);
+
+	l_environment.add<MyAgent1>("agent1");
+	l_environment.add<MyAgent2>("agent2");
+
 	l_environment.start();
 	return 0;
 }

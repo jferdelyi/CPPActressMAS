@@ -20,35 +20,30 @@
 
 #include <EnvironmentMas.h>
 
-static std::unordered_map<std::string, std::string> s_name_id;
-
-class MyAgent final : public cam::Agent {
+class MyAgent : public cam::Agent {
 	protected:
 		int m_turn = 1;
 
 	public:
 		explicit MyAgent(const std::string& p_name) : Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
 		}
 
 		void default_action() override {
 			if (m_turn > 3) {
 				stop();
-				return; // Diference from the C# version
-			}
+			} else {
+				for (int i = 1; i <= 3; i++) {
+					send_by_name("writer", {{"turn", m_turn}, {"index", i}, {"from", m_name}});
+				}
 
-			for (int i = 1; i <= 3; i++) {
-				send(s_name_id.at("writer"), {{"turn", m_turn}, {"index", i}, {"from", m_name}});
+				m_turn++;
 			}
-
-			m_turn++;
 		}
 };
 
 class WriterAgent final : public cam::Agent {
 	public:
 		explicit WriterAgent(const std::string& p_name) : Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
@@ -59,9 +54,9 @@ class WriterAgent final : public cam::Agent {
 int main() {
 	cam::EnvironmentMas l_environment(5, cam::EnvironmentMasMode::Parallel, 1000);
 
-	l_environment.add(cam::AgentPointer(new WriterAgent("writer")));
+	l_environment.add<WriterAgent>("writer");
 	for (int i = 1; i <= 5; i++) {
-		l_environment.add(cam::AgentPointer(new MyAgent("a" + std::to_string(i))));
+		l_environment.add<MyAgent>("a" + std::to_string(i));
 	}
 	l_environment.start();
 	return 0;

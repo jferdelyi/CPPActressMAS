@@ -20,9 +20,6 @@
 
 #include <EnvironmentMas.h>
 
-// For convenience only to be closest as possible to the C# version
-static std::unordered_map<std::string, std::string> s_name_id;
-
 class MyEnvironment final : public cam::EnvironmentMas {
   public:
 	MyEnvironment() :
@@ -46,12 +43,10 @@ class MonitorAgent final : public cam::Agent {
 		int m_round{};
 		int m_max_rounds{};
 		std::map<std::string, bool> m_finished;
-		std::vector<std::string> m_agent_names;
+		std::vector<std::string> m_agents_id;
 
 	public:
-		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
-		}
+		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) { }
 
 		void setup() override {
 			m_max_rounds = 3;
@@ -63,17 +58,16 @@ class MonitorAgent final : public cam::Agent {
 			// In C++ version the order is always 4,3,2,1
 			// Probably explained by the type of container and
 			// find algorithme. I think this is not really critical
-			for (const auto& [l_agent_name, l_agent_id] : s_name_id) {
-				if (l_agent_name.find("agent") != std::string::npos) {
-					const auto& l_agent = m_environment->get(l_agent_id);
-					m_agent_names.push_back(l_agent->get_name());
-					m_finished.emplace(l_agent->get_id(), false);
-				}
+			for (const auto& l_agent : m_environment->get_filtered_agents("agent")) {
+				m_agents_id.push_back(l_agent);
+				m_finished.emplace(l_agent, false);
 			}
 
-			for (const auto& m_agent_name : m_agent_names) {
-				std::cout << "[" + m_name + "]: sending to " << m_agent_name << std::endl;
-				send(s_name_id.at(m_agent_name),{{"data", "start"}, {"from", m_name}});
+			for (const auto& l_agent : m_agents_id) {
+				if (const auto& l_agent_name = m_environment->get_agent_name(l_agent); l_agent_name != std::nullopt) {
+					std::cout << "[" + m_name + "]: sending to " << l_agent_name.value() << std::endl;
+					send(l_agent,{{"data", "start"}, {"from", m_name}});
+				}
 			}
 		}
 
@@ -89,15 +83,17 @@ class MonitorAgent final : public cam::Agent {
 					return;
 				}
 
-				for (const auto& m_agent_name : m_agent_names) {
-					m_finished[s_name_id.at(m_agent_name)] = false;
+				for (const auto& l_agent : m_agents_id) {
+					m_finished[l_agent] = false;
 				}
 
 				std::cout << "[" + m_name + "]: start round " + std::to_string(m_round + 1) + " in action";
 
-				for (const auto& m_agent_name : m_agent_names) {
-					std::cout << "[" + m_name + "]: sending to " << m_agent_name << std::endl;
-					send(s_name_id.at(m_agent_name), {{"data", "continue"}, {"from", m_name}});
+				for (const auto& l_agent : m_agents_id) {
+					if (const auto& l_agent_name = m_environment->get_agent_name(l_agent); l_agent_name != std::nullopt) {
+						std::cout << "[" + m_name + "]: sending to " << l_agent_name.value() << std::endl;
+						send(l_agent, {{"data", "continue"}, {"from", m_name}});
+					}
 				}
 			}
 		}
@@ -110,17 +106,21 @@ class MonitorAgent final : public cam::Agent {
 		}
 };
 
-class MyAgent final : public cam::Agent {
+class MyAgent : public cam::Agent {
+	std::string m_monitor_id;
 	public:
-		explicit MyAgent(const std::string& p_name) :
-			Agent(p_name) {
-			s_name_id.emplace(m_name, m_id);
+		explicit MyAgent(const std::string& p_name) : Agent(p_name) { }
+
+		void setup() override {
+			if (const auto& l_agent_id = m_environment->get_first_agent_by_name("monitor"); l_agent_id != std::nullopt) {
+				m_monitor_id = l_agent_id.value();
+			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
-			if (p_message->get_sender() == s_name_id.at("monitor") && (p_message->content()["data"] == "start" || p_message->content()["data"] == "continue")) {
-				send(s_name_id.at("monitor"), {{"data", "done"}, {"from", m_name}});
+			if (p_message->get_sender() == m_monitor_id && (p_message->content()["data"] == "start" || p_message->content()["data"] == "continue")) {
+				send(m_monitor_id, {{"data", "done"}, {"from", m_name}});
 			}
 		}
 };
@@ -129,9 +129,9 @@ int main() {
 	MyEnvironment l_environment;
 
 	for (int i = 1; i <= 4; i++) {
-		l_environment.add(cam::AgentPointer(new MyAgent("agent" + std::to_string(i))));
+		l_environment.add<MyAgent>("agent" + std::to_string(i));
 	}
-	l_environment.add(cam::AgentPointer(new MonitorAgent("monitor")));
+	l_environment.add<MonitorAgent>("monitor");
 
 	l_environment.start();
 	return 0;

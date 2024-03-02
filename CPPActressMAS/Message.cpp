@@ -47,6 +47,15 @@ cam::Message::Message(std::string p_sender, std::string p_receiver, const json& 
 	}
 }
 
+cam::Message::Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format) :
+	m_sender(std::move(p_sender)),
+	m_receiver(std::move(p_receiver)),
+	m_binary_format(p_binary_format) {
+	if (p_message) {
+		m_binary_message = std::vector(p_message, p_message + p_length);
+	}
+}
+
 json cam::Message::content() const {
 	switch (m_binary_format) {
 	case MessageBinaryFormat::BJData:
@@ -61,6 +70,9 @@ json cam::Message::content() const {
 	case MessageBinaryFormat::UBJSON:
 		return json::from_ubjson(m_binary_message);
 
+	case MessageBinaryFormat::RAW:
+		return std::string(m_binary_message.begin(), m_binary_message.end());
+
 	case MessageBinaryFormat::MessagePack:
 	default:
 		return json::from_msgpack(m_binary_message);
@@ -68,6 +80,9 @@ json cam::Message::content() const {
 }
 
 std::string cam::Message::to_string() const {
+	if (m_binary_format == MessageBinaryFormat::RAW) {
+		return content();
+	}
 	return content().dump();
 }
 

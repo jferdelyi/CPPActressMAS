@@ -19,39 +19,58 @@
 #pragma once
 
 #include "Agent.h"
+#include "ThreadPool/ThreadPool.h"
+#include "tsl/ordered_map.h"
 
 /**
  * CPPActressMAS
  */
 namespace cam {
 
+	enum class EnvironmentMasMode;
+
 	/**
 	 * A collection of agents
 	 **/
 	class AgentCollection final {
+		friend EnvironmentMas;
 
 		protected:
 			/**
 			 * Agents: id, content
 			 **/
-			std::map<std::string, AgentPointer> m_agents;
+			tsl::ordered_map<std::string, AgentPointer> m_agents;
 
 			/**
-			 * Mutex for the map
+			 * Agents: name, id
 			 **/
-			std::mutex m_mutex;
-			std::condition_variable m_cond;
+			std::unordered_multimap<std::string, std::string> m_agents_by_name;
+
+			/**
+			 * New agent buffer
+			 */
+			MPSCQueue<AgentPointer> m_new_agents;
+
+			/**
+			 * Thread pool for agents
+			 **/
+			ThreadPool m_pool;
+
+			/**
+			 * Environment mode.
+			 **/
+			EnvironmentMasMode m_environment_mas_mode;
 
 		public:
 			/**
 			 * Initializes a new instance of a collection of agents
 			 **/
-			AgentCollection() = default;
+			explicit AgentCollection(const EnvironmentMasMode& p_environment_mas_mode);
 
 			/**
 			 * Nothing to delete
 			 **/
-			/*virtual*/ ~AgentCollection() = default;
+			~AgentCollection() = default;
 
 			/**
 			 * Return number of agents
@@ -63,13 +82,13 @@ namespace cam {
 			 * Add new agent
 			 * @param p_agent Agent to add
 			 **/
-			void add(AgentPointer& p_agent);
+			void add(const AgentPointer& p_agent);
 
 			/**
 			 * Returns a randomly selected agent from the environment
 			 * @return Random agent
 			 **/
-			[[nodiscard]] const AgentPointer& random_agent();
+			[[nodiscard]] const AgentPointer& random_agent() const;
 
 			/**
 			 * Return true if the agent exists
@@ -95,19 +114,31 @@ namespace cam {
 			 * @param p_id The agent id
 			 * @return The agentx
 			 **/
-			AgentPointer get(const std::string& p_id);
+			AgentPointer get(const std::string& p_id) const;
+
+			/**
+			 * Run one turn
+			 **/
+			void run_turn();
+
+			/**
+			 * Add new agents, remove dead ones
+			 **/
+			void process_buffers();
 
 			/**
 			 * Get all ids
+			 * @param p_alive_only if true then return only alive agents
 			 * @return All ids
 			 **/
-			[[nodiscard]] std::vector<std::string> get_ids();
+			[[nodiscard]] std::vector<std::string> get_ids(bool p_alive_only = true);
 
 			/**
-			 * Get all agents
-			 * @return All agents
+			 * Return a vector (p_number length) of random index.
+			 * Fisher-Yates shuffle.
+			 * @param p_number Number of value in the returned vector
 			 **/
-			[[nodiscard]] const std::map<std::string, AgentPointer>& get_agents() const;
+			static std::vector<int> random_permutation(size_t p_number);
 
 			// Delete copy constructor
 			AgentCollection(const AgentCollection& ) = delete;
