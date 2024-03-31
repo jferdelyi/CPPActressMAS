@@ -18,37 +18,32 @@
 
 #pragma once
 
-#include <moodycamel/concurrentqueue.h>
 #include <uuid/UUID.hpp>
 
+#include "MPSCQueue.hpp"
 #include "Message.h"
 
 /**
  * CPPActressMAS
  */
 namespace cam {
-	
 	class EnvironmentMas;
-	
-	/**
-	 * The struct that represents the observable properties of an agent. They depend on the set of Observables properties of an agent and
-	 * on the PerceptionFilter function of an agent who wants to observe other agents.
-	 **/
-	struct ObservableAgent {
-		ObservableAgent(const std::unordered_map<std::string, std::string>& p_observables) :
-			m_observables(p_observables) {
-		}
-		std::unordered_map<std::string, std::string> m_observables;
-	};
-	using ObservableAgentPointer = std::shared_ptr<cam::ObservableAgent>;
 
 	/**
-	 * The base class for an agent that runs on a turn-based manner in its environment. You must create your own agent classes derived from this abstract class.
+	 * Represents the observable properties of an agent. They depend on the set of
+	 * Observables properties of an agent and on the PerceptionFilter function of an
+	 * agent who wants to observe other agents.
+	 **/
+	using Observables = std::unordered_map<std::string, json>;
+	using ObservablesPointer = std::shared_ptr<const Observables>;
+
+	/**
+	 * The base class for an agent that runs on a turn-based manner in its
+	 * environment. You must create your own agent classes derived from this abstract class.
 	 **/
 	class Agent {
 
 		protected:
-
 			/**
 			 * Unique ID.
 			 **/
@@ -65,28 +60,32 @@ namespace cam {
 			bool m_is_setup;
 
 			/**
+			 * True if setup.
+			 **/
+			bool m_is_dead;
+
+			/**
 			 * List of observables.
 			 **/
-			std::unordered_map<std::string, std::string> m_observables;
+			std::shared_ptr<Observables> m_observables;
 
 			/**
 			 * The environment where the agent is.
 			 **/
-			cam::EnvironmentMas* m_environment;
+			EnvironmentMas* m_environment;
 
 			/**
 			 * Messages arrived.
 			 **/
-			moodycamel::ConcurrentQueue<cam::MessagePointer> m_messages;
+			MPSCQueue<MessagePointer> m_messages;
 
 		public:
-			
 			/**
 			 * Create a new agent.
-			 * @param p_name name of the new agent
+			 * @param p_name Name of the new agent
 			 **/
-			Agent(const std::string& p_name);
-			
+			explicit Agent(std::string p_name);
+
 			/**
 			 * Nothing to delete.
 			 **/
@@ -96,43 +95,43 @@ namespace cam {
 			 * Return id.
 			 * @return Id of the agent
 			 **/
-			const std::string& get_id() const;
+			[[nodiscard]] const std::string& get_id() const { return m_id; }
 
 			/**
 			 * Return name.
 			 * @return Name of the agent
 			 **/
-			const std::string& get_name() const;
+			[[nodiscard]] const std::string& get_name() const { return m_name; }
 
 			/**
 			 * True if using observables.
 			 * @return True if using observables
 			 **/
-			bool is_using_observables() const;
+			[[nodiscard]] bool is_using_observables() const { return !m_observables->empty(); }
 
 			/**
 			 * Get observables.
 			 * @return Observables
 			 **/
-			const std::unordered_map<std::string, std::string>& get_observables() const;
+			[[nodiscard]] ObservablesPointer get_observables() const { return m_observables; }
 
 			/**
 			 * True is must run setup.
 			 * @return True is must run setup
 			 **/
-			bool is_setup() const;
+			[[nodiscard]] bool is_setup() const { return m_is_setup; }
 
 			/**
-			 * Set name.
-			 * @param p_name New name 
+			 * True if is dead.
+			 * @return True if is dead
 			 **/
-			void set_name(const std::string& p_name);
+			[[nodiscard]] bool is_dead() const { return m_is_dead; }
 
 			/**
 			 * Set environment.
 			 * @param p_environment The environment
 			 **/
-			void set_environment(cam::EnvironmentMas* p_environment);
+			void set_environment(EnvironmentMas *p_environment) { m_environment = p_environment; }
 
 			/**
 			 * Internal setup called by the environment.
@@ -150,7 +149,7 @@ namespace cam {
 			void internal_action();
 
 			/**
-			 * Stops the execution of the agent and removes it from the environment. 
+			 * Stops the execution of the agent and removes it from the environment.
 			 * Use the Stop method instead of Environment.
 			 * Remove when the decision to be stopped belongs to the agent itself.
 			 **/
@@ -160,28 +159,52 @@ namespace cam {
 			 * Receive a new message.
 			 * @param p_message The new message
 			 **/
-			void post(const cam::MessagePointer& p_message);
+			void post(const MessagePointer& p_message);
 
 			/**
-			 * Send a new message.
-			 * @param p_receiver The name of the receiver
+			 * Send a new message by ID.
+			 * @param p_receiver_id The id of the receiver
 			 * @param p_message The message
+			 * @param p_length The message size
 			 **/
-			void send(const std::string& p_receiver, const json& p_message);
+			void send(const std::string& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
+			void send(const std::string& p_receiver_id, const json& p_message) const;
+
+			/**
+			 * Send a new message by name.
+			 * @param p_receiver_name The name of the receiver
+			 * @param p_message The message
+			 * @param p_length The message size
+			 * @param p_first_only If true, only the first agent found
+			 **/
+			void send_by_name(const std::string& p_receiver_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0, bool p_first_only = true) const;
+			void send_by_name(const std::string& p_receiver_name, const json& p_message, bool p_first_only = true) const;
+
+			/**
+			 * Send a new message by fragment name.
+			 * @param p_fragment_name The fragment of the receivers
+			 * @param p_message The message
+			 * @param p_length The message size
+			 * @param p_first_only If true, only the first agent found
+			 **/
+			void send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0, bool p_first_only = true) const;
+			void send_by_fragment_name(const std::string& p_fragment_name, const json& p_message, bool p_first_only = true) const;
 
 			/**
 			 * Send a new message to all agents.
 			 * @param p_message The message
+			 * @param p_length The message size
 			 **/
-			void broadcast(const json& p_message);
+			void broadcast(const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
+			void broadcast(const json& p_message) const;
 
 			/**
 			 * Perception filter.
 			 * @param p_observed Observed properties
 			 * @return True if the agent is observable
 			 **/
-			virtual bool perception_filter(const std::unordered_map<std::string, std::string>& p_observed) const;
-			
+			[[nodiscard]] virtual bool perception_filter(const ObservablesPointer& p_observed) const;
+
 			/**
 			 * Setup the agent.
 			 **/
@@ -191,24 +214,24 @@ namespace cam {
 			 * Compute see.
 			 * @param p_observable_agents The list of observable agents
 			 **/
-			virtual void see(std::vector<ObservableAgentPointer> p_observable_agents);
+			virtual void see(const std::vector<const ObservablesPointer>& p_observable_agents);
 
 			/**
 			 * Compute action.
 			 * @param p_message The message to compute
 			 **/
-			virtual void action(const cam::MessagePointer& p_message);
-		
+			virtual void action(const MessagePointer& p_message);
+
 			/**
 			 * Compute action if there is no message.
 			 **/
 			virtual void default_action();
 
 			// Delete copy constructor
-			Agent(const Agent&) = delete;
-			Agent& operator=(Agent&) = delete;
+			Agent(const Agent& ) = delete;
+			Agent& operator=(Agent& ) = delete;
 	};
-	
+
 	// Agent pointer
-	using AgentPointer = std::shared_ptr<cam::Agent>;
-}
+	using AgentPointer = std::shared_ptr<Agent>;
+} // namespace cam

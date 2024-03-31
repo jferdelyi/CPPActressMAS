@@ -6,33 +6,55 @@ set(CMAKE_CXX_STANDARD 20)
 include_directories(Externals)
 include_directories(CPPActressMAS)
 
-file(GLOB SOURCES ${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h ${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp)
+file(GLOB SOURCES
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h**
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.hpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp
+)
 
 add_library(CPPActressMAS STATIC ${SOURCES})
+target_compile_options(CPPActressMAS PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
-if(MSVC)
-    target_compile_options(CPPActressMAS PRIVATE /W4 /WX /EHsc)
-else()
-    target_compile_options(CPPActressMAS PRIVATE -Wall -Wextra -Wpedantic -Werror -fno-exceptions)
-endif()
-
-add_executable(Exemple1 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/Exemple1.cpp)
+add_executable(Exemple1 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple1.cpp)
 target_link_libraries(Exemple1 CPPActressMAS)
+target_compile_options(Exemple1 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
-add_executable(Exemple2 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/Exemple2.cpp)
+add_executable(Exemple2 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple2.cpp)
 target_link_libraries(Exemple2 CPPActressMAS)
+target_compile_options(Exemple2 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
-add_executable(Exemple3 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/Exemple3.cpp)
+add_executable(Exemple3 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple3.cpp)
 target_link_libraries(Exemple3 CPPActressMAS)
+target_compile_options(Exemple3 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
-add_executable(Exemple4 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/Exemple4.cpp)
+add_executable(Exemple4 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple4.cpp)
 target_link_libraries(Exemple4 CPPActressMAS)
+target_compile_options(Exemple4 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
-add_executable(Exemple5 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/Exemple5.cpp)
+add_executable(Exemple5 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple5.cpp)
 target_link_libraries(Exemple5 CPPActressMAS)
+target_compile_options(Exemple5 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
-add_executable(MultipleMessages ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/MultipleMessages.cpp)
+add_executable(MultipleMessages ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/MultipleMessages.cpp)
 target_link_libraries(MultipleMessages CPPActressMAS)
+target_compile_options(MultipleMessages PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
-add_executable(SendingObjects ${CMAKE_CURRENT_LIST_DIR}/Examples/Simple/SendingObjects.cpp)
+add_executable(SendingObjects ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/SendingObjects.cpp)
 target_link_libraries(SendingObjects CPPActressMAS)
+target_compile_options(SendingObjects PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+
+add_executable(PingPong ${CMAKE_CURRENT_LIST_DIR}/Examples/Benchmarks/PingPong.cpp)
+target_link_libraries(PingPong CPPActressMAS)
+target_compile_options(PingPong PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+
+add_executable(Skynet ${CMAKE_CURRENT_LIST_DIR}/Examples/Benchmarks/Skynet.cpp)
+target_link_libraries(Skynet CPPActressMAS)
+target_compile_options(Skynet PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+
+add_executable(NumberGame ${CMAKE_CURRENT_LIST_DIR}/Examples/Observables/NumberGame.cpp)
+target_link_libraries(NumberGame CPPActressMAS)
+target_compile_options(NumberGame PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+
+add_executable(ColorGame ${CMAKE_CURRENT_LIST_DIR}/Examples/Observables/ColorGame.cpp)
+target_link_libraries(ColorGame CPPActressMAS)
+target_compile_options(ColorGame PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)

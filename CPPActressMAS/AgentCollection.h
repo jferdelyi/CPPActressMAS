@@ -19,107 +19,129 @@
 #pragma once
 
 #include "Agent.h"
+#include "ThreadPool/ThreadPool.h"
+#include "tsl/ordered_map.h"
 
 /**
  * CPPActressMAS
  */
 namespace cam {
 
+	enum class EnvironmentMasMode;
+
 	/**
 	 * A collection of agents
 	 **/
-	class AgentCollection {
+	class AgentCollection final {
+		friend EnvironmentMas;
 
 		protected:
+			/**
+			 * Agents: id, content
+			 **/
+			tsl::ordered_map<std::string, AgentPointer> m_agents;
 
 			/**
-			 * Agents: name, content
-			 * Multiple names are allowed
+			 * Agents: name, id
 			 **/
-			std::map<std::string, AgentPointer> m_agents;
+			std::unordered_multimap<std::string, std::string> m_agents_by_name;
+
+			/**
+			 * New agent buffer
+			 */
+			MPSCQueue<AgentPointer> m_new_agents;
+
+			/**
+			 * Thread pool for agents
+			 **/
+			ThreadPool m_pool;
+
+			/**
+			 * Environment mode.
+			 **/
+			EnvironmentMasMode m_environment_mas_mode;
 
 		public:
-		
 			/**
 			 * Initializes a new instance of a collection of agents
 			 **/
-			AgentCollection() = default;
+			explicit AgentCollection(const EnvironmentMasMode& p_environment_mas_mode);
 
 			/**
 			 * Nothing to delete
 			 **/
-			virtual ~AgentCollection() = default;
+			~AgentCollection() = default;
 
 			/**
 			 * Return number of agents
 			 * @return Number of agents
 			 **/
-			int count() const;
+			[[nodiscard]] size_t count() const;
 
 			/**
 			 * Add new agent
 			 * @param p_agent Agent to add
 			 **/
-			void add(AgentPointer& p_agent);
+			void add(const AgentPointer& p_agent);
 
 			/**
-			 * Returns the name of a randomly selected agent from the environment
+			 * Returns a randomly selected agent from the environment
 			 * @return Random agent
 			 **/
-			const cam::AgentPointer& random_agent() const;
+			[[nodiscard]] const AgentPointer& random_agent() const;
 
 			/**
 			 * Return true if the agent exists
 			 * @return True if exists
 			 **/
-			bool contains(const AgentPointer& p_agent) const;
+			[[nodiscard]] bool contains(const AgentPointer& p_agent) const;
 
 			/**
 			 * Return true if the agent exists
-			 * @param p_agent_name The agent id
+			 * @param p_id The agent id
 			 * @return True if exists
 			 **/
-			bool contains(const std::string& p_agent_name) const;
+			[[nodiscard]] bool contains(const std::string& p_id) const;
 
 			/**
 			 * Remove agent
-			 * @param p_agent_name The agent id
+			 * @param p_id The agent id
 			 **/
-			void remove(const std::string& p_agent_name);
+			void remove(const std::string& p_id);
 
 			/**
 			 * Get agent by id
-			 * @param p_agent_name The agent id
-			 * @return The agent
+			 * @param p_id The agent id
+			 * @return The agentx
 			 **/
-			AgentPointer get(const std::string& p_agent_name);
+			AgentPointer get(const std::string& p_id) const;
 
 			/**
-			 * Get all names
-			 * @return All names
+			 * Run one turn
 			 **/
-			const std::vector<std::string> get_names() const;
+			void run_turn();
+
+			/**
+			 * Add new agents, remove dead ones
+			 **/
+			void process_buffers();
 
 			/**
 			 * Get all ids
+			 * @param p_alive_only if true then return only alive agents
 			 * @return All ids
 			 **/
-			const std::vector<std::string> get_ids() const;
+			[[nodiscard]] std::vector<std::string> get_ids(bool p_alive_only = true);
 
 			/**
-			 * Get all agents
-			 * @return All names
+			 * Return a vector (p_number length) of random index.
+			 * Fisher-Yates shuffle.
+			 * @param p_number Number of value in the returned vector
 			 **/
-			const std::map<std::string, AgentPointer>& get_agents() const;
-
-			/**
-			 * Returns a std::vector with the names of all the agents that contain a certain std::string
-			 * @param p_name_fragment The name fragment that the agent names should contain
-			 **/
-			const std::vector<cam::AgentPointer> filtered_agents(const std::string& p_name_fragment);
+			static std::vector<int> random_permutation(size_t p_number);
 
 			// Delete copy constructor
-			AgentCollection(const AgentCollection&) = delete;
-			AgentCollection& operator=(AgentCollection&) = delete;
+			AgentCollection(const AgentCollection& ) = delete;
+			AgentCollection& operator=(AgentCollection& ) = delete;
 	};
-}
+} // namespace cam
