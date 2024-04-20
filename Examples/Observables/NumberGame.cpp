@@ -35,7 +35,7 @@ class MyAgent : public cam::Agent {
 
 	public:
 		explicit MyAgent(const std::string& p_name) :
-			Agent(p_name) {
+			Agent(p_name, true) {
 		}
 
 		void setup() override {

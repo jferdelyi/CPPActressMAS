@@ -20,9 +20,10 @@
 
 #include "EnvironmentMas.h"
 
-cam::Agent::Agent(std::string p_name) :
+cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 	m_id(UUID::generate_uuid()),
 	m_name(std::move(p_name)),
+	m_using_observables(p_using_observables),
 	m_is_setup(false),
 	m_is_dead(false),
 	m_observables(new Observables()),

@@ -36,7 +36,7 @@ class MyAgent : public cam::Agent {
 
 	public:
 		explicit MyAgent(const std::string& p_name) :
-			Agent(p_name) {
+			Agent(p_name, true) {
 		}
 
 		void see(const std::vector<const cam::ObservablesPointer>& p_observable_agents) override {

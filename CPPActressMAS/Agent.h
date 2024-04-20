@@ -55,12 +55,17 @@ namespace cam {
 			std::string m_name;
 
 			/**
+			 * True if using observables.
+			 **/
+			bool m_using_observables;
+
+			/**
 			 * True if setup.
 			 **/
 			bool m_is_setup;
 
 			/**
-			 * True if setup.
+			 * True if dead.
 			 **/
 			bool m_is_dead;
 
@@ -83,8 +88,9 @@ namespace cam {
 			/**
 			 * Create a new agent.
 			 * @param p_name Name of the new agent
+			 * @param p_using_observables If true, this agent can see
 			 **/
-			explicit Agent(std::string p_name);
+			explicit Agent(std::string p_name, const bool p_using_observables = false);
 
 			/**
 			 * Nothing to delete.
@@ -107,7 +113,13 @@ namespace cam {
 			 * True if using observables.
 			 * @return True if using observables
 			 **/
-			[[nodiscard]] bool is_using_observables() const { return !m_observables->empty(); }
+			[[nodiscard]] bool is_using_observables() const { return m_using_observables; }
+
+			/**
+			 * True if using observables.
+			 * @return True if using observables
+			 **/
+			void set_using_observables(const bool p_using_observables) { m_using_observables = p_using_observables; }
 
 			/**
 			 * Get observables.
