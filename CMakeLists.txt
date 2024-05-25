@@ -3,6 +3,9 @@ project(CPPActressMAS)
 
 set(CMAKE_CXX_STANDARD 20)
 
+find_package(OpenSSL REQUIRED)
+find_package(PahoMqttCpp REQUIRED)
+
 include_directories(Externals)
 include_directories(CPPActressMAS)
 
@@ -13,11 +16,13 @@ file(GLOB SOURCES
 )
 
 add_library(CPPActressMAS STATIC ${SOURCES})
+target_link_libraries(CPPActressMAS OpenSSL::SSL PahoMqttCpp::paho-mqttpp3-static)
+target_link_options(CPPActressMAS PRIVATE LINKER:-no_warn_duplicate_libraries)
 target_compile_options(CPPActressMAS PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
 add_executable(Exemple1 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple1.cpp)
 target_link_libraries(Exemple1 CPPActressMAS)
-target_compile_options(Exemple1 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+#target_compile_options(Exemple1 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
 add_executable(Exemple2 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple2.cpp)
 target_link_libraries(Exemple2 CPPActressMAS)
@@ -45,10 +50,12 @@ target_compile_options(SendingObjects PRIVATE -march=native -O3 -march=native -f
 
 add_executable(PingPong ${CMAKE_CURRENT_LIST_DIR}/Examples/Benchmarks/PingPong.cpp)
 target_link_libraries(PingPong CPPActressMAS)
+target_link_options(PingPong PRIVATE LINKER:-no_warn_duplicate_libraries)
 target_compile_options(PingPong PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
 add_executable(Skynet ${CMAKE_CURRENT_LIST_DIR}/Examples/Benchmarks/Skynet.cpp)
 target_link_libraries(Skynet CPPActressMAS)
+target_link_options(Skynet PRIVATE LINKER:-no_warn_duplicate_libraries)
 target_compile_options(Skynet PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
 
 add_executable(NumberGame ${CMAKE_CURRENT_LIST_DIR}/Examples/Observables/NumberGame.cpp)
@@ -57,4 +64,16 @@ target_compile_options(NumberGame PRIVATE -march=native -O3 -march=native -flto 
 
 add_executable(ColorGame ${CMAKE_CURRENT_LIST_DIR}/Examples/Observables/ColorGame.cpp)
 target_link_libraries(ColorGame CPPActressMAS)
-target_compile_options(ColorGame PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+#target_compile_options(ColorGame PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+
+add_executable(Serialization ${CMAKE_CURRENT_LIST_DIR}/Examples/Serialization/Serialization.cpp)
+target_link_libraries(Serialization CPPActressMAS)
+#target_compile_options(Serialization PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+
+add_executable(Mobile ${CMAKE_CURRENT_LIST_DIR}/Examples/Mobiles/Mobile.cpp)
+target_link_libraries(Mobile CPPActressMAS)
+target_link_options(Mobile PRIVATE LINKER:-no_warn_duplicate_libraries)
+
+
+add_executable(MobilePingPong ${CMAKE_CURRENT_LIST_DIR}/Examples/Mobiles/PingPong.cpp)
+target_link_libraries(MobilePingPong CPPActressMAS)

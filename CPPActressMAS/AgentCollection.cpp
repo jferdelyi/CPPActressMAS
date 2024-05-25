@@ -23,9 +23,11 @@
 
 #include "EnvironmentMas.h"
 
-cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_mas_mode) :
-	m_pool(std::thread::hardware_concurrency() == 0 ? 8 : std::thread::hardware_concurrency()),
-	m_environment_mas_mode(p_environment_mas_mode) {
+cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, const unsigned int p_seed) :
+		m_pool(std::thread::hardware_concurrency() == 0 ? 8 : std::thread::hardware_concurrency()),
+		m_environment_mas_mode(p_environment_mas_mode),
+		m_seed(p_seed) {
+
 }
 
 size_t cam::AgentCollection::count() const {
@@ -38,11 +40,10 @@ void cam::AgentCollection::add(const AgentPointer& p_agent) {
 
 const cam::AgentPointer& cam::AgentCollection::random_agent() const {
 	auto l_it = m_agents.begin();
+	do {
 
-	std::random_device l_rd;
-	std::uniform_int_distribution<size_t> l_dist(0, m_agents.size());
-
-	std::advance(l_it, l_dist(l_rd));
+		std::advance(l_it, get_random_value(0, m_agents.size()));
+	} while (l_it->second->is_dead());
 	return l_it->second;
 }
 
@@ -63,18 +64,11 @@ void cam::AgentCollection::remove(const std::string& p_id) {
 void cam::AgentCollection::run_turn() {
 	// Sequential
 	if (m_environment_mas_mode == EnvironmentMasMode::Sequential) {
-		for (auto& [l_agent_id, l_agent] : m_agents) {
-			if (!l_agent->is_setup()) {
-				l_agent->internal_setup();
-			} else {
-				if (l_agent->is_using_observables()) {
-					l_agent->internal_see();
-				}
-				l_agent->internal_action();
-			}
+		for (auto& [l_agent_id, l_agent]: m_agents) {
+			l_agent->run_turn();
 		}
 
-	// Random
+		// Random
 	} else {
 		const auto m_parallel = m_environment_mas_mode == EnvironmentMasMode::Parallel;
 		std::vector<std::future<void>> l_asyncs;
@@ -85,60 +79,28 @@ void cam::AgentCollection::run_turn() {
 
 		while (l_index < l_count) {
 			const std::string& l_agent_id = l_agents.at(l_agent_order.at(l_index++));
-			if(AgentPointer l_agent = get(l_agent_id); l_agent) {
-				if (!l_agent->is_setup()) {
-					if (m_parallel) {
-						//l_asyncs.push_back(std::async(std::launch::async, [l_agent] {
-						//	l_agent->internal_setup();
-						//}));
-						l_asyncs.push_back(m_pool.addWorkFunc([l_agent] {
-							l_agent->internal_setup();
-						}));
-					} else {
-						l_agent->internal_setup();
-					}
+			if (AgentPointer l_agent = get(l_agent_id); l_agent) {
+				if (m_parallel) {
+					l_asyncs.push_back(m_pool.addWorkFunc([l_agent] {
+						l_agent->run_turn();
+					}));
 				} else {
-					if (m_parallel) {
-						//l_asyncs.push_back(std::async(std::launch::async, [l_agent] {
-						//	if (l_agent->is_using_observables()) {
-						//		l_agent->internal_see();
-						//	}
-						//	l_agent->internal_action();
-						//}));
-						l_asyncs.push_back(m_pool.addWorkFunc([l_agent] {
-							if (l_agent->is_using_observables()) {
-								l_agent->internal_see();
-							}
-							l_agent->internal_action();
-						}));
-					} else {
-						if (l_agent->is_using_observables()) {
-							l_agent->internal_see();
-						}
-						l_agent->internal_action();
-					}
+					l_agent->run_turn();
 				}
+
 			}
 		}
-		for (std::future<void>& l_async : l_asyncs) {
+		for (std::future<void>& l_async: l_asyncs) {
 			l_async.wait();
 		}
 	}
 }
 
 void cam::AgentCollection::process_buffers() {
-	// Add new agents
-	if (AgentPointer l_agent; m_new_agents.dequeue(l_agent)) {
-		do {
-			m_agents.insert(std::make_pair(l_agent->get_id(), l_agent));
-			m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
-		} while (m_new_agents.dequeue(l_agent));
-	}
-
 	// Remove dead agents
 	std::vector<std::string> l_ids;
 	l_ids.reserve(m_agents.size());
-	for (auto& [l_id, l_agent] : m_agents) {
+	for (auto& [l_id, l_agent]: m_agents) {
 		if (l_agent->is_dead()) {
 			l_ids.push_back(l_id);
 			const auto [l_start, l_end] = m_agents_by_name.equal_range(l_agent->get_name());
@@ -150,12 +112,21 @@ void cam::AgentCollection::process_buffers() {
 			}
 		}
 	}
-	for (const auto& l_id : l_ids) {
+
+	for (const auto& l_id: l_ids) {
 		remove(l_id);
+	}
+
+	// Add new agents
+	if (AgentPointer l_agent; m_new_agents.dequeue(l_agent)) {
+		do {
+			m_agents.insert(std::make_pair(l_agent->get_id(), l_agent));
+			m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
+		} while (m_new_agents.dequeue(l_agent));
 	}
 }
 
-cam::AgentPointer cam::AgentCollection::get(const std::string& p_id) const{
+cam::AgentPointer cam::AgentCollection::get(const std::string& p_id) const {
 	const auto& l_it = m_agents.find(p_id);
 	return l_it == m_agents.end() ? nullptr : l_it->second;
 }
@@ -164,7 +135,7 @@ std::vector<std::string> cam::AgentCollection::get_ids(const bool p_alive_only) 
 	std::vector<std::string> l_result;
 	l_result.reserve(m_agents.size());
 
-	for (auto& [l_id, l_agent] : m_agents) {
+	for (auto& [l_id, l_agent]: m_agents) {
 		if (!p_alive_only || !l_agent->is_dead()) {
 			l_result.push_back(l_id);
 		}
@@ -173,17 +144,15 @@ std::vector<std::string> cam::AgentCollection::get_ids(const bool p_alive_only) 
 	return l_result;
 }
 
-std::vector<int> cam::AgentCollection::random_permutation(const size_t p_number) {
+std::vector<int> cam::AgentCollection::random_permutation(const size_t p_number) const {
 	std::vector<int> l_numbers(p_number);
 	for (size_t l_index = 0; l_index < p_number; l_index++) {
 		l_numbers[l_index] = static_cast<int>(l_index);
 	}
 
-	std::random_device l_rd;
-	int l_index = static_cast<int>(p_number) - 1;
+	size_t l_index = p_number - 1;
 	while (l_index > 1) {
-		std::uniform_int_distribution l_dist(0,  l_index);
-		const int l_k = l_dist(l_rd);
+		const size_t l_k = get_random_value(0, l_index);
 		if (l_k == l_index) {
 			continue;
 		}
@@ -194,4 +163,11 @@ std::vector<int> cam::AgentCollection::random_permutation(const size_t p_number)
 	}
 
 	return l_numbers;
+}
+
+size_t cam::AgentCollection::get_random_value(const size_t& p_min, const size_t& p_max) const {
+	static std::default_random_engine s_seeder(m_seed);
+	static std::mt19937 s_generator(s_seeder());
+	std::uniform_int_distribution<size_t> l_dist(p_min, p_max);
+	return l_dist(s_generator);
 }

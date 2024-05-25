@@ -20,8 +20,6 @@
 
 #include <EnvironmentMas.h>
 
-//static std::unordered_map<std::string, std::string> s_name_id;
-
 class ContentInfo {
 	public:
 		int m_number;
@@ -31,18 +29,22 @@ class ContentInfo {
 			m_number(l_number),
 			m_text(std::move(l_text)) {}
 
-		explicit ContentInfo(const json& p_serialized_data) :
+		explicit ContentInfo(std::stringstream& p_stream) :
 			m_number(0) {
-			parse(p_serialized_data);
+			cereal::PortableBinaryInputArchive l_input_archive(p_stream);
+			l_input_archive(*this);
 		}
 
-		[[nodiscard]] json serialize() const {
-			return {{"number", m_number}, {"text", m_text}};
+		[[nodiscard]] std::stringstream serialize_to_stream() const {
+			std::stringstream l_stream;
+			cereal::PortableBinaryOutputArchive l_output_archive(l_stream);
+			l_output_archive(*this);
+			return l_stream;
 		}
 
-		void parse(const json& p_serialized_data) {
-			m_number = p_serialized_data["number"];
-			m_text = p_serialized_data["text"];
+		template<class Archive>
+		void serialize(Archive& p_archive) {
+			p_archive(m_number, m_text);
 		}
 };
 
@@ -52,16 +54,17 @@ class Agent1 final : public cam::Agent {
 
 		void setup() override {
 			for (int i = 0; i < 10; i++) {
-				std::cout << "[" + m_name + "]: setup " << std::to_string(i + 1) << std::endl;
+				std::cout << "[" + get_name() + "]: setup " << std::to_string(i + 1) << std::endl;
 				ContentInfo l_content(i + 1, "setup from a1*");
-				send_by_name("a2", l_content.serialize());
+				send_by_name("a2", l_content.serialize_to_stream().str());
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			const ContentInfo l_content(p_message->content());
-			std::cout << "[" + m_name + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
+			std::stringstream l_stream = std::stringstream(p_message->content().get<std::string>());
+			const ContentInfo l_content(l_stream);
+			std::cout << "[" + get_name() + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 };
@@ -72,16 +75,17 @@ class Agent2 final : public cam::Agent {
 
 		void setup() override {
 			for (int i = 0; i < 3; i++) {
-				std::cout << "[" + m_name + "]: setup " << std::to_string(i + 1) << std::endl;
+				std::cout << "[" + get_name() + "]: setup " << std::to_string(i + 1) << std::endl;
 				ContentInfo l_content(i + 1, "setup from a2");
-				send(m_environment->get_first_agent_by_name("a1*").value(), l_content.serialize());
+				send(get_first_agent_by_name("a1*").value(), l_content.serialize_to_stream().str());
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			const ContentInfo l_content(p_message->content());
-			std::cout << "[" + m_name + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
+			std::stringstream l_stream = std::stringstream(p_message->content().get<std::string>());
+			const ContentInfo l_content(l_stream);
+			std::cout << "[" + get_name() + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 };

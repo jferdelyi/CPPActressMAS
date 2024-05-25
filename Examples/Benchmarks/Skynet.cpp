@@ -16,7 +16,6 @@
  *                                                                        *
  **************************************************************************/
 
-#include <chrono>
 #include <iostream>
 
 #include <EnvironmentMas.h>
@@ -43,7 +42,7 @@ class MyAgent : public cam::Agent {
 		void setup() override {
 			for (int i = 1; i <= CHILD_COUNT; i++) {
 				if (const int l_new_id = m_sum_id * 10 + i; l_new_id < AGENT_COUNT) {
-					m_environment->add<MyAgent>("a" + std::to_string(l_new_id), l_new_id, m_id);
+					get_environment()->add<MyAgent>("a" + std::to_string(l_new_id), l_new_id, get_id());
 					m_message_left++;
 				}
 			}
@@ -59,7 +58,7 @@ class MyAgent : public cam::Agent {
 			m_message_left--;
 
 			if (m_message_left == 0) {
-				if (m_name == "a0") {
+				if (get_name() == "a0") {
 					std::cout << "Sum " << m_sum << std::endl;
 				} else {
 					send(m_parent_id, {{"sum", m_sum}}); // send id to parent

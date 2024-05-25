@@ -23,9 +23,11 @@
 class Numbers {
 	public:
 		static double GenerateNumber(const double p_max = 30.0) {
-			static std::random_device l_rd;
+			static std::default_random_engine s_seeder(std::time(nullptr));
+			static std::mt19937 s_generator(s_seeder());
+
 			std::uniform_real_distribution l_dist(0.0,  p_max);
-			return std::ceil(l_dist(l_rd) * 100.0) / 100.0;
+			return std::ceil(l_dist(s_generator) * 100.0) / 100.0;
 		}
 };
 
@@ -39,7 +41,7 @@ class MyAgent : public cam::Agent {
 		}
 
 		void setup() override {
-		    m_observables->emplace(std::make_pair("Name", m_name));
+		    m_observables->emplace(std::make_pair("Name", get_name()));
 			m_observables->emplace(std::make_pair("Number", Numbers::GenerateNumber()));
 		}
 
@@ -57,7 +59,7 @@ class MyAgent : public cam::Agent {
 		}
 
 		void default_action() override {
-		    std::cout << "I am " << m_name << ". ";
+		    std::cout << "I am " << get_name() << ". ";
 		    if (m_observable_agents.empty()) {
 		        std::cout << "I did't see anything interesting." << std::endl;
 		    } else {
@@ -66,6 +68,7 @@ class MyAgent : public cam::Agent {
                     std::cout << l_observable->at("Name") << " with number = " << l_observable->at("Number") << std::endl;
 		        }
 		    }
+			m_observables->erase("Number");
 			m_observables->insert(std::make_pair("Number", Numbers::GenerateNumber()));
 		    std::cout << "My number is now " << m_observables->at("Number") << std::endl;
 		    std::cout << "----------------------------------------------" << std::endl;

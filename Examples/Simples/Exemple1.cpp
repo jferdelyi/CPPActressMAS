@@ -27,14 +27,14 @@ class MyAgent : public cam::Agent {
 		explicit MyAgent(const std::string& p_name) : Agent(p_name) { }
 
 		void setup() override {
-			std::cout << "[" + m_name + "]: starting" << std::endl;
+			std::cout << "[" + get_name() + "]: starting" << std::endl;
 
 			std::random_device l_rd;
 			std::uniform_int_distribution l_dist(10, 100);
 
 			for (int i = 1; i <= 10; i++) {
-				std::cout << "[" + m_name + "]: sending " << i << std::endl;
-				send_by_name("monitor",{{"data", i}, {"from", m_name}});
+				std::cout << "[" + get_name() + "]: sending " << i << std::endl;
+				send_by_name("monitor",{{"data", i}, {"from", get_name()}});
 				std::this_thread::sleep_for(std::chrono::milliseconds(l_dist(l_rd)));
 			}
 		}
@@ -45,7 +45,7 @@ class MonitorAgent final : public cam::Agent {
 		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) { }
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+			std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
 		}
 };
 

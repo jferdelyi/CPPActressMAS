@@ -26,7 +26,7 @@ class Agent1 final : public cam::Agent {
 
 	void setup() override {
 		for (int i = 0; i < 10; i++) {
-			std::cout << "[" + m_name + "]: setup " + std::to_string(i + 1) << std::endl;
+			std::cout << "[" + get_name() + "]: setup " + std::to_string(i + 1) << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 		send_by_name("a2", "msg");
@@ -34,13 +34,13 @@ class Agent1 final : public cam::Agent {
 
 	void action(const cam::MessagePointer&) override {
 		for (int i = 0; i < 3; i++) {
-			std::cout << "[" + m_name + "]: action " + std::to_string(i + 1) << std::endl;
+			std::cout << "[" + get_name() + "]: action " + std::to_string(i + 1) << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
 
 	void default_action() override {
-		std::cout << "[" + m_name + "]: no messages" << std::endl;
+		std::cout << "[" + get_name() + "]: no messages" << std::endl;
 		stop();
 	}
 };
@@ -51,7 +51,7 @@ class Agent2 final : public cam::Agent {
 
 		void setup() override {
 			for (int i = 0; i < 3; i++) {
-				std::cout << "[" + m_name + "]: setup " + std::to_string(i + 1) << std::endl;
+				std::cout << "[" + get_name() + "]: setup " + std::to_string(i + 1) << std::endl;
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 			send_by_name("a1", "msg");
@@ -59,13 +59,13 @@ class Agent2 final : public cam::Agent {
 
 		void action(const cam::MessagePointer&) override {
 			for (int i = 0; i < 10; i++) {
-				std::cout << "[" + m_name + "]: action " + std::to_string(i + 1) << std::endl;
+				std::cout << "[" + get_name() + "]: action " + std::to_string(i + 1) << std::endl;
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void default_action() override {
-			std::cout << "[" + m_name + "]: no messages" << std::endl;
+			std::cout << "[" + get_name() + "]: no messages" << std::endl;
 			stop();
 		}
 };

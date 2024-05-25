@@ -33,7 +33,7 @@ class MyAgent : public cam::Agent {
 				stop();
 			} else {
 				for (int i = 1; i <= 3; i++) {
-					send_by_name("writer", {{"turn", m_turn}, {"index", i}, {"from", m_name}});
+					send_by_name("writer", {{"turn", m_turn}, {"index", i}, {"from", get_name()}});
 				}
 
 				m_turn++;
@@ -47,7 +47,7 @@ class WriterAgent final : public cam::Agent {
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+			std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
 		}
 };
 

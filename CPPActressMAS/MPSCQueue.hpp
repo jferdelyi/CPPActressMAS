@@ -19,96 +19,131 @@
 #pragma once
 
 #include <atomic>
+#include <queue>
+#include <cereal/types/queue.hpp> // Serialize queue
 
 /**
  * CPPActressMAS
  */
 namespace cam {
 
-    /**
-     * MPSC (Multiple Producer Single Consumer) lock free queue from CPP Benchmark
-     * https://github.com/chronoxor/CppBenchmark/blob/master/examples/lockfree/mpsc-queue.hpp
-     */
-    template<typename T> class MPSCQueue {
-    	/**
+	/**
+	 * MPSC (Multiple Producer Single Consumer) lock free queue from CPP Benchmark (serializable)
+	 * https://github.com/chronoxor/CppBenchmark/blob/master/examples/lockfree/mpsc-queue.hpp
+	 */
+	template<typename T>
+	class MPSCQueue {
+		/**
 		 * Node struct
 		 */
-    	struct MPSCQueueNode {
-    		T data;
-    		std::atomic<MPSCQueueNode*> next;
-    	};
-    	typedef char MPSCQueuePad[64];
+		struct MPSCQueueNode {
+			T data;
+			std::atomic<MPSCQueueNode*> next;
+		};
+		typedef char MPSCQueuePad[64];
 
-    	/**
+		/**
 		 * Head of the queue
 		 */
-    	MPSCQueuePad m_head_pad;
-    	std::atomic<MPSCQueueNode*> m_head;
+		[[maybe_unused]] MPSCQueuePad m_head_pad;
+		std::atomic<MPSCQueueNode*> m_head;
 
-    	/**
+		/**
 		 * Tail of the queue
 		 */
-    	MPSCQueuePad m_tail_pad;
-    	std::atomic<MPSCQueueNode*> m_tail;
+		[[maybe_unused]] MPSCQueuePad m_tail_pad;
+		std::atomic<MPSCQueueNode*> m_tail;
 
-    public:
+	public:
 
-        /**
-         * MPSC (Multiple Producer Single Consumer) lock free queue constructor
-         */
-        MPSCQueue() :
-            m_head_pad{},
-            m_head(new MPSCQueueNode),
-            m_tail_pad{},
-            m_tail(m_head.load(std::memory_order_relaxed)) {
-            MPSCQueueNode* l_front = m_head.load(std::memory_order_relaxed);
-            l_front->next.store(nullptr, std::memory_order_relaxed);
-        }
+		/**
+		 * MPSC (Multiple Producer Single Consumer) lock free queue constructor
+		 */
+		MPSCQueue() :
+				m_head_pad{},
+				m_head(new MPSCQueueNode),
+				m_tail_pad{},
+				m_tail(m_head.load(std::memory_order_relaxed)) {
+			MPSCQueueNode* l_front = m_head.load(std::memory_order_relaxed);
+			l_front->next.store(nullptr, std::memory_order_relaxed);
+		}
 
-        /**
-         * Free all nodes
-         */
-        ~MPSCQueue() {
-            T l_output;
-            while (this->dequeue(l_output)) {}
-            const MPSCQueueNode* l_front = m_head.load(std::memory_order_relaxed);
-            delete l_front;
-        }
+		/**
+		 * Free all nodes
+		 */
+		~MPSCQueue() {
+			T l_output;
+			while (this->dequeue(l_output)) {}
+			const MPSCQueueNode* l_front = m_head.load(std::memory_order_relaxed);
+			delete l_front;
+		}
 
-        /**
-         * Enqueue new item
-         * @param p_input_item new item
-         */
-        void enqueue(const T& p_input_item) {
-            auto* l_node = new MPSCQueueNode;
-            l_node->data = p_input_item;
-            l_node->next.store(nullptr, std::memory_order_relaxed);
-            MPSCQueueNode* l_prev_head = m_head.exchange(l_node, std::memory_order_acq_rel);
-            l_prev_head->next.store(l_node, std::memory_order_release);
-        }
+		/**
+		 * Enqueue new item
+		 * @param p_input_item new item
+		 */
+		void enqueue(const T& p_input_item) {
+			auto* l_node = new MPSCQueueNode;
+			l_node->data = p_input_item;
+			l_node->next.store(nullptr, std::memory_order_relaxed);
+			MPSCQueueNode* l_prev_head = m_head.exchange(l_node, std::memory_order_acq_rel);
+			l_prev_head->next.store(l_node, std::memory_order_release);
+		}
 
-        /**
-         * Dequeue last item
-         * @param p_output_item last item
-         * @return false if the queue is empty
-         */
-        bool dequeue(T& p_output_item) {
-            MPSCQueueNode* l_tail = m_tail.load(std::memory_order_relaxed);
-            MPSCQueueNode* l_next = l_tail->next.load(std::memory_order_acquire);
+		/**
+		 * Dequeue last item
+		 * @param p_output_item last item
+		 * @return false if the queue is empty
+		 */
+		bool dequeue(T& p_output_item) {
+			MPSCQueueNode* l_tail = m_tail.load(std::memory_order_relaxed);
+			MPSCQueueNode* l_next = l_tail->next.load(std::memory_order_acquire);
 
-            if (l_next == nullptr) {
-                return false;
-            }
+			if (l_next == nullptr) {
+				return false;
+			}
 
-            p_output_item = l_next->data;
-            m_tail.store(l_next, std::memory_order_release);
-            delete l_tail;
-            return true;
-        }
+			p_output_item = l_next->data;
+			m_tail.store(l_next, std::memory_order_release);
+			delete l_tail;
+			return true;
+		}
 
-    	// Delete copy constructor
-    	MPSCQueue(const MPSCQueue& ) = delete;
-    	MPSCQueue& operator=(MPSCQueue& ) = delete;
-    };
+		/**
+		 * Serialize queue
+		 * @param p_archive archive to store queue
+		 */
+		template<class Archive>
+		void save(Archive& p_archive) const {
+			std::queue<T> l_serialized_queue;
+			MPSCQueueNode* l_tail = m_tail.load(std::memory_order_relaxed);
+			while (l_tail != nullptr) {
+				if (l_tail->data) {
+					l_serialized_queue.push(l_tail->data);
+				}
+				l_tail = l_tail->next.load(std::memory_order_acquire);
+			}
+			p_archive(l_serialized_queue);
+		}
+
+		/**
+		 * Deserialize queue
+		 * @param p_archive archive to restore queue
+		 */
+		template<class Archive>
+		void load(Archive& p_archive) {
+			std::queue<T> l_serialized_queue;
+			p_archive(l_serialized_queue);
+			while (!l_serialized_queue.empty()) {
+				enqueue(l_serialized_queue.front());
+				l_serialized_queue.pop();
+			}
+		}
+
+		// Delete copy constructor
+		MPSCQueue(const MPSCQueue&) = delete;
+
+		MPSCQueue& operator=(MPSCQueue&) = delete;
+	};
 
 } // namespace cam

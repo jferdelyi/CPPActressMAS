@@ -23,16 +23,19 @@
 class Colors {
 	public:
 		static std::string GenerateColor() {
-			static std::random_device l_rd;
+		 	static std::default_random_engine s_seeder(std::time(nullptr));
+			static std::mt19937 s_generator(s_seeder());
 			static std::vector<std::string> l_colors {"red", "green", "blue"};
-			std::uniform_int_distribution l_dist(0,  2);
-			return l_colors.at(l_dist(l_rd));
+
+			std::uniform_int_distribution<size_t> l_dist(0, 2);
+			return l_colors.at(l_dist(s_generator));
 		}
 };
 
 class MyAgent : public cam::Agent {
 	protected:
 		std::vector<const cam::ObservablesPointer> m_observable_agents;
+		std::string m_see_color;
 
 	public:
 		explicit MyAgent(const std::string& p_name) :
@@ -40,7 +43,7 @@ class MyAgent : public cam::Agent {
 		}
 
 		void see(const std::vector<const cam::ObservablesPointer>& p_observable_agents) override {
-			std::cout << "I am " << m_name << ". I am looking around..." << std::endl;
+			std::cout << "I am " << get_name() << ". I am looking around..." << std::endl;
 			m_observable_agents.clear();
 			for (const auto& l_observable_agent : p_observable_agents) {
 				m_observable_agents.push_back(l_observable_agent);
@@ -48,15 +51,17 @@ class MyAgent : public cam::Agent {
 		}
 
 		void default_action() override {
-		    if (m_observable_agents.empty()) {
-		        std::cout << "I did't see anything interesting." << std::endl;
+			std::cout << "I can see only the color " << m_see_color << std::endl;
+			if (m_observable_agents.empty()) {
+		        std::cout << "I didn't see anything interesting." << std::endl;
 		    } else {
 		        std::cout << "I saw: ";
 		        for (const auto& l_observable : m_observable_agents) {
                     std::cout << l_observable->at("Name") << " (" << l_observable->at("Color") << ")" << std::endl;
 		        }
 		    }
-			m_observables->insert(std::make_pair("Color", Colors::GenerateColor()));
+			m_observables->erase("Color");
+			m_observables->emplace(std::make_pair("Color", Colors::GenerateColor()));
 		    std::cout << "My color is now " << m_observables->at("Color") << std::endl;
 		    std::cout << "----------------------------------------------" << std::endl;
 		}
@@ -68,12 +73,13 @@ public:
 
 protected:
 	void setup() override {
-		m_observables->emplace(std::make_pair("Name", m_name));
+		m_observables->emplace(std::make_pair("Name", get_name()));
 		m_observables->emplace(std::make_pair("Color", "red"));
+		m_see_color = "green";
 	}
 
 	bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
-		return p_observed->at("Color") == "green";
+		return p_observed->at("Color") == m_see_color;
 	}
 };
 
@@ -83,12 +89,13 @@ public:
 
 protected:
 	void setup() override {
-		m_observables->emplace(std::make_pair("Name", m_name));
+		m_observables->emplace(std::make_pair("Name", get_name()));
 		m_observables->emplace(std::make_pair("Color", "green"));
+		m_see_color = "blue";
 	}
 
 	bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
-		return p_observed->at("Color") == "blue";
+		return p_observed->at("Color") == m_see_color;
 	}
 };
 
@@ -99,12 +106,13 @@ public:
 
 protected:
 	void setup() override {
-		m_observables->emplace(std::make_pair("Name", m_name));
+		m_observables->emplace(std::make_pair("Name", get_name()));
 		m_observables->emplace(std::make_pair("Color", "blue"));
+		m_see_color = "red";
 	}
 
 	bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
-		return p_observed->at("Color") == "red";
+		return p_observed->at("Color") == m_see_color;
 	}
 };
 

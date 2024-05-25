@@ -26,17 +26,17 @@ class MyAgent1 final : public cam::Agent {
 		explicit MyAgent1(const std::string& p_name) : Agent(p_name) { }
 
 		void setup() override {
-			send_by_name("agent2",{{"data", "start"}, {"from", m_name}});
+			send_by_name("agent2",{{"data", "start"}, {"from", get_name()}});
 			for (int i = 0; i < 10; i++) {
-				send_by_name("agent2",{{"data", "in setup #" + std::to_string(i)}, {"from", m_name}});
+				send_by_name("agent2",{{"data", "in setup #" + std::to_string(i)}, {"from", get_name()}});
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+			std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
 			for (int i = 0; i < 10; i++) {
-				send_by_name("agent2",{{"data", "in action #" + std::to_string(i)}, {"from", m_name}});
+				send_by_name("agent2",{{"data", "in action #" + std::to_string(i)}, {"from", get_name()}});
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
@@ -47,11 +47,11 @@ class MyAgent2 final : public cam::Agent {
 	explicit MyAgent2(const std::string& p_name) : Agent(p_name) { }
 
 	void setup() override {
-		send_by_name("agent1",{{"data", "start"}, {"from", m_name}});
+		send_by_name("agent1",{{"data", "start"}, {"from", get_name()}});
 	}
 
 	void action(const cam::MessagePointer& p_message) override {
-		std::cout << "[" + m_name + "]: has received " << p_message->to_string() << std::endl;
+		std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
 	}
 };
 
