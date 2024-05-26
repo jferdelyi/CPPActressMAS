@@ -15,68 +15,29 @@ file(GLOB SOURCES
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp
 )
 
-add_library(CPPActressMAS STATIC ${SOURCES})
-target_link_libraries(CPPActressMAS OpenSSL::SSL PahoMqttCpp::paho-mqttpp3-static)
-target_link_options(CPPActressMAS PRIVATE LINKER:-no_warn_duplicate_libraries)
-target_compile_options(CPPActressMAS PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+option(BUILD_STATIC "Enable building static library" ON)
+option(BUILD_SHARED "Enable building shared library" ON)
+option(BUILD_EXAMPLES "Enable building examples" OFF)
 
-add_executable(Exemple1 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple1.cpp)
-target_link_libraries(Exemple1 CPPActressMAS)
-#target_compile_options(Exemple1 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+if (BUILD_STATIC)
+	add_library(CPPActressMASStatic STATIC ${SOURCES})
+	target_link_libraries(CPPActressMASStatic OpenSSL::SSL PahoMqttCpp::paho-mqttpp3-static)
+	target_link_options(CPPActressMASStatic PRIVATE LINKER:-no_warn_duplicate_libraries)
+	if (CMAKE_BUILD_TYPE STREQUAL "Release")
+		target_compile_options(CPPActressMASStatic PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+	endif ()
+	set_target_properties(CPPActressMASStatic PROPERTIES OUTPUT_NAME CPPActressMAS)
+endif ()
 
-add_executable(Exemple2 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple2.cpp)
-target_link_libraries(Exemple2 CPPActressMAS)
-target_compile_options(Exemple2 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+if (BUILD_SHARED)
+	add_library(CPPActressMAS SHARED ${SOURCES})
+	target_link_libraries(CPPActressMAS OpenSSL::SSL PahoMqttCpp::paho-mqttpp3-static)
+	target_link_options(CPPActressMAS PRIVATE LINKER:-no_warn_duplicate_libraries)
+	if (CMAKE_BUILD_TYPE STREQUAL "Release")
+		target_compile_options(CPPActressMASStatic PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
+	endif ()
+endif ()
 
-add_executable(Exemple3 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple3.cpp)
-target_link_libraries(Exemple3 CPPActressMAS)
-target_compile_options(Exemple3 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(Exemple4 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple4.cpp)
-target_link_libraries(Exemple4 CPPActressMAS)
-target_compile_options(Exemple4 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(Exemple5 ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/Exemple5.cpp)
-target_link_libraries(Exemple5 CPPActressMAS)
-target_compile_options(Exemple5 PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(MultipleMessages ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/MultipleMessages.cpp)
-target_link_libraries(MultipleMessages CPPActressMAS)
-target_compile_options(MultipleMessages PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(SendingObjects ${CMAKE_CURRENT_LIST_DIR}/Examples/Simples/SendingObjects.cpp)
-target_link_libraries(SendingObjects CPPActressMAS)
-target_compile_options(SendingObjects PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(PingPong ${CMAKE_CURRENT_LIST_DIR}/Examples/Benchmarks/PingPong.cpp)
-target_link_libraries(PingPong CPPActressMAS)
-target_link_options(PingPong PRIVATE LINKER:-no_warn_duplicate_libraries)
-target_compile_options(PingPong PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(Skynet ${CMAKE_CURRENT_LIST_DIR}/Examples/Benchmarks/Skynet.cpp)
-target_link_libraries(Skynet CPPActressMAS)
-target_link_options(Skynet PRIVATE LINKER:-no_warn_duplicate_libraries)
-target_compile_options(Skynet PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(NumberGame ${CMAKE_CURRENT_LIST_DIR}/Examples/Observables/NumberGame.cpp)
-target_link_libraries(NumberGame CPPActressMAS)
-target_compile_options(NumberGame PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(ColorGame ${CMAKE_CURRENT_LIST_DIR}/Examples/Observables/ColorGame.cpp)
-target_link_libraries(ColorGame CPPActressMAS)
-#target_compile_options(ColorGame PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(Serialization ${CMAKE_CURRENT_LIST_DIR}/Examples/Serialization/Serialization.cpp)
-target_link_libraries(Serialization CPPActressMAS)
-#target_compile_options(Serialization PRIVATE -march=native -O3 -march=native -flto -Wall -Wextra -Wpedantic)
-
-add_executable(Mobile ${CMAKE_CURRENT_LIST_DIR}/Examples/Mobiles/Mobile.cpp)
-target_link_libraries(Mobile CPPActressMAS)
-target_link_options(Mobile PRIVATE LINKER:-no_warn_duplicate_libraries)
-
-
-add_executable(MobilePingPong ${CMAKE_CURRENT_LIST_DIR}/Examples/Mobiles/PingPong.cpp)
-target_link_libraries(MobilePingPong CPPActressMAS)
-
-add_executable(Reactive ${CMAKE_CURRENT_LIST_DIR}/Examples/MAS/Reactive.cpp)
-target_link_libraries(Reactive CPPActressMAS)
+if (BUILD_EXAMPLES)
+	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/Examples)
+endif ()
