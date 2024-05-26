@@ -86,9 +86,9 @@ namespace cam {
 		std::set<std::string> m_containers;
 
 		/**
-		 * New containers
+		 * Information that agent can get about the environment
 		 **/
-		std::set<std::string> m_new_containers;
+		json m_environement_data;
 
 	public:
 
@@ -257,6 +257,31 @@ namespace cam {
 		[[nodiscard]] std::string get_id() const;
 
 		/**
+		 * Get data about the environement
+		 * @return data about the environement
+		 **/
+		[[nodiscard]] json get_global_data() const {
+			return m_environement_data;
+		}
+
+		/**
+		 * Set data about the environement
+		 * @param p_key key of the data
+		 * @param p_value value of the data
+		 **/
+		void set_global_data(const std::string& p_key, const json& p_value) {
+			m_environement_data[p_key] = p_value;
+		}
+
+		/**
+		 * Remove data about the environement
+		 * @param p_key key of the data
+		 **/
+		void remove_global_data(const std::string& p_key) {
+			m_environement_data.erase(p_key);
+		}
+
+		/**
 		 * Move agent.
 		 * @param p_agent_stream The agent stream
 		 * @param p_message Move message
@@ -297,27 +322,25 @@ namespace cam {
 		 * Create a new paho client instance
 		 * @param p_id string to use as the base of the client id (p_id + _ + UUID).
 		 * @param p_full_address the full connection address
+		 * @param p_connection_options connection options (username, password, ...)
 		 * @return the reason code, if something wrong happen. 0 = OK (see https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901031)
 		 */
 		int initialise_remote_connection_by_address(const std::string& p_id,
-													const std::string& p_full_address = "tcp://127.0.0.1:1883");
+													const std::string& p_full_address = "tcp://127.0.0.1:1883",
+													const json& p_connection_options = "");
 
 		/**
 		 * Create a new paho client instance
 		 * @param p_id string to use as the base of the client id (p_id + _ + UUID).
 		 * @param p_host the hostname or ip address of the broker to connect to
 		 * @param p_port the network port to connect to. Usually 1883
+		 * @param p_connection_options connection options (username, password, ...)
 		 * @return the reason code, if something wrong happen. 0 = OK (see https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901031)
 		  */
-		int initialise_remote_connection(const std::string& p_id = "", const std::string& p_host = "127.0.0.1",
-										 int p_port = 1883);
-
-		/**
-		 * Set username & password
-		 * @param p_username username
-		 * @param p_password password
-		 */
-		int username_pw_set(const std::string& p_username, const std::string& p_password);
+		int initialise_remote_connection(const std::string& p_id = "",
+										 const std::string& p_host = "127.0.0.1",
+										 int p_port = 1883,
+										 const json& p_connection_options = "");
 
 		// Delete copy constructor
 		EnvironmentMas(const EnvironmentMas&) = delete;
@@ -365,11 +388,6 @@ namespace cam {
 		//###############################################################
 		//	Remote handlers
 		//###############################################################
-
-		/**
-		 * Send callback to all discovery requests
-		 */
-		void send_discovery_callback();
 
 		/**
 		 * Handler on_connect

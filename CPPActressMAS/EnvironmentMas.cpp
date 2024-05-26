@@ -268,32 +268,19 @@ void cam::EnvironmentMas::run_turn(const int p_turn) {
 //	Remote handlers
 //###############################################################
 
-void cam::EnvironmentMas::send_discovery_callback() {
-	assert(m_remote_client);
-	for (const auto& l_container: m_new_containers) {
-		const json& l_data_to_send = get_id();
-		const auto& l_message_to_send = m_remote_client->format_message(l_data_to_send, "string", "environment_id");
-		m_remote_client->send_callback_discovery(l_container, cam::Message::to_binary(l_message_to_send));
-	}
-	m_new_containers.clear();
-}
-
 int cam::EnvironmentMas::initialise_remote_connection_by_address(const std::string& p_id,
-																 const std::string& p_full_address) {
+																 const std::string& p_full_address,
+																 const json& p_connection_options) {
 	m_remote_client = new PahoWrapper(*this, p_id, p_full_address);
-	return m_remote_client->initialise_remote_connection_by_address();
+	return m_remote_client->initialise_remote_connection_by_address(p_connection_options);
 }
 
-int cam::EnvironmentMas::initialise_remote_connection(const std::string& p_id, const std::string& p_host, int p_port) {
-	return initialise_remote_connection_by_address(p_id, "tcp://" + p_host + ":" + std::to_string(p_port));
-}
-
-int cam::EnvironmentMas::username_pw_set(const std::string& p_username, const std::string& p_password) {
-	if (!m_remote_client) {
-		return PAHO_ERR_NOT_INIT;
-	}
-	m_remote_client->username_pw_set(p_username, p_password);
-	return mqtt::ReasonCode::SUCCESS;
+int cam::EnvironmentMas::initialise_remote_connection(const std::string& p_id,
+													  const std::string& p_host,
+													  int p_port,
+													  const json& p_connection_options) {
+	return initialise_remote_connection_by_address(p_id, "tcp://" + p_host + ":" + std::to_string(p_port),
+												   p_connection_options);
 }
 
 void cam::EnvironmentMas::on_new_agent(const json& p_json_message) {
@@ -305,6 +292,6 @@ void cam::EnvironmentMas::on_new_agent(const json& p_json_message) {
 void cam::EnvironmentMas::on_new_environment(const std::string& p_environment_id, const bool p_send_back) {
 	m_containers.insert(p_environment_id);
 	if (p_send_back) {
-		m_new_containers.insert(p_environment_id);
+		m_remote_client->callback_discovery(p_environment_id);
 	}
 }

@@ -286,7 +286,7 @@ namespace cam {
 		/**
  		 * Watchdog
  		 */
-		std::future<void> m_watchdog;
+		std::future<void> m_loop;
 
 		/**
 		 * Watchdog is running
@@ -297,6 +297,11 @@ namespace cam {
 		 * Topics
 		 */
 		MQTTTopics m_topics;
+
+		/**
+		 * New containers
+		 **/
+		std::set<std::string> m_new_containers;
 
 	public:
 
@@ -324,7 +329,15 @@ namespace cam {
 		~PahoWrapper() override {
 			delete m_callback;
 			m_running = false;
-			m_watchdog.wait();
+			m_loop.wait();
+		}
+
+		/**
+		 * Callback discovery
+		 * @param p_environment_id environment to callback
+		 */
+		void callback_discovery(const std::string& p_environment_id) {
+			m_new_containers.insert(p_environment_id);
 		}
 
 		/**
@@ -522,8 +535,12 @@ namespace cam {
 		 * Create a new paho client instance
 		 * @return the reason code, if something wrong happen. 0 = OK (see https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901031)
 		 */
-		int initialise_remote_connection_by_address() {
+		int initialise_remote_connection_by_address(const json& p_connection_options) {
 			try {
+				if (!p_connection_options.empty() && p_connection_options.contains("username") &&
+					p_connection_options.contains("password")) {
+					username_pw_set(p_connection_options["username"], p_connection_options["password"]);
+				}
 				const auto& l_rc = connect_to_broker();
 
 				// Create topics
@@ -556,10 +573,16 @@ namespace cam {
 				const auto& l_message = format_message(l_data, "string", "environment_id");
 				publish_to(m_topics.m_broadcast_discovery_topic, cam::Message::to_binary(l_message));
 
-				m_watchdog = std::async(std::launch::async, [&] {
+				m_loop = std::async(std::launch::async, [&] {
 					do {
 						if (m_running) {
-							m_environment.send_discovery_callback();
+							for (const auto& l_container: m_new_containers) {
+								const json& l_data_to_send = get_id();
+								const auto& l_message_to_send = format_message(l_data_to_send, "string",
+																			   "environment_id");
+								send_callback_discovery(l_container, cam::Message::to_binary(l_message_to_send));
+							}
+							m_new_containers.clear();
 						}
 						std::this_thread::sleep_for(std::chrono::milliseconds(100));
 					} while (m_running);
