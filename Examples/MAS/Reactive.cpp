@@ -19,11 +19,39 @@
 
 #include <EnvironmentMas.h>
 
+#include <utility>
+
 constexpr int sign(int x) { return (x > 0) ? 1 : ((x < 0) ? -1 : 0); }
 
 enum class State {
 	Free, Carrying
 };
+
+enum class MessageAction {
+	None, Position, Change, PickUp, Carry, Unload, Move, Rock, Block
+};
+std::ostream& operator<<(std::ostream& p_stream, const MessageAction& p_message_action) {
+	switch (p_message_action) {
+		case MessageAction::Position:
+			return p_stream << "Position";
+		case MessageAction::Change:
+			return p_stream << "Change";
+		case MessageAction::PickUp:
+			return p_stream << "PickUp";
+		case MessageAction::Carry:
+			return p_stream << "Carry";
+		case MessageAction::Unload:
+			return p_stream << "Unload";
+		case MessageAction::Move:
+			return p_stream << "Move";
+		case MessageAction::Rock:
+			return p_stream << "Rock";
+		case MessageAction::Block:
+			return p_stream << "Block";
+		default:
+			return p_stream << "Not set";
+	}
+}
 
 class Random {
 public:
@@ -41,16 +69,15 @@ public:
 	int m_y;
 
 	explicit Position() :
-			m_x(0),
-			m_y(0) {}
+		m_x(-1),
+		m_y(-1) {}
 
 	explicit Position(const int p_x, const int p_y) :
-			m_x(p_x),
-			m_y(p_y) {}
+		m_x(p_x),
+		m_y(p_y){}
 
 	explicit Position(std::stringstream& p_stream) :
-			m_x(0),
-			m_y(0) {
+		Position() {
 		cereal::PortableBinaryInputArchive l_input_archive(p_stream);
 		l_input_archive(*this);
 	}
@@ -72,11 +99,61 @@ public:
 	}
 
 	Position& operator=(const Position& m_other) = default;
+};
+std::ostream& operator<<(std::ostream& p_stream, const Position& p_position) {
+	return p_stream << "[" << p_position.m_x << "; " << p_position.m_y << "]";
+}
+
+class Message {
+public:
+	MessageAction m_action;
+	Position m_position;
+	int m_resource_id;
+
+	explicit Message() :
+		m_action(MessageAction::None),
+		m_position(),
+		m_resource_id(0) {}
+
+	explicit Message(const MessageAction& p_action, const Position& p_position = Position(), const int p_resource_id = -1) :
+		m_action(p_action),
+		m_position(p_position),
+		m_resource_id(p_resource_id) {}
+
+	explicit Message(std::stringstream& p_stream) :
+		Message() {
+		cereal::PortableBinaryInputArchive l_input_archive(p_stream);
+		l_input_archive(*this);
+	}
+
+	[[nodiscard]] std::stringstream serialize_to_stream() const {
+		std::stringstream l_stream;
+		cereal::PortableBinaryOutputArchive l_output_archive(l_stream);
+		l_output_archive(*this);
+		return l_stream;
+	}
+
+	template<class Archive>
+	void serialize(Archive& p_archive) {
+		p_archive(m_action, m_position, m_resource_id);
+	}
+
+	bool operator==(const Message& p_other) const {
+		return m_action == p_other.m_action && m_position == p_other.m_position && m_resource_id == p_other.m_resource_id;
+	}
+
+	Message& operator=(const Message& m_other) = default;
 
 };
-
-std::ostream& operator<<(std::ostream& p_stream, const Position& p_position) {
-	return p_stream << "x = " << p_position.m_x << "; " << "y = " << p_position.m_y;
+std::ostream& operator<<(std::ostream& p_stream, const Message& p_message) {
+	p_stream << "Action = " << p_message.m_action;
+	if (p_message.m_position.m_x != -1 && p_message.m_position.m_y != -1) {
+		p_stream << "; " << "Position = " << p_message.m_position;
+	}
+	if (p_message.m_resource_id != -1) {
+		p_stream << "; " << "ResourceID = " << p_message.m_resource_id;
+	}
+	return p_stream;
 }
 
 class PlanetAgent : public cam::Agent {
@@ -114,49 +191,41 @@ public:
 	}
 
 	void action(const cam::MessagePointer& p_message) override {
-		const auto& l_content = p_message->content();
-		const std::string& l_action = l_content["action"];
-		const auto& l_parameters = l_content["parameters"];
+		const std::string& l_content = p_message->content();
+		std::stringstream l_stream(l_content);
+		const auto& l_message = Message(l_stream);
+		std::cout << "[" << get_name() << "] " << l_message << std::endl;
 
-		Position l_position;
-		int l_resource_id;
+		switch (l_message.m_action) {
+			case MessageAction::Position:
+				handle_position(p_message->get_sender(), l_message.m_position);
+				break;
 
-		std::cout << "[" << get_name() << "] " << l_action << " ";
-		if (l_parameters.contains("position")) {
-			std::string l_position_str = l_parameters["position"].get<std::string>();
-			std::stringstream l_stream(l_position_str);
-			l_position = Position(l_stream);
-			std::cout << l_position;
+			case MessageAction::Change:
+				handle_change(p_message->get_sender(), l_message.m_position);
+				break;
+
+			case MessageAction::PickUp:
+				handle_pick_up(p_message->get_sender(), l_message.m_resource_id);
+				break;
+
+			case MessageAction::Carry:
+				handle_carry(p_message->get_sender(), l_message.m_resource_id, l_message.m_position);
+				break;
+
+			case MessageAction::Unload:
+				handle_unload(p_message->get_sender(), l_message.m_resource_id);
+				break;
+
+			default:
+				std::cerr << "Impossible (should be)" << std::endl;
 		}
-		if (l_parameters.contains("ressource_id")) {
-			l_resource_id = l_parameters["ressource_id"];
-			std::cout << " Resource ID " << l_resource_id;
-		}
-
-		if (l_action == "position" || l_action == "change") {
-
-			if (l_action == "position") {
-				handle_position(p_message->get_sender(), l_position);
-			} else if (l_action == "change") {
-				handle_change(p_message->get_sender(), l_position);
-			}
-		} else {
-
-			if (l_action == "pick_up") {
-				handle_pick_up(p_message->get_sender(), l_resource_id);
-			} else if (l_action == "carry") {
-				handle_carry(p_message->get_sender(), l_resource_id, l_position);
-			} else if (l_action == "unload") {
-				handle_unload(p_message->get_sender(), l_resource_id);
-			}
-		}
-		std::cout << std::endl;
 	}
 
 private:
 	void handle_position(const std::string& p_sender, const Position& p_position) {
 		m_explorer_positions.insert(std::make_pair(p_sender, p_position));
-		send(p_sender, {{"action", "move"}});
+		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
 	}
 
 	void handle_change(const std::string& p_sender, const Position& p_position) {
@@ -167,43 +236,41 @@ private:
 				continue;
 			}
 			if (l_key_value.second == p_position) {
-				send(p_sender, {{"action", "block"}});
+				send(p_sender, Message(MessageAction::Block).serialize_to_stream().str());
 				return;
 			}
 		}
 
 		for (const auto& l_key_value: m_resource_positions) {
 			if (l_key_value.second == p_position) {
-				send(p_sender, {{"action",     "rock"},
-								{"parameters", l_key_value.first}});
+				send(p_sender, Message(MessageAction::Rock, l_key_value.second, l_key_value.first).serialize_to_stream().str());
 				return;
 			}
 		}
 
-		send(p_sender, {{"action", "move"}});
+		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
 	}
 
-	void handle_pick_up(const std::string& p_sender, const int p_ressource_id) {
-		m_resource_positions[p_ressource_id] = m_explorer_positions[p_sender];
-		send(p_sender, {{"action", "move"}});
+	void handle_pick_up(const std::string& p_sender, const int p_resource_id) {
+		m_resource_positions[p_resource_id] = m_explorer_positions[p_sender];
+		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
 	}
 
-	void handle_carry(const std::string& p_sender, const int p_ressource_id, const Position& p_position) {
+	void handle_carry(const std::string& p_sender, const int p_resource_id, const Position& p_position) {
 		m_explorer_positions[p_sender] = p_position;
-		m_resource_positions[p_ressource_id] = m_explorer_positions[p_sender];
-		send(p_sender, {{"action", "move"}});
+		m_resource_positions[p_resource_id] = m_explorer_positions[p_sender];
+		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
 	}
 
-	void handle_unload(const std::string& p_sender, const int p_ressource_id) {
-		m_resource_positions.erase(p_ressource_id);
-		send(p_sender, {{"action", "move"}});
+	void handle_unload(const std::string& p_sender, const int p_resource_id) {
+		m_resource_positions.erase(p_resource_id);
+		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
 	}
 };
 
 class ExplorerAgent : public cam::Agent {
 private:
-	int m_x;
-	int m_y;
+	Position m_position;
 	State m_state;
 	int m_resource_carried;
 	int m_size;
@@ -211,8 +278,7 @@ private:
 public:
 	explicit ExplorerAgent(const std::string& p_name) :
 			Agent(p_name),
-			m_x(0),
-			m_y(0),
+			m_position(),
 			m_state(State::Free),
 			m_resource_carried(-1),
 			m_size() {}
@@ -222,108 +288,71 @@ public:
 
 		m_size = get_environment()->get_global_data()["Size"];
 
-		m_x = m_size / 2;
-		m_y = m_size / 2;
+		m_position = Position(m_size / 2, m_size / 2);
 		m_state = State::Free;
 
 		while (is_at_base()) {
-			m_x = Random::next(m_size);
-			m_y = Random::next(m_size);
+			m_position = Position(Random::next(m_size), Random::next(m_size));
 		}
 
-		Position l_position(m_x, m_y);
-		send_by_name("planet", {
-				{"action",     "position"},
-				{"parameters", {
-									   {"position", l_position.serialize_to_stream().str()}
-							   }}
-		});
+		send_by_name("planet", Message(MessageAction::Position, m_position).serialize_to_stream().str());
 	}
 
 	bool is_at_base() const {
-		return (m_x == m_size / 2 && m_y == m_size / 2); // the position of the base
+		return (m_position.m_x == m_size / 2 && m_position.m_y == m_size / 2); // the position of the base
 	}
 
 	void action(const cam::MessagePointer& p_message) override {
-		const auto& l_content = p_message->content();
-		const std::string& l_action = l_content["action"];
+		const std::string& l_content = p_message->content();
+		std::stringstream l_stream(l_content);
+		const auto& l_message = Message(l_stream);
+		std::cout << "[" << get_name() << "] " << l_message << std::endl;
 
-		std::cout << "[" << get_name() << "] " << l_action;
-		Position l_position(m_x, m_y);
-
-		json l_message = json::object();
-		if (l_action == "move" && m_state == State::Carrying && is_at_base()) {
+		if (l_message.m_action == MessageAction::Move && m_state == State::Carrying && is_at_base()) {
 			// R2. If carrying samples and at the base, then unload samples
 			m_state = State::Free;
-			l_message = {
-					{"action",     "unload"},
-					{"parameters", {
-										   {"position", l_position.serialize_to_stream().str()},
-										   {"ressource_id", m_resource_carried}
-								   }
-					}};
+			send_by_name("planet", Message(MessageAction::Unload, m_position, m_resource_carried).serialize_to_stream().str());
 
-		} else if (l_action == "move" && m_state == State::Carrying && !is_at_base()) {
+		} else if (l_message.m_action == MessageAction::Move && m_state == State::Carrying && !is_at_base()) {
 			// R3. If carrying samples and not at the base, then travel up gradient
 			move_to_base();
-			l_message = {
-					{"action",     "carry"},
-					{"parameters", {
-										   {"position", l_position.serialize_to_stream().str()},
-										   {"ressource_id", m_resource_carried}
-								   }
-					}};
+			send_by_name("planet", Message(MessageAction::Carry, m_position, m_resource_carried).serialize_to_stream().str());
 
-		} else if (l_action == "rock") {
+		} else if (l_message.m_action == MessageAction::Rock) {
 			// R4. If you detect a sample, then pick sample up
 			m_state = State::Carrying;
-			m_resource_carried = l_content["parameters"];
-			std::cout << " Ressource ID " << m_resource_carried << l_action;
-			l_message = {
-					{"action",     "pick_up"},
-					{"parameters", {
-										   {"position", l_position.serialize_to_stream().str()},
-										   {"ressource_id", m_resource_carried}
-								   }
-					}};
+			m_resource_carried = l_message.m_resource_id;
+			send_by_name("planet", Message(MessageAction::PickUp, m_position, m_resource_carried).serialize_to_stream().str());
 
-		} else if (l_action == "block" || l_action == "move") {
+		} else if (l_message.m_action == MessageAction::Block || l_message.m_action == MessageAction::Move) {
 			// R1. If you detect an obstacle, then change direction
 			// R5. If (true), then move randomly
 			move_randomly();
-			l_message = {
-					{"action",     "change"},
-					{"parameters", {
-										   {"position", l_position.serialize_to_stream().str()}}
-					}
-			};
+			send_by_name("planet", Message(MessageAction::Change, m_position).serialize_to_stream().str());
 
 		}
-		std::cout << std::endl;
-
-		send_by_name("planet", l_message);
 	}
 
 	void move_randomly() {
 		switch (Random::next(4)) {
 			case 0:
-				if (m_x > 0) {
-					m_x--;
+				if (m_position.m_x > 0) {
+					m_position.m_x--;
 				}
 				break;
 			case 1:
-				if (m_x < m_size - 1) {
-					m_x++;
+				if (m_position.m_x < m_size - 1) {
+					m_position.m_x++;
 				}
 				break;
 			case 2:
-				if (m_y > 0) {
-					m_y--;
+				if (m_position.m_y > 0) {
+					m_position.m_y--;
 				}
 				break;
 			case 3:
-				if (m_y < m_size - 1) {
-					m_y++;
+				if (m_position.m_y < m_size - 1) {
+					m_position.m_y++;
 				}
 				break;
 			default:
@@ -332,13 +361,13 @@ public:
 	}
 
 	void move_to_base() {
-		int l_dx = m_x - m_size / 2;
-		int l_dy = m_y - m_size / 2;
+		int l_dx = m_position.m_x - m_size / 2;
+		int l_dy = m_position.m_y - m_size / 2;
 
 		if (abs(l_dx) > abs(l_dy)) {
-			m_x -= sign(l_dx);
+			m_position.m_x -= sign(l_dx);
 		} else {
-			m_y -= sign(l_dy);
+			m_position.m_y -= sign(l_dy);
 		}
 	}
 };
