@@ -77,3 +77,6 @@ target_link_options(Mobile PRIVATE LINKER:-no_warn_duplicate_libraries)
 
 add_executable(MobilePingPong ${CMAKE_CURRENT_LIST_DIR}/Examples/Mobiles/PingPong.cpp)
 target_link_libraries(MobilePingPong CPPActressMAS)
+
+add_executable(Reactive ${CMAKE_CURRENT_LIST_DIR}/Examples/MAS/Reactive.cpp)
+target_link_libraries(Reactive CPPActressMAS)
