@@ -403,7 +403,7 @@ Core backlog
 - [x] Offline core (parallel, sequential, random sequential)
 - [x] Observables
 - [x] Performance check (compared to .NET ActressMAS)
-- [ ] Network system (using zeroMQ for exemple)
+- [x] Network system (using MQTT)
 - [x] On macOS
 - [ ] On Linux
 - [ ] On Linux ARM
@@ -411,7 +411,7 @@ Core backlog
 - [ ] On Android ?
 - [ ] On iOS ?
 - [x] Static library 
-- [ ] Dynamic library
+- [x] Dynamic library
 
 Extented backlog
 - [ ] Godot plugin (for graphical protocols and algorithms)
@@ -419,7 +419,7 @@ Extented backlog
 Multiagent protocols and algorithms implemented with CPPActressMAS
 - [x] Simple examples of using the ActressMas framework
 - [x] Benchmarks: PingPong, Skynet
-- [ ] Reactive architecture for agents
+- [x] Reactive architecture for agents
 - [ ] Belief-Desire-Intention (BDI) architecture for agents
 - [ ] Learning Real-Time A* (LRTA*) search algorithm
 - [ ] Computing the Shapley value
@@ -432,4 +432,4 @@ Multiagent protocols and algorithms implemented with CPPActressMAS
 - [ ] Predator-Prey Simulation
 - [ ] Game of Life
 - [ ] Voting methods: Copeland, Borda count
-- [ ] Mobile agents
+- [x] Mobile agents
