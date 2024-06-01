@@ -33,7 +33,7 @@ namespace cam {
 	 * A collection of agents
 	 **/
 	class AgentCollection final {
-		friend EnvironmentMas;
+		friend Environment;
 
 	protected:
 		/**

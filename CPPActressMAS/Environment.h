@@ -54,7 +54,7 @@ namespace cam {
 	/**
 	 * An abstract base class for the multiagent environment, where all the agents are executed.
 	 **/
-	class EnvironmentMas {
+	class Environment {
 		friend PahoWrapper;
 		friend Callback;
 		friend SubscribeActionListener;
@@ -93,7 +93,7 @@ namespace cam {
 	public:
 
 		/**
-		 * Initializes a new instance of the EnvironmentMas class.
+		 * Initializes a new instance of the Environment class.
 		 *
 		 * @param p_no_turns The maximum number of turns of the simulation. Setup is
 		 * considered to be the first turn. The simulation may stop earlier if there
@@ -107,13 +107,13 @@ namespace cam {
 		 * @param p_seed A random number generator seed for non-deterministic but
 		 * repeatable experiments.
 		 **/
-		explicit EnvironmentMas(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel,
-								int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
+		explicit Environment(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel,
+							 int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
 
 		/**
 		 * Delete PahoWrapper
 		 **/
-		virtual ~EnvironmentMas();
+		virtual ~Environment();
 
 		/**
 		 * Adds an agent to the environment.
@@ -343,9 +343,9 @@ namespace cam {
 										 const json& p_connection_options = "");
 
 		// Delete copy constructor
-		EnvironmentMas(const EnvironmentMas&) = delete;
+		Environment(const Environment&) = delete;
 
-		EnvironmentMas& operator=(EnvironmentMas&) = delete;
+		Environment& operator=(Environment&) = delete;
 
 	protected:
 
@@ -469,5 +469,5 @@ namespace cam {
 	};
 
 	// Environment pointer
-	//using EnvironmentPointer = std::shared_ptr<EnvironmentMas>;
+	//using EnvironmentPointer = std::shared_ptr<Environment>;
 } // namespace cam

@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 static constexpr int MESSAGE_COUNT_MAX = 100 * 1000 * 10000;
 static constexpr int AGENT_COUNT = 10;
@@ -48,7 +48,7 @@ int main() {
 	constexpr int l_trial_max = 5;
 	double l_sum = 0;
 
-	cam::EnvironmentMas l_environment(10000, cam::EnvironmentMasMode::Parallel);
+	cam::Environment l_environment(10000, cam::EnvironmentMasMode::Parallel);
 	for (int i = 0; i < AGENT_COUNT; i++) {
 		l_environment.add<MyAgent>("agent " + std::to_string(i));
 	}

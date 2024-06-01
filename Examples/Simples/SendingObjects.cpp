@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 class ContentInfo {
 	public:
@@ -91,7 +91,7 @@ class Agent2 final : public cam::Agent {
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(10);
+	cam::Environment l_environment(10);
 
 	l_environment.add<Agent1>("a1*");
 	l_environment.add<Agent2>("a2");

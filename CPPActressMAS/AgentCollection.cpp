@@ -21,7 +21,7 @@
 #include <future>
 #include <random>
 
-#include "EnvironmentMas.h"
+#include "Environment.h"
 
 cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, const unsigned int p_seed) :
 		m_pool(std::thread::hardware_concurrency() == 0 ? 8 : std::thread::hardware_concurrency()),

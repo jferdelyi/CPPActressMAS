@@ -22,7 +22,9 @@
 
 #include <chrono>
 
-#include "EnvironmentMas.h"
+#include <uuid/UUID.hpp>
+
+#include "Environment.h"
 
 #define PAHO_ERR_NOT_INIT (-1000)
 #define PAHO_ERR_CONNECTION_NOT_INITIALIZED_ONCE (-1010)
@@ -86,7 +88,7 @@ namespace cam {
 		/**
 		 * Reference to the environment
 		 */
-		cam::EnvironmentMas& m_environment;
+		cam::Environment& m_environment;
 
 	public:
 
@@ -94,7 +96,7 @@ namespace cam {
 		 * Constructor
 		 * @param p_name the name of the callback
 		 */
-		explicit SubscribeActionListener(EnvironmentMas& p_environment) :
+		explicit SubscribeActionListener(Environment& p_environment) :
 				m_environment(p_environment) {}
 
 	protected:
@@ -128,7 +130,7 @@ namespace cam {
 		/**
 		 * MAS environment
 		 */
-		cam::EnvironmentMas& m_environment;
+		cam::Environment& m_environment;
 
 		/**
 		 * Topics
@@ -142,7 +144,7 @@ namespace cam {
 		 * @param p_environment the environment
 		 * @param p_topics topics
 		 */
-		explicit Callback(cam::EnvironmentMas& p_environment, const MQTTTopics& p_topics) :
+		explicit Callback(cam::Environment& p_environment, const MQTTTopics& p_topics) :
 				m_environment(p_environment),
 				m_topics(p_topics) {}
 
@@ -256,7 +258,7 @@ namespace cam {
 		/**
 		 * Reference to the main class of the plugin
 		 */
-		cam::EnvironmentMas& m_environment;
+		cam::Environment& m_environment;
 
 		/**
 		 * The server address.
@@ -311,7 +313,7 @@ namespace cam {
 		 * @param p_id the client ID (if empty then use only the UUID)
 		 * @param p_host the hostname or ip address of the broker to connect to
 		 */
-		PahoWrapper(cam::EnvironmentMas& p_environment, const std::string& p_id,
+		PahoWrapper(cam::Environment& p_environment, const std::string& p_id,
 					const std::string& p_host = "tcp://localhost:1883") :
 				mqtt::async_client(p_host, !p_id.empty() ? p_id + "_" + UUID::generate_uuid() : UUID::generate_uuid()),
 				m_environment(p_environment),

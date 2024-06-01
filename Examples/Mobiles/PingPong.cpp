@@ -17,7 +17,7 @@
  *                                                                        *
  **************************************************************************/
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 class PingAgent : public cam::Agent {
 public:
@@ -54,15 +54,15 @@ public:
 };
 
 int main() {
-	cam::EnvironmentMas l_environment_b(3, cam::EnvironmentMasMode::Parallel, 10);
+	cam::Environment l_environment_b(3, cam::EnvironmentMasMode::Parallel, 10);
 	l_environment_b.initialise_remote_connection();
 	l_environment_b.add<PongAgent>("PongAgent");
-	std::thread l_environment_1_thread(&cam::EnvironmentMas::start, &l_environment_b);
+	std::thread l_environment_1_thread(&cam::Environment::start, &l_environment_b);
 
-	cam::EnvironmentMas l_environment_a(3, cam::EnvironmentMasMode::Parallel, 10);
+	cam::Environment l_environment_a(3, cam::EnvironmentMasMode::Parallel, 10);
 	l_environment_a.initialise_remote_connection();
 	l_environment_a.add<PingAgent>("PingAgent");
-	std::thread l_environment_2_thread(&cam::EnvironmentMas::start, &l_environment_a);
+	std::thread l_environment_2_thread(&cam::Environment::start, &l_environment_a);
 
 	l_environment_1_thread.join();
 	l_environment_2_thread.join();

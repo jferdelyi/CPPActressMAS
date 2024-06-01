@@ -17,8 +17,9 @@
  **************************************************************************/
 
 #include <iostream>
+#include <random>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 class Colors {
 	public:
@@ -117,7 +118,7 @@ protected:
 };
 
 int main() {
-    cam::EnvironmentMas l_environment(10, cam::EnvironmentMasMode::Sequential);
+    cam::Environment l_environment(10, cam::EnvironmentMasMode::Sequential);
 
     l_environment.add<MyAgent1>("Agent1");
     l_environment.add<MyAgent2>("Agent2");

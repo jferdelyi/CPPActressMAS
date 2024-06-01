@@ -18,12 +18,12 @@
 
 #include <iostream>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
-class MyEnvironment final : public cam::EnvironmentMas {
+class MyEnvironment final : public cam::Environment {
   public:
 	MyEnvironment() :
-		EnvironmentMas(10, cam::EnvironmentMasMode::Parallel, 100) {}
+		Environment(10, cam::EnvironmentMasMode::Parallel, 100) {}
 
 	void turn_finished(const int p_turn) override {
 		std::cout << std::endl

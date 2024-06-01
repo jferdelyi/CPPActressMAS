@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 class Agent1 final : public cam::Agent {
   public:
@@ -71,7 +71,7 @@ class Agent2 final : public cam::Agent {
 };
 
 int main() {
-	cam::EnvironmentMas l_environment;
+	cam::Environment l_environment;
 
 	l_environment.add<Agent1>("a1");
 	l_environment.add<Agent2>("a2");

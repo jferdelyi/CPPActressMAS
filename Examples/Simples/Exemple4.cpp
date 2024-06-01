@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 class MyAgent : public cam::Agent {
 	protected:
@@ -52,7 +52,7 @@ class WriterAgent final : public cam::Agent {
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(5, cam::EnvironmentMasMode::Parallel, 1000);
+	cam::Environment l_environment(5, cam::EnvironmentMasMode::Parallel, 1000);
 
 	l_environment.add<WriterAgent>("writer");
 	for (int i = 1; i <= 5; i++) {

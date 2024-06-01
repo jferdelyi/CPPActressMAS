@@ -18,7 +18,9 @@
 
 #include "Agent.h"
 
-#include "EnvironmentMas.h"
+#include <uuid/UUID.hpp>
+
+#include "Environment.h"
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_id(UUID::generate_uuid()),

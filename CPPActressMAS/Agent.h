@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include <uuid/UUID.hpp>
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/types/vector.hpp>            // Serialize vector
 #include <cereal/types/string.hpp>            // Serialize string
@@ -31,7 +30,7 @@
  * CPPActressMAS
  */
 namespace cam {
-	class EnvironmentMas;
+	class Environment;
 
 	class Agent;
 
@@ -51,7 +50,7 @@ namespace cam {
 	 * environment. You must create your own agent classes derived from this abstract class.
 	 **/
 	class Agent {
-		friend EnvironmentMas;
+		friend Environment;
 
 	private:
 		/**
@@ -67,7 +66,7 @@ namespace cam {
 		/**
 		 * The environment where the agent is.
 		 **/
-		EnvironmentMas* m_environment;
+		Environment* m_environment;
 
 		/**
 		 * True if setup.
@@ -372,7 +371,7 @@ namespace cam {
 		 * Get environment
 		 * @param p_archive archive to restore agent
 		 */
-		EnvironmentMas* get_environment() const {
+		Environment* get_environment() const {
 			assert(m_environment);
 			return m_environment;
 		}
@@ -392,7 +391,7 @@ namespace cam {
 		 * Set environment.
 		 * @param p_environment The environment
 		 **/
-		void set_environment(EnvironmentMas* p_environment) { m_environment = p_environment; }
+		void set_environment(Environment* p_environment) { m_environment = p_environment; }
 	};
 
 	// Agent pointer

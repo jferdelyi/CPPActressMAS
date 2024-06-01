@@ -17,8 +17,9 @@
  **************************************************************************/
 
 #include <iostream>
+#include <random>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 class ManagerAgent final : public cam::Agent {
 	public:
@@ -72,7 +73,7 @@ class WorkerAgent final : public cam::Agent {
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(20);
+	cam::Environment l_environment(20);
 
 	l_environment.add<ManagerAgent>("Manager");
 	for (int i = 1; i <= 5; i++) {

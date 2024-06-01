@@ -17,9 +17,10 @@
  *                                                                        *
  **************************************************************************/
 
-#include <EnvironmentMas.h>
-
+#include <random>
 #include <utility>
+
+#include <Environment.h>
 
 constexpr int sign(int x) { return (x > 0) ? 1 : ((x < 0) ? -1 : 0); }
 
@@ -373,7 +374,7 @@ public:
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(100);
+	cam::Environment l_environment(100);
 	l_environment.add<PlanetAgent>("planet");
 
 	// 5 explorers

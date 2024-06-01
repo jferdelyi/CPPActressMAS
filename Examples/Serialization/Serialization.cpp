@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 static bool s_serialization_sent = false;
 
@@ -111,7 +111,7 @@ public:
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(5, cam::EnvironmentMasMode::Sequential);
+	cam::Environment l_environment(5, cam::EnvironmentMasMode::Sequential);
 
 	l_environment.add<SerialAgentOut>("SerialAgentOut");
 	l_environment.add<SerialAgentIn>("SerialAgentIn");

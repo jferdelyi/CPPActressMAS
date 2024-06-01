@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 #include <Agent.h>
 
 static constexpr int CHILD_COUNT = 10;
@@ -71,7 +71,7 @@ class MyAgent : public cam::Agent {
 int main() {
 	const auto& l_start_time = std::chrono::high_resolution_clock::now();
 
-	cam::EnvironmentMas l_environment(0, cam::EnvironmentMasMode::Parallel);
+	cam::Environment l_environment(0, cam::EnvironmentMasMode::Parallel);
 	l_environment.add<MyAgent>("a0", 0, "");
 	l_environment.start();
 

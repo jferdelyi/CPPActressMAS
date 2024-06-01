@@ -17,8 +17,9 @@
  **************************************************************************/
 
 #include <iostream>
+#include <random>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 class Numbers {
 	public:
@@ -76,7 +77,7 @@ class MyAgent : public cam::Agent {
 };
 
 int main() {
-    cam::EnvironmentMas l_environment(10, cam::EnvironmentMasMode::Sequential);
+    cam::Environment l_environment(10, cam::EnvironmentMasMode::Sequential);
 
     l_environment.add<MyAgent>("Agent1");
     l_environment.add<MyAgent>("Agent2");

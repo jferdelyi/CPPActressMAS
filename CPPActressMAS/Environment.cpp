@@ -16,22 +16,22 @@
  *                                                                        *
  **************************************************************************/
 
-#include "EnvironmentMas.h"
+#include "Environment.h"
 
 #include <thread>
 
 #include "Agent.h"
 #include "PahoWrapper.hpp"
 
-cam::EnvironmentMas::EnvironmentMas(const int p_no_turns, const EnvironmentMasMode& p_mode,
-									const int p_delay_after_turn, const unsigned int p_seed) :
+cam::Environment::Environment(const int p_no_turns, const EnvironmentMasMode& p_mode,
+							  const int p_delay_after_turn, const unsigned int p_seed) :
 		m_no_turns(p_no_turns),
 		m_delay_after_turn(p_delay_after_turn),
 		m_agent_collection(p_mode, p_seed),
 		m_remote_client(nullptr) {
 }
 
-cam::EnvironmentMas::~EnvironmentMas() {
+cam::Environment::~Environment() {
 	if (m_remote_client) {
 		m_remote_client->disconnect_to_broker();
 		while (m_remote_client->is_connected());
@@ -40,16 +40,16 @@ cam::EnvironmentMas::~EnvironmentMas() {
 	}
 }
 
-const std::string& cam::EnvironmentMas::add(AgentPointer&& p_agent) {
+const std::string& cam::Environment::add(AgentPointer&& p_agent) {
 	m_agent_collection.add(p_agent);
 	return p_agent->get_id();
 }
 
-cam::AgentPointer cam::EnvironmentMas::get(const std::string& p_id) const {
+cam::AgentPointer cam::Environment::get(const std::string& p_id) const {
 	return m_agent_collection.get(p_id);
 }
 
-void cam::EnvironmentMas::continue_simulation(const int p_no_turns) {
+void cam::Environment::continue_simulation(const int p_no_turns) {
 	int l_turn = 0;
 	while (true) {
 		run_turn(l_turn++);
@@ -64,22 +64,22 @@ void cam::EnvironmentMas::continue_simulation(const int p_no_turns) {
 	simulation_finished();
 }
 
-const cam::AgentPointer& cam::EnvironmentMas::random_agent() const {
+const cam::AgentPointer& cam::Environment::random_agent() const {
 	return m_agent_collection.random_agent();
 }
 
-void cam::EnvironmentMas::remove(const AgentPointer& p_agent) {
+void cam::Environment::remove(const AgentPointer& p_agent) {
 	m_agent_collection.remove(p_agent->get_id());
 }
 
-void cam::EnvironmentMas::remove(const std::string& p_agent_id) {
+void cam::Environment::remove(const std::string& p_agent_id) {
 	remove(m_agent_collection.get(p_agent_id));
 }
 
 void
-cam::EnvironmentMas::send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
-						  const size_t& p_length, const MessageBinaryFormat& p_binary_format,
-						  const bool p_from_remote) const {
+cam::Environment::send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
+					   const size_t& p_length, const MessageBinaryFormat& p_binary_format,
+					   const bool p_from_remote) const {
 	if (const AgentPointer& l_agent = m_agent_collection.get(p_receiver_id); l_agent) {
 		if (l_agent->is_dead()) {
 			return;
@@ -98,10 +98,10 @@ cam::EnvironmentMas::send(const std::string& p_sender_id, const std::string& p_r
 	}
 }
 
-void cam::EnvironmentMas::send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
-									   const uint8_t* p_message, const size_t& p_length, const bool p_is_fragment,
-									   const bool p_first_only, const MessageBinaryFormat& p_binary_format,
-									   const bool p_from_remote) const {
+void cam::Environment::send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
+									const uint8_t* p_message, const size_t& p_length, const bool p_is_fragment,
+									const bool p_first_only, const MessageBinaryFormat& p_binary_format,
+									const bool p_from_remote) const {
 	for (auto l_filtered_elements =
 			m_agent_collection.m_agents_by_name | std::views::filter([p_is_fragment, p_receiver_name](auto& p_value) {
 				if (p_is_fragment) {
@@ -133,8 +133,8 @@ void cam::EnvironmentMas::send_by_name(const std::string& p_sender_id, const std
 	}
 }
 
-void cam::EnvironmentMas::broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-									const MessageBinaryFormat& p_binary_format, const bool p_from_remote) const {
+void cam::Environment::broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
+								 const MessageBinaryFormat& p_binary_format, const bool p_from_remote) const {
 	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
 		if (l_id != p_sender_id && !l_agent->is_dead()) {
 			l_agent->post(std::make_shared<Message>(p_sender_id, l_id, p_message, p_length, p_binary_format));
@@ -151,7 +151,7 @@ void cam::EnvironmentMas::broadcast(const std::string& p_sender_id, const uint8_
 	}
 }
 
-void cam::EnvironmentMas::start() {
+void cam::Environment::start() {
 	int l_turn = 0;
 
 	m_agent_collection.process_buffers();
@@ -169,12 +169,12 @@ void cam::EnvironmentMas::start() {
 	simulation_finished();
 }
 
-size_t cam::EnvironmentMas::agents_count() const {
+size_t cam::Environment::agents_count() const {
 	return m_agent_collection.count();
 }
 
 std::vector<std::string>
-cam::EnvironmentMas::get_agents_by_name(const std::string& p_name, const bool p_first_only) const {
+cam::Environment::get_agents_by_name(const std::string& p_name, const bool p_first_only) const {
 	std::vector<std::string> l_returned_agents;
 	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
 		if (l_agent->get_name() == p_name) {
@@ -187,7 +187,7 @@ cam::EnvironmentMas::get_agents_by_name(const std::string& p_name, const bool p_
 	return l_returned_agents;
 }
 
-std::optional<std::string> cam::EnvironmentMas::get_first_agent_by_name(const std::string& p_name) const {
+std::optional<std::string> cam::Environment::get_first_agent_by_name(const std::string& p_name) const {
 	const auto& l_agents = get_agents_by_name(p_name, true);
 	if (l_agents.empty()) {
 		return {};
@@ -195,7 +195,7 @@ std::optional<std::string> cam::EnvironmentMas::get_first_agent_by_name(const st
 	return l_agents[0];
 }
 
-std::optional<std::string> cam::EnvironmentMas::get_agent_name(const std::string& p_id) const {
+std::optional<std::string> cam::Environment::get_agent_name(const std::string& p_id) const {
 	const auto& l_agent = m_agent_collection.m_agents.find(p_id);
 	if (l_agent == m_agent_collection.m_agents.end()) {
 		return {};
@@ -204,7 +204,7 @@ std::optional<std::string> cam::EnvironmentMas::get_agent_name(const std::string
 }
 
 std::vector<std::string>
-cam::EnvironmentMas::get_filtered_agents(const std::string& p_fragment_name, const bool p_first_only) const {
+cam::Environment::get_filtered_agents(const std::string& p_fragment_name, const bool p_first_only) const {
 	std::vector<std::string> l_returned_agents;
 	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
 		if (l_agent->get_name().find(p_fragment_name) != std::string::npos) {
@@ -217,12 +217,12 @@ cam::EnvironmentMas::get_filtered_agents(const std::string& p_fragment_name, con
 	return l_returned_agents;
 }
 
-[[nodiscard]] std::string cam::EnvironmentMas::get_id() const {
+[[nodiscard]] std::string cam::Environment::get_id() const {
 	return m_remote_client ? m_remote_client->get_id() : "";
 }
 
-void cam::EnvironmentMas::move(const std::stringstream& p_agent_stream, const json& p_message,
-							   const std::string& p_environment_id) {
+void cam::Environment::move(const std::stringstream& p_agent_stream, const json& p_message,
+							const std::string& p_environment_id) {
 	if (!m_remote_client) {
 		return;
 	}
@@ -236,7 +236,7 @@ void cam::EnvironmentMas::move(const std::stringstream& p_agent_stream, const js
 }
 
 std::vector<const cam::ObservablesPointer>
-cam::EnvironmentMas::get_list_of_observable_agents(const Agent* p_perceiving_agent) const {
+cam::Environment::get_list_of_observable_agents(const Agent* p_perceiving_agent) const {
 	std::vector<const ObservablesPointer> l_observable_agent_list;
 
 	// Map id:agent
@@ -256,7 +256,7 @@ cam::EnvironmentMas::get_list_of_observable_agents(const Agent* p_perceiving_age
 	return l_observable_agent_list;
 }
 
-void cam::EnvironmentMas::run_turn(const int p_turn) {
+void cam::Environment::run_turn(const int p_turn) {
 	m_agent_collection.run_turn();
 	if (m_delay_after_turn) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(m_delay_after_turn));
@@ -268,28 +268,28 @@ void cam::EnvironmentMas::run_turn(const int p_turn) {
 //	Remote handlers
 //###############################################################
 
-int cam::EnvironmentMas::initialise_remote_connection_by_address(const std::string& p_id,
-																 const std::string& p_full_address,
-																 const json& p_connection_options) {
+int cam::Environment::initialise_remote_connection_by_address(const std::string& p_id,
+															  const std::string& p_full_address,
+															  const json& p_connection_options) {
 	m_remote_client = new PahoWrapper(*this, p_id, p_full_address);
 	return m_remote_client->initialise_remote_connection_by_address(p_connection_options);
 }
 
-int cam::EnvironmentMas::initialise_remote_connection(const std::string& p_id,
-													  const std::string& p_host,
-													  int p_port,
-													  const json& p_connection_options) {
+int cam::Environment::initialise_remote_connection(const std::string& p_id,
+												   const std::string& p_host,
+												   int p_port,
+												   const json& p_connection_options) {
 	return initialise_remote_connection_by_address(p_id, "tcp://" + p_host + ":" + std::to_string(p_port),
 												   p_connection_options);
 }
 
-void cam::EnvironmentMas::on_new_agent(const json& p_json_message) {
+void cam::Environment::on_new_agent(const json& p_json_message) {
 	const std::string l_message = p_json_message["agent"];
 	std::stringstream l_stream = std::stringstream(l_message);
 	add<Agent>(l_stream);
 }
 
-void cam::EnvironmentMas::on_new_environment(const std::string& p_environment_id, const bool p_send_back) {
+void cam::Environment::on_new_environment(const std::string& p_environment_id, const bool p_send_back) {
 	m_containers.insert(p_environment_id);
 	if (p_send_back) {
 		m_remote_client->callback_discovery(p_environment_id);

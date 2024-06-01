@@ -17,7 +17,7 @@
  *                                                                        *
  **************************************************************************/
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 class StaticAgent : public cam::Agent {
 public:
@@ -118,10 +118,10 @@ public:
 	}
 };
 
-class MyEnvironment : public cam::EnvironmentMas {
+class MyEnvironment : public cam::Environment {
 public:
 	explicit MyEnvironment():
-		EnvironmentMas() {}
+		Environment() {}
 
 	void on_new_agent(const json& p_json_message) override {
 		const std::string l_message = p_json_message["agent"];
@@ -151,9 +151,9 @@ int main() {
 	l_environment_a.add<MobileAgent>("MobileAgentA1");
 	std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-	std::thread l_environment_c_thread(&cam::EnvironmentMas::start, &l_environment_c);
-	std::thread l_environment_b_thread(&cam::EnvironmentMas::start, &l_environment_b);
-	std::thread l_environment_a_thread(&cam::EnvironmentMas::start, &l_environment_a);
+	std::thread l_environment_c_thread(&cam::Environment::start, &l_environment_c);
+	std::thread l_environment_b_thread(&cam::Environment::start, &l_environment_b);
+	std::thread l_environment_a_thread(&cam::Environment::start, &l_environment_a);
 
 	l_environment_a_thread.join();
 	l_environment_b_thread.join();

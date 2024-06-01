@@ -18,7 +18,7 @@
 
 #include <iostream>
 
-#include <EnvironmentMas.h>
+#include <Environment.h>
 
 
 class MyAgent1 final : public cam::Agent {
@@ -56,7 +56,7 @@ class MyAgent2 final : public cam::Agent {
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(100, cam::EnvironmentMasMode::SequentialRandom);
+	cam::Environment l_environment(100, cam::EnvironmentMasMode::SequentialRandom);
 
 	l_environment.add<MyAgent1>("agent1");
 	l_environment.add<MyAgent2>("agent2");

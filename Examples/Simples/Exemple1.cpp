@@ -18,7 +18,9 @@
 
 #include <iostream>
 
-#include <EnvironmentMas.h>
+#include <random>
+
+#include <Environment.h>
 
 #include <Agent.h>
 
@@ -50,7 +52,7 @@ class MonitorAgent final : public cam::Agent {
 };
 
 int main() {
-	cam::EnvironmentMas l_environment(100, cam::EnvironmentMasMode::Parallel);
+	cam::Environment l_environment(100, cam::EnvironmentMasMode::Parallel);
 	l_environment.add<MyAgent>("agent1");
 	l_environment.add<MyAgent>("agent2");
 	l_environment.add<MonitorAgent>("monitor");
