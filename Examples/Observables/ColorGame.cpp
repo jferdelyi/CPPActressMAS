@@ -35,7 +35,7 @@ class Colors {
 
 class MyAgent : public cam::Agent {
 	protected:
-		std::vector<const cam::ObservablesPointer> m_observable_agents;
+		std::vector<cam::ObservablesPointer> m_observable_agents;
 		std::string m_see_color;
 
 	public:
@@ -43,7 +43,7 @@ class MyAgent : public cam::Agent {
 			Agent(p_name, true) {
 		}
 
-		void see(const std::vector<const cam::ObservablesPointer>& p_observable_agents) override {
+		void see(const std::vector<cam::ObservablesPointer>& p_observable_agents) override {
 			std::cout << "I am " << get_name() << ". I am looking around..." << std::endl;
 			m_observable_agents.clear();
 			for (const auto& l_observable_agent : p_observable_agents) {

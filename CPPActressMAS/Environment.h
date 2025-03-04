@@ -28,6 +28,7 @@ using json = nlohmann::json;
 
 #include "AgentCollection.h"
 #include "Message.h"
+#include "Agent.h"
 
 /**
  * CPPActressMAS
@@ -312,7 +313,7 @@ namespace cam {
 		 * Get the list of observable agents for an agent and its perception filter.
 		 * @param p_perceiving_agent Perceiving agent
 		 **/
-		std::vector<const ObservablesPointer> get_list_of_observable_agents(const Agent* p_perceiving_agent) const;
+		const std::vector<cam::ObservablesPointer> get_list_of_observable_agents(const Agent* p_perceiving_agent) const;
 
 		//###############################################################
 		//	MQTT handlers

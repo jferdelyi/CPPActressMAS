@@ -174,7 +174,7 @@ virtual void turn_finished(int p_turn);
  * Get the list of observable agents for an agent and its perception filter.
  * @param p_perceiving_agent Peceiving agent
  **/
-std::vector<const ObservablesPointer> get_list_of_observable_agents(const Agent *p_perceiving_agent) const;
+std::vector<ObservablesPointer> get_list_of_observable_agents(const Agent *p_perceiving_agent) const;
 
 // Delete copy constructor
 EnvironmentMas(const EnvironmentMas& ) = delete;
@@ -316,7 +316,7 @@ virtual void setup();
  * Compute see.
  * @param p_observable_agents The list of observable agents
  **/
-virtual void see(const std::vector<const ObservablesPointer>& p_observable_agents);
+virtual void see(const std::vector<ObservablesPointer>& p_observable_agents);
 
 /**
  * Compute action.

@@ -292,7 +292,7 @@ namespace cam {
 		 * Compute see.
 		 * @param p_observable_agents The list of observable agents
 		 **/
-		virtual void see(const std::vector<const ObservablesPointer>& p_observable_agents);
+		virtual void see(const std::vector<ObservablesPointer>& p_observable_agents);
 
 		/**
 		 * Compute action.

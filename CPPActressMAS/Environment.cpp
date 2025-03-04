@@ -102,7 +102,8 @@ void cam::Environment::send_by_name(const std::string& p_sender_id, const std::s
 									const uint8_t* p_message, const size_t& p_length, const bool p_is_fragment,
 									const bool p_first_only, const MessageBinaryFormat& p_binary_format,
 									const bool p_from_remote) const {
-	for (auto l_filtered_elements =
+	// MSVC: no compatible
+	/*for (auto l_filtered_elements =
 			m_agent_collection.m_agents_by_name | std::views::filter([p_is_fragment, p_receiver_name](auto& p_value) {
 				if (p_is_fragment) {
 					return p_value.first.find(p_receiver_name) != std::string::npos;
@@ -118,7 +119,28 @@ void cam::Environment::send_by_name(const std::string& p_sender_id, const std::s
 		if (p_first_only) {
 			break;
 		}
+	}*/
+	auto l_filtered_elements =
+		m_agent_collection.m_agents_by_name | std::views::filter([p_is_fragment, p_receiver_name](auto& p_value) {
+		if (p_is_fragment) {
+			return p_value.first.find(p_receiver_name) != std::string::npos;
+		}
+		return p_value.first == p_receiver_name;
+			});
+
+	for (auto it = std::ranges::begin(l_filtered_elements); it != std::ranges::end(l_filtered_elements); ++it) {
+		const auto& [l_name, l_id] = *it;
+		const auto& l_agent = m_agent_collection.get(l_id);
+		if (l_agent->is_dead()) {
+			continue;
+		}
+
+		l_agent->post(std::make_shared<Message>(p_sender_id, l_id, p_message, p_length, p_binary_format));
+		if (p_first_only) {
+			break;
+		}
 	}
+
 	if (m_remote_client && !p_from_remote) {
 		const json& l_data = {
 				{"sender_id",     p_sender_id},
@@ -235,9 +257,9 @@ void cam::Environment::move(const std::stringstream& p_agent_stream, const json&
 	m_remote_client->post_agent(p_environment_id, cam::Message::to_binary(l_message_to_send));
 }
 
-std::vector<const cam::ObservablesPointer>
+const std::vector<cam::ObservablesPointer>
 cam::Environment::get_list_of_observable_agents(const Agent* p_perceiving_agent) const {
-	std::vector<const ObservablesPointer> l_observable_agent_list;
+	std::vector<cam::ObservablesPointer> l_observable_agent_list;
 
 	// Map id:agent
 	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
@@ -255,6 +277,7 @@ cam::Environment::get_list_of_observable_agents(const Agent* p_perceiving_agent)
 	}
 	return l_observable_agent_list;
 }
+
 
 void cam::Environment::run_turn(const int p_turn) {
 	m_agent_collection.run_turn();

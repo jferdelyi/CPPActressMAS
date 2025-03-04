@@ -180,7 +180,7 @@ bool cam::Agent::perception_filter(const ObservablesPointer&) const {
 
 void cam::Agent::setup() {}
 
-void cam::Agent::see(const std::vector<const ObservablesPointer>&) {}
+void cam::Agent::see(const std::vector<ObservablesPointer>&) {}
 
 void cam::Agent::action(const MessagePointer&) {}
 

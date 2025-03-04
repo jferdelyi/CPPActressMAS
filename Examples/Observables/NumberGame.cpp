@@ -34,7 +34,7 @@ class Numbers {
 
 class MyAgent : public cam::Agent {
 	protected:
-		std::vector<const cam::ObservablesPointer> m_observable_agents;
+		std::vector<cam::ObservablesPointer> m_observable_agents;
 
 	public:
 		explicit MyAgent(const std::string& p_name) :
@@ -52,7 +52,7 @@ class MyAgent : public cam::Agent {
 			return abs(l_my_number - l_observed_number) < 10;
 		}
 
-		void see(const std::vector<const cam::ObservablesPointer>& p_observable_agents) override {
+		void see(const std::vector<cam::ObservablesPointer>& p_observable_agents) override {
 			m_observable_agents.clear();
 			for (const auto& l_observable_agent : p_observable_agents) {
 				m_observable_agents.push_back(l_observable_agent);
