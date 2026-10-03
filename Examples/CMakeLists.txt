@@ -10,7 +10,12 @@ function(apply_compile_options target)
             target_compile_options(${target} PRIVATE /O2 /W4 /LTCG /arch:AVX2)
         else()
             target_compile_options(${target} PRIVATE -march=native -O3 -flto -Wall -Wextra -Wpedantic)
-            target_link_options(${target} PRIVATE LINKER:-no_warn_duplicate_libraries)
+            # Objects compiled with -flto are LLVM bitcode under clang: GNU ld needs -flto at link time too (B18).
+            target_link_options(${target} PRIVATE -flto)
+            # ld64 (Apple) option, rejected by GNU ld (B2).
+            if (APPLE)
+                target_link_options(${target} PRIVATE LINKER:-no_warn_duplicate_libraries)
+            endif()
         endif()
     endif()
 endfunction()
