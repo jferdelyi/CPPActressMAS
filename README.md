@@ -15,12 +15,33 @@ Dependencies:
  - cmake 3.22 (may work with lower versions)
  - C++20
 
-This project is developed with CLion (CMake). Compilation in pure CMake, the library and all tests will be compiled:
+This project is developed with CLion (CMake). Compilation in pure CMake, the library, the examples and the tests are compiled through the presets of `CMakePresets.json` (`debug`, `release`, `asan`, `tsan`, `coverage`, `bench`; build directories under `build/<preset>`):
 ``` bash
 git clone https://github.com/jferdelyi/CPPActressMAS.git
-mkdir build
-cmake . -B build
-cmake --build build
+cd CPPActressMAS
+cmake --preset debug
+cmake --build --preset debug
+ctest --preset debug
+```
+
+Options: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the project is the top-level project), `BUILD_BENCH` (ON in the `bench` preset only), `BUILD_STATIC` and `BUILD_SHARED` (ON).
+
+## Tests
+
+CTest labels: `unit` (API smoke tests), `characterization` (known defects pinned as expected failures: crash probes run in a separate process under the `asan` or `tsan` preset and are checked against the sanitizer signature; value defects are doctest cases marked `should_fail`), `integration` (approval tests of the deterministic examples, normalised output), `mqtt` (two environments through a broker; skipped with exit code 77 unless `CAM_MQTT_HOST` and `CAM_MQTT_PORT` point to a reachable broker), `perf` (smoke run of the benchmarks of `bench/`).
+``` bash
+ctest --preset debug -L unit
+CAM_MQTT_HOST=127.0.0.1 CAM_MQTT_PORT=1883 ctest --preset debug -L mqtt
+cmake --preset asan && cmake --build --preset asan && ctest --preset asan -L characterization
+```
+
+## Benchmarks
+
+`bench/` holds the measurement copies of the C# E30 benchmarks (PingPong, Skynet, SkynetNumeric): same workloads and measured scope as the C# programs, atomic counters, `steady_clock`, a deterministic variant (`--sequential`), linked to the static library and built without `-march=native` nor `-flto`:
+``` bash
+cmake --preset bench && cmake --build --preset bench
+build/bench/bench/bench_Skynet
+build/bench/bench/bench_PingPong --sequential --trials 3
 ```
 
 ## Exemples

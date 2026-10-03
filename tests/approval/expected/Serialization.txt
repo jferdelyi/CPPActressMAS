@@ -1,0 +1,49 @@
+Setup
+SerialAgentOut
+<uuid>
+number 42
+color "blue"
+string 
+
+Message arrived
+SerialAgentIn
+<uuid>
+from "SerialAgentOut"
+string my string IN
+id <uuid>
+Default
+SerialAgentIn
+<uuid>
+string my string IN
+
+Setup
+SerialAgentOut
+<uuid>
+number 42
+color "blue"
+string my string OUT
+
+Default
+SerialAgentIn
+<uuid>
+string my string IN
+
+Default
+SerialAgentOut
+<uuid>
+number 42
+color "blue"
+string my string OUT
+
+Default
+SerialAgentIn
+<uuid>
+string my string IN
+
+Default
+SerialAgentOut
+<uuid>
+number 42
+color "blue"
+string my string OUT
+

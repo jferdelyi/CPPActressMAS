@@ -27,6 +27,7 @@ file(GLOB SOURCES
 option(BUILD_STATIC "Enable building static library" ON)
 option(BUILD_SHARED "Enable building shared library" ON)
 option(BUILD_EXAMPLES "Enable building examples" OFF)
+option(CAM_BUILD_TESTS "Enable building tests (tests/, CTest)" ${PROJECT_IS_TOP_LEVEL})
 
 if (BUILD_STATIC)
 	add_library(CPPActressMASStatic STATIC ${SOURCES})
@@ -57,4 +58,9 @@ endif()
 
 if (BUILD_EXAMPLES)
 	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/Examples)
+endif()
+
+if (CAM_BUILD_TESTS)
+	enable_testing()
+	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tests)
 endif()

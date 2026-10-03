@@ -1,0 +1,19 @@
+# ThreadSanitizer suppressions for the ordinary tests (unit, integration, mqtt) of CPPActressMAS.
+# Format: https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions
+#
+# Each entry documents a KNOWN race with its ID (docs/port/00-analyse-initiale.md) and is removed in the
+# mission that fixes it. The characterization crash probes never use this file: they must see these races.
+# Entries are added only once the race has been observed under the tsan preset (1A: mqtt.network on macOS).
+
+# T4: PahoWrapper::m_running is written by ~PahoWrapper() and read by the Paho loop thread without
+# synchronisation (PahoWrapper.hpp:333 against :590). Fixed in 1C with the transport rewrite.
+race:cam::PahoWrapper::~PahoWrapper
+
+# T4: Environment::m_containers (std::set) is inserted from the Paho callback thread (on_new_environment)
+# while get_containers() is read from another thread. Fixed in 1C (inbox applied at the turn boundary).
+race:cam::Environment::on_new_environment
+
+# T3: the agent collection (m_agents, tsl::ordered_map) is read from the Paho callback thread
+# (Environment::send with p_from_remote, on_new_agent) while the simulation thread inserts or removes.
+# Fixed in 1C (inbox applied at the turn boundary).
+race:cam::Callback::message_arrived
