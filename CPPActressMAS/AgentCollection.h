@@ -109,7 +109,7 @@ namespace cam {
 		[[nodiscard]] bool contains(const std::string& p_id) const;
 
 		/**
-		 * Remove agent
+		 * Remove agent from the collection and from the name index; unknown ids are ignored
 		 * @param p_id The agent id
 		 **/
 		void remove(const std::string& p_id);

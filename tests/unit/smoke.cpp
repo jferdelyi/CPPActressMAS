@@ -180,6 +180,33 @@ TEST_SUITE("unit") {
 		CHECK(l_env.agents_count() == 0);
 	}
 
+	TEST_CASE("an empty environment runs one empty turn and finishes once, in every mode (C1 fixed in 1A)") {
+		for (const auto l_mode: {Mode::Sequential, Mode::SequentialRandom, Mode::Parallel}) {
+			g_recorder.clear();
+			HookedEnvironment l_env(3, l_mode);
+			l_env.start();
+			CHECK(g_recorder.count_of("turn:0") == 1);
+			CHECK(g_recorder.count_of("turn:1") == 0);
+			CHECK(g_recorder.count_of("finished") == 1);
+			CHECK(l_env.agents_count() == 0);
+		}
+	}
+
+	TEST_CASE("a removed agent is gone from the name index, send_by_name delivers nothing (C6 fixed in 1A)") {
+		g_recorder.clear();
+		cam::Environment l_env(2, Mode::Sequential);
+		const std::string l_id = l_env.add<Receiver>("target");
+		l_env.start();
+		REQUIRE(l_env.agents_count() == 1);
+		l_env.remove(l_id);
+		CHECK(l_env.agents_count() == 0);
+		CHECK(l_env.get_agents_by_name("target").empty());
+		const std::string l_text = "x";
+		l_env.send_by_name("ext", "target", raw(l_text), l_text.size(), false, false);
+		l_env.continue_simulation(1);
+		CHECK(g_recorder.count() == 0);
+	}
+
 	TEST_CASE("messages sent by id in Parallel mode are all delivered") {
 		g_recorder.clear();
 		cam::Environment l_env(3, Mode::Parallel);

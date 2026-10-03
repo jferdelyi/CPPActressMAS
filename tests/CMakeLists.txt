@@ -59,16 +59,17 @@ function(cam_add_ok_probe p_name p_id)
 		TIMEOUT 300)
 endfunction()
 
-# C1: empty turn in Parallel or SequentialRandom mode (random_permutation(0) underflow).
+# C1 (fixed in 1A): empty turn in Parallel or SequentialRandom mode (random_permutation(0) underflow).
+# The probes stay as regression tests; continue_all_dead_parallel still shows C24 (known_defects.cpp).
 cam_add_ok_probe(empty_start_sequential C1)
-cam_add_crash_probe(empty_start_parallel C1 asan "applying non-zero offset .* to null pointer|random_permutation")
-cam_add_crash_probe(empty_start_sequential_random C1 asan "applying non-zero offset .* to null pointer|random_permutation")
-cam_add_crash_probe(continue_all_dead_parallel C1 asan "applying non-zero offset .* to null pointer|random_permutation")
+cam_add_ok_probe(empty_start_parallel C1)
+cam_add_ok_probe(empty_start_sequential_random C1)
+cam_add_ok_probe(continue_all_dead_parallel C1)
 # C5: remove() of an unknown or not yet inserted agent dereferences a null pointer.
 cam_add_crash_probe(remove_unknown C5 asan "member call on null pointer|AddressSanitizer: SEGV")
 cam_add_crash_probe(remove_buffered C5 asan "member call on null pointer|AddressSanitizer: SEGV")
-# C6: remove() leaves the name index behind, send_by_name() then dereferences a null pointer.
-cam_add_crash_probe(remove_then_send_by_name C6 asan "member call on null pointer|AddressSanitizer: SEGV")
+# C6 (fixed in 1A): remove() left the name index behind, send_by_name() then dereferenced a null pointer.
+cam_add_ok_probe(remove_then_send_by_name C6)
 # C4: random_agent() includes the upper bound and dereferences end().
 cam_add_crash_probe(random_agent_bound C4 asan "container-overflow|misaligned address|AddressSanitizer: SEGV")
 # C10: remove() during a Parallel turn erases from the collection other threads are iterating.

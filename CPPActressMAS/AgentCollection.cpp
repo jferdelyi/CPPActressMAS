@@ -56,9 +56,20 @@ bool cam::AgentCollection::contains(const std::string& p_id) const {
 }
 
 void cam::AgentCollection::remove(const std::string& p_id) {
-	if (contains(p_id)) {
-		m_agents.erase(p_id);
+	const auto l_it = m_agents.find(p_id);
+	if (l_it == m_agents.end()) {
+		return;
 	}
+	// Drop the (name, id) entry of the name index as well, otherwise a later send_by_name()
+	// dereferences a null pointer (C6).
+	const auto [l_start, l_end] = m_agents_by_name.equal_range(l_it->second->get_name());
+	for (auto l_name_it = l_start; l_name_it != l_end; ++l_name_it) {
+		if (l_name_it->second == p_id) {
+			m_agents_by_name.erase(l_name_it);
+			break;
+		}
+	}
+	m_agents.erase(l_it);
 }
 
 void cam::AgentCollection::run_turn() {
@@ -103,13 +114,6 @@ void cam::AgentCollection::process_buffers() {
 	for (auto& [l_id, l_agent]: m_agents) {
 		if (l_agent->is_dead()) {
 			l_ids.push_back(l_id);
-			const auto [l_start, l_end] = m_agents_by_name.equal_range(l_agent->get_name());
-			for (auto l_agent_it = l_start; l_agent_it != l_end; ++l_agent_it) {
-				if (l_agent_it->second == l_id) {
-					m_agents_by_name.erase(l_agent_it);
-					break;
-				}
-			}
 		}
 	}
 
@@ -148,6 +152,12 @@ std::vector<int> cam::AgentCollection::random_permutation(const size_t p_number)
 	std::vector<int> l_numbers(p_number);
 	for (size_t l_index = 0; l_index < p_number; l_index++) {
 		l_numbers[l_index] = static_cast<int>(l_index);
+	}
+
+	// Nothing to shuffle with fewer than two elements; without this guard p_number - 1 underflows
+	// for an empty collection (an empty turn in Parallel or SequentialRandom mode, C1).
+	if (p_number < 2) {
+		return l_numbers;
 	}
 
 	size_t l_index = p_number - 1;

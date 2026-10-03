@@ -56,8 +56,9 @@ namespace {
 		void default_action() override { stop(); }
 	};
 
-	// ---------------------------------------------------------------- C1 (and witness)
-	// random_permutation(0) computes p_number - 1 in size_t (AgentCollection.cpp:153) and reads out of bounds.
+	// ---------------------------------------------------------------- C1 (fixed in 1A) and witness
+	// random_permutation(0) computed p_number - 1 in size_t and read out of bounds; the probes stay as
+	// regression tests (an empty environment runs one empty turn and finishes, as the C# does).
 	void empty_start_parallel() {
 		cam::Environment l_env(3, Mode::Parallel);
 		l_env.start();
@@ -99,12 +100,12 @@ namespace {
 		std::cout << "OK no crash\n";
 	}
 
-	void remove_then_send_by_name() {
+	void remove_then_send_by_name() {  // C6, fixed in 1A: kept as a regression test
 		cam::Environment l_env(2, Mode::Sequential);
 		const std::string l_id = l_env.add<Plain>("target");
 		l_env.start();       // agent inserted
-		l_env.remove(l_id);  // erases m_agents, not m_agents_by_name (AgentCollection.cpp:58-62)
-		l_env.send_by_name("ext", "target", raw("x"), 1, false, false);  // get() -> nullptr (Environment.cpp:133-134)
+		l_env.remove(l_id);  // used to erase m_agents only, not m_agents_by_name
+		l_env.send_by_name("ext", "target", raw("x"), 1, false, false);  // used to dereference a null pointer
 		std::cout << "OK no crash\n";
 	}
 
@@ -285,13 +286,13 @@ namespace {
 	};
 
 	const Probe g_probes[] = {
-			{"empty_start_parallel", "C1", empty_start_parallel},
+			{"empty_start_parallel", "C1 (fixed in 1A)", empty_start_parallel},
 			{"empty_start_sequential", "witness C1", empty_start_sequential},
-			{"empty_start_sequential_random", "C1", empty_start_sequential_random},
-			{"continue_all_dead_parallel", "C1 C24", continue_all_dead_parallel},
+			{"empty_start_sequential_random", "C1 (fixed in 1A)", empty_start_sequential_random},
+			{"continue_all_dead_parallel", "C1 (fixed in 1A) C24", continue_all_dead_parallel},
 			{"remove_unknown", "C5", remove_unknown},
 			{"remove_buffered", "C5", remove_buffered},
-			{"remove_then_send_by_name", "C6", remove_then_send_by_name},
+			{"remove_then_send_by_name", "C6 (fixed in 1A)", remove_then_send_by_name},
 			{"random_agent_bound", "C4", random_agent_bound},
 			{"observables_parallel", "T1 (TSan)", observables_parallel},
 			{"stop_and_send_parallel", "T2 (TSan)", stop_and_send_parallel},
