@@ -1,0 +1,455 @@
+/**************************************************************************
+ *                                                                        *
+ *  Description: CPPActressMas multi-agent framework                      *
+ *  Website:     https://github.com/jferdelyi/CPPActressMAS               *
+ *  Copyright:   (c) 2023-Today, Jean-François Erdelyi                    *
+ *                                                                        *
+ *  CPP version of ActressMAS by Florin Leon                              *
+ *  https://github.com/florinleon/ActressMas                              *
+ *                                                                        *
+ *  This program is free software; you can redistribute it and/or modify  *
+ *  it under the terms of the GNU General License as published by         *
+ *  the Free Software Foundation. This program is distributed in the      *
+ *  hope that it will be useful, but WITHOUT ANY WARRANTY; without even   *
+ *  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR   *
+ *  PURPOSE. See the GNU General License for more details.                *
+ *                                                                        *
+ **************************************************************************/
+
+// Characterization of known defects whose symptom is a wrong value (IDs from
+// docs/port/00-analyse-initiale.md). Every case asserts the behaviour of ActressMAS C# v3.1 and is
+// marked should_fail(): it is expected to fail while the defect exists. Once the defect is fixed,
+// doctest reports that the case "should have failed" and the marker is removed; the assertions never
+// change. Cases without the marker are witnesses of behaviour that already matches the C#.
+// Defects whose symptom is a crash or a data race are separate processes in probes.cpp.
+
+#include <doctest/doctest.h>
+
+#include <Environment.h>
+
+#include <cereal/types/base_class.hpp>
+
+#include <map>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <vector>
+
+#if defined(__APPLE__)
+#include <mach/mach.h>
+#elif defined(__linux__)
+#include <fstream>
+#endif
+
+namespace {
+
+	using Mode = cam::EnvironmentMasMode;
+
+	const std::uint8_t* raw(const char* p_text) {
+		return reinterpret_cast<const std::uint8_t*>(p_text);
+	}
+
+	struct Plain final : cam::Agent {
+		explicit Plain(const std::string& p_name) : Agent(p_name) {}
+	};
+
+	struct Quitter final : cam::Agent {  // stops at its first action (turn 1; turn 0 is the setup)
+		explicit Quitter(const std::string& p_name) : Agent(p_name) {}
+		void default_action() override { stop(); }
+	};
+
+	// Execution order of the sequential modes (main thread only).
+	std::string g_order;
+	struct Logger final : cam::Agent {
+		explicit Logger(const std::string& p_name) : Agent(p_name) {}
+		void default_action() override { g_order += get_name(); }
+	};
+
+	std::map<std::string, int> histogram(const std::string& p_order, const std::size_t p_group) {
+		std::map<std::string, int> l_histogram;
+		for (std::size_t i = 0; i + p_group <= p_order.size(); i += p_group) {
+			l_histogram[p_order.substr(i, p_group)]++;
+		}
+		return l_histogram;
+	}
+
+	int g_received = 0;
+	std::vector<std::string> g_processed;
+	struct Inbox final : cam::Agent {
+		explicit Inbox(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			++g_received;
+			g_processed.push_back(get_name() + ":" + p_message->to_string());
+		}
+	};
+
+} // namespace
+
+TEST_SUITE("characterization") {
+
+	// ---------------------------------------------------------------- C7, C24
+	TEST_CASE("C7: continue_simulation inserts the agents added after start" * doctest::should_fail()) {
+		cam::Environment l_env(1, Mode::Sequential);
+		l_env.add<Plain>("a");
+		l_env.start();
+		l_env.add<Plain>("b");  // buffered; continue_simulation never calls process_buffers
+		REQUIRE(l_env.agents_count() == 1);
+		l_env.continue_simulation(2);
+		CHECK(l_env.agents_count() == 2);  // C#: Add is immediate
+	}
+
+	TEST_CASE("C24: an agent stopped during the last turn of start is removed" * doctest::should_fail()) {
+		cam::Environment l_env(2, Mode::Sequential);
+		l_env.add<Quitter>("q");
+		l_env.start();  // q stops at the last turn: start() leaves before process_buffers
+		CHECK(l_env.agents_count() == 0);  // C#: Stop removes immediately
+	}
+
+	TEST_CASE("C7 C24: continue_simulation removes the agents stopped before it" * doctest::should_fail()) {
+		cam::Environment l_env(2, Mode::Sequential);
+		l_env.add<Quitter>("q");
+		l_env.start();
+		l_env.continue_simulation(3);  // bounded: continue_simulation(0) would never return here
+		CHECK(l_env.agents_count() == 0);
+	}
+
+	// ---------------------------------------------------------------- C2, C3
+	TEST_CASE("C2: the random order of three agents reaches the six permutations" * doctest::should_fail()) {
+		g_order.clear();
+		cam::Environment l_env(2001, Mode::SequentialRandom, 0, 42);  // turn 0 = setup, then 2000 turns
+		for (const char* l_name: {"A", "B", "C"}) {
+			l_env.add<Logger>(l_name);
+		}
+		l_env.start();
+		const auto l_histogram = histogram(g_order, 3);
+		CHECK(l_histogram.size() == 6);  // (n-1)! orders today: 2
+		int l_last_is_c = 0;
+		for (const auto& [l_key, l_count]: l_histogram) {
+			if (l_key.back() == 'C') {
+				l_last_is_c += l_count;
+			}
+		}
+		CHECK(l_last_is_c > 0);  // the last inserted agent is never executed last today
+	}
+
+	TEST_CASE("C2: the random order of two agents changes" * doctest::should_fail()) {
+		g_order.clear();
+		cam::Environment l_env(1001, Mode::SequentialRandom, 0, 7);
+		l_env.add<Logger>("A");
+		l_env.add<Logger>("B");
+		l_env.start();
+		CHECK(histogram(g_order, 2).size() == 2);  // AB and BA
+	}
+
+	TEST_CASE("C3: two environments with the same seed produce the same order" * doctest::should_fail()) {
+		const auto l_run = [](const unsigned p_seed) {
+			g_order.clear();
+			cam::Environment l_env(6, Mode::SequentialRandom, 0, p_seed);
+			for (const char* l_name: {"A", "B", "C", "D", "E"}) {
+				l_env.add<Logger>(l_name);
+			}
+			l_env.start();
+			return g_order;
+		};
+		const std::string l_first = l_run(1);
+		const std::string l_second = l_run(1);
+		CHECK(l_first == l_second);  // the generator is static and shared by the whole process
+	}
+
+	// ---------------------------------------------------------------- C8
+	TEST_CASE("C8: a message sent to an agent added but not yet inserted is delivered" * doctest::should_fail()) {
+		g_received = 0;
+		cam::Environment l_env(2, Mode::Sequential);
+		const std::string l_id = l_env.add<Inbox>("dest");
+		l_env.send("ext", l_id, raw("lost?"), 5);  // agent still in the buffer: message ignored
+		l_env.start();                             // turn 0: setup; turn 1: empty queue
+		CHECK(g_received == 1);  // C#: Add is immediate, the message is queued
+	}
+
+	// ---------------------------------------------------------------- N8, C17
+	std::string g_blob;
+	struct Migrant final : cam::Agent {  // serializes itself while handling "go"
+		explicit Migrant(const std::string& p_name) : Agent(p_name) {}
+		Migrant() : Agent() {}
+		void action(const cam::MessagePointer& p_message) override {
+			g_processed.push_back(get_name() + ":" + p_message->to_string());
+			if (p_message->to_string() == "go" && g_blob.empty()) {
+				g_blob = serialize_to_stream<Migrant>().str();
+			}
+		}
+		template<class Archive>
+		void save(Archive& p_archive) const { p_archive(cereal::base_class<cam::Agent>(this)); }
+		template<class Archive>
+		void load(Archive& p_archive) { p_archive(cereal::base_class<cam::Agent>(this)); }
+	};
+
+	TEST_CASE("N8 C17: a copy serialized while handling a message does not handle it again" * doctest::should_fail()) {
+		g_blob.clear();
+		g_processed.clear();
+		cam::Environment l_env(1, Mode::Sequential);
+		const std::string l_id = l_env.add<Migrant>("orig");
+		l_env.start();  // setup turn
+		l_env.send("ext", l_id, raw("go"), 2);
+		l_env.continue_simulation(1);  // handles "go" and serializes during that handling
+		REQUIRE(g_processed == std::vector<std::string>{"orig:go"});
+
+		cam::Environment l_copy_env(2, Mode::Sequential);
+		std::stringstream l_stream(g_blob);
+		l_copy_env.add<Migrant>(l_stream);
+		l_copy_env.start();
+		CHECK(g_processed.size() == 1);  // the sentinel node of the queue replays "go"
+	}
+
+	struct LateMigrant final : cam::Agent {  // serializes itself in default_action, two turns after its last message
+		explicit LateMigrant(const std::string& p_name) : Agent(p_name) {}
+		LateMigrant() : Agent() {}
+		int m_idle = 0;
+		void action(const cam::MessagePointer& p_message) override {
+			g_processed.push_back(get_name() + ":" + p_message->to_string());
+		}
+		void default_action() override {
+			if (++m_idle == 2 && g_blob.empty()) {
+				g_blob = serialize_to_stream<LateMigrant>().str();
+			}
+		}
+		template<class Archive>
+		void save(Archive& p_archive) const { p_archive(cereal::base_class<cam::Agent>(this)); }
+		template<class Archive>
+		void load(Archive& p_archive) { p_archive(cereal::base_class<cam::Agent>(this)); }
+	};
+
+	TEST_CASE("N8 C17: a copy serialized two turns after its last message handles nothing" * doctest::should_fail()) {
+		g_blob.clear();
+		g_processed.clear();
+		cam::Environment l_env(1, Mode::Sequential);
+		const std::string l_id = l_env.add<LateMigrant>("orig");
+		l_env.start();
+		l_env.send("ext", l_id, raw("old"), 3);
+		l_env.continue_simulation(1);  // consumes "old"
+		l_env.continue_simulation(2);  // two turns without a message: serialization at the second
+		REQUIRE(g_processed == std::vector<std::string>{"orig:old"});
+
+		cam::Environment l_copy_env(2, Mode::Sequential);
+		std::stringstream l_stream(g_blob);
+		l_copy_env.add<LateMigrant>(l_stream);
+		l_copy_env.start();
+		CHECK(g_processed.size() == 1);  // the last consumed message is replayed by the copy
+	}
+
+	int g_destroyed = 0;
+	struct Tracked final : cam::Agent {
+		explicit Tracked(const std::string& p_name) : Agent(p_name) {}
+		~Tracked() override { ++g_destroyed; }
+		void default_action() override { stop(); }
+	};
+
+	TEST_CASE("C17: a removed agent is destroyed when it is removed" * doctest::should_fail()) {
+		g_destroyed = 0;
+		{
+			cam::Environment l_env(3, Mode::Sequential);
+			l_env.add<Tracked>("a");
+			l_env.add<Tracked>("b");
+			l_env.start();  // turn 1: a and b stop; removed at the end of the turn
+			CHECK(l_env.agents_count() == 0);
+			CHECK(g_destroyed == 2);  // the sentinel node of m_new_agents keeps the last added agent alive
+		}
+		CHECK(g_destroyed == 2);
+	}
+
+	// ---------------------------------------------------------------- C11
+	struct StillBorn final : cam::Agent {
+		explicit StillBorn(const std::string& p_name) : Agent(p_name) { stop(); }
+	};
+
+	TEST_CASE("C11: an agent stopped in its constructor is never inserted" * doctest::should_fail()) {
+		cam::Environment l_env(1, Mode::Sequential);
+		l_env.add<StillBorn>("zombie");
+		l_env.start();  // process_buffers inserts the already dead agent
+		CHECK(l_env.agents_count() == 0);
+		CHECK(l_env.get_agents_by_name("zombie").empty());
+	}
+
+	// ---------------------------------------------------------------- C13
+	struct SetupCounter final : cam::Agent {
+		explicit SetupCounter(const std::string& p_name) : Agent(p_name) {}
+		int m_setups = 0;
+		int m_defaults = 0;
+		void setup() override { ++m_setups; }
+		void default_action() override { ++m_defaults; }
+	};
+
+	TEST_CASE("C13: run_turn(false) runs the setup once, in the same turn as the action" * doctest::should_fail()) {
+		SetupCounter l_agent("same");  // Agent::run_turn is public (C25); no environment needed
+		for (int i = 0; i < 5; ++i) {
+			l_agent.run_turn(false);
+		}
+		CHECK(l_agent.m_setups == 1);  // replayed at every turn today
+		CHECK(l_agent.m_defaults == 5);
+	}
+
+	TEST_CASE("witness C13: run_turn(true) runs the setup alone at the first turn") {
+		SetupCounter l_agent("separate");
+		for (int i = 0; i < 5; ++i) {
+			l_agent.run_turn(true);
+		}
+		CHECK(l_agent.m_setups == 1);
+		CHECK(l_agent.m_defaults == 4);
+	}
+
+	// ---------------------------------------------------------------- C14
+	struct Thrower final : cam::Agent {
+		explicit Thrower(const std::string& p_name) : Agent(p_name) {}
+		void default_action() override { throw std::runtime_error("boom from " + get_name()); }
+	};
+
+	TEST_CASE("C14: an exception thrown by an agent in Parallel mode propagates out of start" * doctest::should_fail()) {
+		cam::Environment l_env(3, Mode::Parallel);
+		l_env.add<Thrower>("t");
+		CHECK_THROWS_AS(l_env.start(), std::exception);  // swallowed today: future::wait(), never get()
+	}
+
+	TEST_CASE("witness C14: an exception thrown by an agent in Sequential mode propagates out of start") {
+		cam::Environment l_env(3, Mode::Sequential);
+		l_env.add<Thrower>("t");
+		CHECK_THROWS_AS(l_env.start(), std::runtime_error);
+	}
+
+	// ---------------------------------------------------------------- C15
+	struct Anonymous final : cam::Agent {
+		Anonymous() : Agent() {}  // protected constructor meant for deserialization: no UUID, no name
+		void action(const cam::MessagePointer&) override { ++g_received; }
+	};
+
+	TEST_CASE("C15: default-constructed agents get distinct identifiers" * doctest::should_fail()) {
+		g_received = 0;
+		cam::Environment l_env(1, Mode::Sequential);
+		const std::string l_id1 = l_env.add<Anonymous>();
+		const std::string l_id2 = l_env.add<Anonymous>();
+		CHECK_FALSE(l_id1.empty());
+		CHECK(l_id1 != l_id2);
+		l_env.start();
+		CHECK(l_env.agents_count() == 2);  // the second agent does not enter m_agents (same empty key)
+	}
+
+	// ---------------------------------------------------------------- C19
+	TEST_CASE("C19: a message built from a JSON string with the RAW format holds the bytes of the string" * doctest::should_fail()) {
+		const cam::Message l_message("s", "r", json("hello"), cam::MessageBinaryFormat::RAW);
+		CHECK(l_message.get_binary_message().size() == 5);  // 6 today: MessagePack bytes tagged RAW
+		CHECK(l_message.to_string() == "hello");
+	}
+
+	// ---------------------------------------------------------------- C20
+	struct Mover final : cam::Agent {
+		explicit Mover(const std::string& p_name) : Agent(p_name) {}
+		Mover() : Agent() {}
+		void default_action() override { move<Mover>("nowhere", json{{"k", 1}}); }
+		template<class Archive>
+		void save(Archive& p_archive) const { p_archive(cereal::base_class<cam::Agent>(this)); }
+		template<class Archive>
+		void load(Archive& p_archive) { p_archive(cereal::base_class<cam::Agent>(this)); }
+	};
+
+	TEST_CASE("C20: move without a remote connection keeps the agent in its environment" * doctest::should_fail()) {
+		cam::Environment l_env(3, Mode::Sequential);
+		l_env.add<Mover>("m");
+		l_env.start();  // turn 1: move() without a client sends nothing but calls stop(): agent lost
+		CHECK(l_env.agents_count() == 1);
+	}
+
+	// ---------------------------------------------------------------- C22
+	std::vector<std::string> g_receivers;
+	struct Named final : cam::Agent {
+		explicit Named(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer&) override { g_receivers.push_back(get_id()); }
+	};
+
+	TEST_CASE("C22: the first agent found by fragment is the first agent sent to" * doctest::should_fail()) {
+		g_receivers.clear();
+		cam::Environment l_env(1, Mode::Sequential);
+		for (int i = 1; i <= 9; ++i) {
+			l_env.add<Named>("a" + std::to_string(i));
+		}
+		l_env.start();
+		const auto l_lookup = l_env.get_filtered_agents("a", true);
+		l_env.send_by_name("ext", "a", raw("x"), 1, true, true);
+		l_env.continue_simulation(1);
+		REQUIRE(l_lookup.size() == 1);
+		REQUIRE(g_receivers.size() == 1);
+		CHECK(l_lookup[0] == g_receivers[0]);  // insertion order for the lookup, hash order for the send
+	}
+
+	// ---------------------------------------------------------------- C23
+#if defined(__APPLE__) || defined(__linux__)
+	int thread_count() {
+#if defined(__APPLE__)
+		thread_act_array_t l_list = nullptr;
+		mach_msg_type_number_t l_count = 0;
+		if (task_threads(mach_task_self(), &l_list, &l_count) != KERN_SUCCESS) {
+			return -1;
+		}
+		for (mach_msg_type_number_t i = 0; i < l_count; ++i) {
+			mach_port_deallocate(mach_task_self(), l_list[i]);
+		}
+		vm_deallocate(mach_task_self(), reinterpret_cast<vm_address_t>(l_list), l_count * sizeof(thread_act_t));
+		return static_cast<int>(l_count);
+#else
+		std::ifstream l_status("/proc/self/status");
+		for (std::string l_line; std::getline(l_status, l_line);) {
+			if (l_line.rfind("Threads:", 0) == 0) {
+				return std::stoi(l_line.substr(8));
+			}
+		}
+		return -1;
+#endif
+	}
+
+	TEST_CASE("C23: a Sequential environment creates no thread" * doctest::should_fail()) {
+		const int l_before = thread_count();
+		REQUIRE(l_before > 0);
+		cam::Environment l_env(1, Mode::Sequential);
+		CHECK(thread_count() == l_before);  // hardware_concurrency() pool threads per environment today
+	}
+#endif
+
+	// ---------------------------------------------------------------- C26 (and witness, ISO m)
+	int g_after_stop = 0;
+	int g_action_after_see_stop = 0;
+	struct StopInAction final : cam::Agent {
+		explicit StopInAction(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			if (is_dead()) {
+				++g_after_stop;
+			}
+			if (p_message->to_string() == "1") {
+				stop();
+			}
+		}
+	};
+
+	struct StopInSee final : cam::Agent {
+		explicit StopInSee(const std::string& p_name) : Agent(p_name, true) {}
+		void see(const std::vector<cam::ObservablesPointer>&) override { stop(); }
+		void default_action() override { ++g_action_after_see_stop; }
+	};
+
+	TEST_CASE("C26: the action of an agent that stops in see still runs in that turn" * doctest::should_fail()) {
+		g_action_after_see_stop = 0;
+		cam::Environment l_env(2, Mode::Sequential);
+		l_env.add<StopInSee>("v");
+		l_env.start();  // turn 1: v stops in see() -> action skipped (Agent.cpp:54-56); the C# runs Act
+		CHECK(g_action_after_see_stop == 1);
+	}
+
+	TEST_CASE("witness ISO m: the messages already queued are handled after stop in action") {
+		g_after_stop = 0;
+		cam::Environment l_env(2, Mode::Sequential);
+		const std::string l_id = l_env.add<StopInAction>("s");
+		l_env.start();
+		for (const char* l_text: {"1", "2", "3"}) {
+			l_env.send("ext", l_id, raw(l_text), 1);
+		}
+		l_env.continue_simulation(1);  // s stops on "1" then handles "2" and "3" in the same turn
+		CHECK(g_after_stop == 2);
+	}
+}

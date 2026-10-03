@@ -1,7 +1,15 @@
 # Tests of CPPActressMAS.
 #
 # CTest labels: unit, characterization, iso (reserved), integration, mqtt, zenoh (reserved), perf (bench/).
-# ThreadSanitizer suppressions (tests/tsan/suppressions.txt) apply to the ordinary tests only.
+#
+# Characterization tests pin the behaviour of known defects (IDs from docs/port/00-analyse-initiale.md):
+#   - crash probes run one process per probe (cam_probes <name>); the expected failure is the sanitizer
+#     signature matched by PASS_REGULAR_EXPRESSION, so a probe that stops crashing fails the test and
+#     signals that the defect is fixed (never WILL_FAIL);
+#   - value probes are doctest cases asserting the C# behaviour and marked should_fail(); once the
+#     defect is fixed doctest reports "should have failed" and the marker is removed.
+# ThreadSanitizer suppressions (tests/tsan/suppressions.txt) apply to the ordinary tests only: the crash
+# probes must see the races they document.
 
 set(CAM_SANITIZER "" CACHE STRING "Sanitizer this build is instrumented with: asan, tsan or empty (selects the crash probes)")
 
@@ -22,6 +30,62 @@ function(cam_apply_tsan_suppressions p_test)
 		set_property(TEST ${p_test} APPEND PROPERTY ENVIRONMENT "TSAN_OPTIONS=suppressions=${CAM_TSAN_SUPPRESSIONS}")
 	endif()
 endfunction()
+
+# ---------------------------------------------------------------- crash probes
+add_executable(cam_probes characterization/probes.cpp)
+target_link_libraries(cam_probes ${CAM_TEST_LIBRARY} cam_test_support)
+
+# A probe whose expected failure is a sanitizer signature; registered in the matching sanitizer build only.
+function(cam_add_crash_probe p_name p_id p_sanitizer p_regex)
+	if (CAM_SANITIZER STREQUAL p_sanitizer)
+		add_test(NAME characterization.${p_sanitizer}.${p_name} COMMAND cam_probes ${p_name})
+		# The sanitizer must exit instead of aborting: CTest reports an aborted subprocess as an exception
+		# whatever its output, while PASS_REGULAR_EXPRESSION decides for an ordinary non-zero exit code.
+		set_tests_properties(characterization.${p_sanitizer}.${p_name} PROPERTIES
+			LABELS "characterization;${p_id}"
+			PASS_REGULAR_EXPRESSION "${p_regex}"
+			ENVIRONMENT "ASAN_OPTIONS=abort_on_error=0;UBSAN_OPTIONS=abort_on_error=0:print_stacktrace=1;TSAN_OPTIONS=abort_on_error=0"
+			TIMEOUT 900)
+	endif()
+endfunction()
+
+# A probe that must run to completion without any sanitizer report (witness or fixed defect).
+function(cam_add_ok_probe p_name p_id)
+	add_test(NAME characterization.ok.${p_name} COMMAND cam_probes ${p_name})
+	set_tests_properties(characterization.ok.${p_name} PROPERTIES
+		LABELS "characterization;${p_id}"
+		PASS_REGULAR_EXPRESSION "OK no crash"
+		FAIL_REGULAR_EXPRESSION "Sanitizer|runtime error"
+		TIMEOUT 300)
+endfunction()
+
+# C1: empty turn in Parallel or SequentialRandom mode (random_permutation(0) underflow).
+cam_add_ok_probe(empty_start_sequential C1)
+cam_add_crash_probe(empty_start_parallel C1 asan "applying non-zero offset .* to null pointer|random_permutation")
+cam_add_crash_probe(empty_start_sequential_random C1 asan "applying non-zero offset .* to null pointer|random_permutation")
+cam_add_crash_probe(continue_all_dead_parallel C1 asan "applying non-zero offset .* to null pointer|random_permutation")
+# C5: remove() of an unknown or not yet inserted agent dereferences a null pointer.
+cam_add_crash_probe(remove_unknown C5 asan "member call on null pointer|AddressSanitizer: SEGV")
+cam_add_crash_probe(remove_buffered C5 asan "member call on null pointer|AddressSanitizer: SEGV")
+# C6: remove() leaves the name index behind, send_by_name() then dereferences a null pointer.
+cam_add_crash_probe(remove_then_send_by_name C6 asan "member call on null pointer|AddressSanitizer: SEGV")
+# C4: random_agent() includes the upper bound and dereferences end().
+cam_add_crash_probe(random_agent_bound C4 asan "container-overflow|misaligned address|AddressSanitizer: SEGV")
+# C10: remove() during a Parallel turn erases from the collection other threads are iterating.
+cam_add_crash_probe(remove_during_parallel_turn C10 asan "container-overflow|member call on null pointer|AddressSanitizer: SEGV")
+cam_add_crash_probe(remove_during_parallel_turn C10 tsan "ThreadSanitizer: (data race|SEGV)")
+# C12: remove() during a Sequential turn invalidates the range-for of run_turn().
+cam_add_crash_probe(remove_during_sequential_turn C12 asan "container-overflow|member call on null pointer|AddressSanitizer: SEGV")
+# C16: add<T>() returns a reference to the agent's id, dangling once the agent is destroyed.
+cam_add_crash_probe(dangling_add_ref C16 asan "heap-use-after-free")
+# C21: serialize_to_stream<T>() with T different from the dynamic type dereferences a null dynamic_cast.
+cam_add_crash_probe(serialize_wrong_type C21 asan "reference binding to null pointer|AddressSanitizer: SEGV")
+# T1: live observables map read by other agents while its owner writes it.
+cam_add_crash_probe(observables_parallel T1 tsan "ThreadSanitizer: data race")
+# T2: stop() writes m_is_dead while send_by_name() reads it from another thread.
+cam_add_crash_probe(stop_and_send_parallel T2 tsan "ThreadSanitizer: data race")
+# T7: static random generator shared by all environments of the process.
+cam_add_crash_probe(rng_two_threads T7 tsan "ThreadSanitizer: data race")
 
 # ---------------------------------------------------------------- approval of deterministic examples
 add_executable(cam_approve approval/approve.cpp)
@@ -67,6 +131,18 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME unit.smoke COMMAND cam_tests)
 	set_tests_properties(unit.smoke PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.smoke)
+
+	add_executable(cam_known_defects characterization/known_defects.cpp)
+	target_link_libraries(cam_known_defects cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME characterization.known_defects COMMAND cam_known_defects)
+	set_tests_properties(characterization.known_defects PROPERTIES LABELS characterization TIMEOUT 600)
+
+	# Needs a broker: CAM_MQTT_HOST and CAM_MQTT_PORT in the environment, otherwise the test skips (exit 77).
+	add_executable(cam_network_tests network/network_tests.cpp)
+	target_link_libraries(cam_network_tests cam_test_support ${CAM_TEST_LIBRARY})
+	add_test(NAME mqtt.network COMMAND cam_network_tests)
+	set_tests_properties(mqtt.network PROPERTIES LABELS "mqtt;integration" SKIP_RETURN_CODE 77 TIMEOUT 120)
+	cam_apply_tsan_suppressions(mqtt.network)
 else()
-	message(WARNING "${CAM_DOCTEST_HEADER} is missing: the unit tests are not built")
+	message(WARNING "${CAM_DOCTEST_HEADER} is missing: the unit, known-defect and network tests are not built")
 endif()
