@@ -102,6 +102,8 @@ public:
 		return m_x == m_other.m_x && m_y == m_other.m_y;
 	}
 
+	Position(const Position& m_other) = default;
+
 	Position& operator=(const Position& m_other) = default;
 };
 std::ostream& operator<<(std::ostream& p_stream, const Position& p_position) {

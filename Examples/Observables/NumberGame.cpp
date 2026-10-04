@@ -16,6 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
+#include <cmath>
 #include <iostream>
 #include <random>
 
@@ -49,7 +50,7 @@ class MyAgent : public cam::Agent {
 		bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
 			const double l_my_number = m_observables->at("Number");
 			const double l_observed_number = p_observed->at("Number");
-			return abs(l_my_number - l_observed_number) < 10;
+			return std::abs(l_my_number - l_observed_number) < 10;
 		}
 
 		void see(const std::vector<cam::ObservablesPointer>& p_observable_agents) override {
