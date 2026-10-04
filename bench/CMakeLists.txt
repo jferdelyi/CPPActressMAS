@@ -17,6 +17,8 @@ endfunction()
 cam_add_bench(PingPong)
 cam_add_bench(Skynet)
 cam_add_bench(SkynetNumeric)
+# Micro-benchmark of the envelope codecs (encode, decode, bytes on the wire), linked to the core only.
+cam_add_bench(Envelope)
 
 # End-to-end transport benchmark: two environments, two nodes, round trips through the directory. Linked
 # to the facade (the transports compiled in: loopback always, mqtt and zenoh with their options).
@@ -34,4 +36,6 @@ if (CAM_BUILD_TESTS)
 	set_tests_properties(perf.smoke.PingPong PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "msg/ms" TIMEOUT 300)
 	add_test(NAME perf.smoke.Transport COMMAND bench_Transport --transport loopback --pings 50 --trials 1)
 	set_tests_properties(perf.smoke.Transport PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "msg/ms" TIMEOUT 300)
+	add_test(NAME perf.smoke.Envelope COMMAND bench_Envelope --count 2000)
+	set_tests_properties(perf.smoke.Envelope PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "json content=1024 encode_ns" TIMEOUT 300)
 endif()
