@@ -193,6 +193,23 @@ namespace cam::transport {
 	};
 
 	/**
+	 * Events of the connection of a transport, delivered to the environments at the turn boundary.
+	 **/
+	enum class TransportEvent : std::uint8_t {
+		Connected,
+		Disconnected,
+		Reconnected,
+		Error
+	};
+
+	/**
+	 * Name of a transport event.
+	 * @param p_event The event
+	 * @return Its name
+	 **/
+	[[nodiscard]] const char* to_string(TransportEvent p_event);
+
+	/**
 	 * Error categories.
 	 **/
 	enum class ErrorCategory : std::uint8_t {

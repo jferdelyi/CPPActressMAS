@@ -32,15 +32,6 @@ cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_is_using_observables(p_using_observables),
 		m_observables(new Observables()) {}
 
-cam::Agent::Agent() :
-		m_environment(nullptr),
-		m_is_setup(false),
-		m_is_dead(false),
-		m_in_transit(false),
-		m_is_using_observables(false),
-		m_observables(new Observables()) {
-}
-
 void cam::Agent::run_turn(const bool p_run_setup_separately) {
 	if (is_dead() || is_in_transit()) {
 		return;
@@ -183,12 +174,6 @@ cam::transport::Result<void> cam::Agent::move(const std::string& p_environment_i
 		m_in_transit = true;
 	}
 	return l_result;
-}
-
-void cam::Agent::internal_move(const std::stringstream& p_agent_stream, const json& p_message,
-							   const std::string& p_environment_id) {
-	get_environment()->move(p_agent_stream, p_message, p_environment_id);
-	stop();
 }
 
 size_t cam::Agent::agents_count() const {

@@ -18,13 +18,13 @@
 
 #pragma once
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
-
-#include <cereal/types/vector.hpp> // Serialize vector
-#include <cereal/types/string.hpp> // Serialize string
-#include <cereal/types/memory.hpp> // Serialize smart pointers
 
 /**
  * CPPActressMAS
@@ -144,11 +144,6 @@ namespace cam {
 		 * @return string formated message
 		 **/
 		[[nodiscard]] /*virtual*/ std::string format() const;
-
-		template<class Archive>
-		void serialize(Archive& p_archive) {
-			p_archive(m_sender, m_receiver, m_binary_message, m_binary_format);
-		}
 
 		/**
 		 * From/to json/binary.

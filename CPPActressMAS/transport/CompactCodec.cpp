@@ -319,7 +319,8 @@ namespace cam::transport {
 			}
 		}
 
-		Result<Envelope> read_envelope(const std::span<const std::uint8_t> p_bytes, const std::size_t p_max_bytes, const CompactCodec& p_codec, const int p_depth) {
+		Result<Envelope> read_envelope(const std::span<const std::uint8_t> p_bytes, const std::size_t p_max_bytes,
+									   const CompactCodec& p_codec, const int p_depth) {
 			const auto l_header = EnvelopeCodec::read_header(p_bytes);
 			if (!l_header) {
 				return l_header.error();
@@ -535,6 +536,16 @@ namespace cam::transport {
 			}
 		}
 		return true;
+	}
+
+	const char* to_string(const TransportEvent p_event) {
+		switch (p_event) {
+			case TransportEvent::Connected: return "connected";
+			case TransportEvent::Disconnected: return "disconnected";
+			case TransportEvent::Reconnected: return "reconnected";
+			case TransportEvent::Error:
+			default: return "error";
+		}
 	}
 
 	const char* to_string(const ErrorCode p_code) {

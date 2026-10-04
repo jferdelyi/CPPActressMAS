@@ -30,7 +30,6 @@
 
 #include <Environment.h>
 
-#include <cereal/types/base_class.hpp>
 
 #include <iomanip>
 #include <iostream>
@@ -254,30 +253,6 @@ namespace {
 		std::cout << "OK no crash\n";
 	}
 
-	// ---------------------------------------------------------------- C21
-	struct Other final : cam::Agent {
-		Other() : Agent() {}
-		template<class Archive>
-		void save(Archive& p_archive) const { p_archive(cereal::base_class<cam::Agent>(this)); }
-		template<class Archive>
-		void load(Archive& p_archive) { p_archive(cereal::base_class<cam::Agent>(this)); }
-	};
-
-	struct WrongCast final : cam::Agent {
-		explicit WrongCast(const std::string& p_name) : Agent(p_name) {}
-		void default_action() override {
-			const auto l_stream = serialize_to_stream<Other>();  // T is not the dynamic type: dynamic_cast -> nullptr
-			(void) l_stream;
-		}
-	};
-
-	void serialize_wrong_type() {
-		cam::Environment l_env(2, Mode::Sequential);
-		l_env.add<WrongCast>("w");
-		l_env.start();
-		std::cout << "OK no crash\n";
-	}
-
 	// ---------------------------------------------------------------- registry
 	struct Probe {
 		const char* m_name;
@@ -300,7 +275,6 @@ namespace {
 			{"remove_during_sequential_turn", "C12", remove_during_sequential_turn},
 			{"rng_two_threads", "T7 (TSan)", rng_two_threads},
 			{"dangling_add_ref", "C16", dangling_add_ref},
-			{"serialize_wrong_type", "C21", serialize_wrong_type},
 	};
 
 	void list_probes(std::ostream& p_out) {

@@ -19,8 +19,6 @@
 #pragma once
 
 #include <atomic>
-#include <queue>
-#include <cereal/types/queue.hpp> // Serialize queue
 
 /**
  * CPPActressMAS
@@ -28,7 +26,7 @@
 namespace cam {
 
 	/**
-	 * MPSC (Multiple Producer Single Consumer) lock free queue from CPP Benchmark (serializable)
+	 * MPSC (Multiple Producer Single Consumer) lock free queue from CPP Benchmark
 	 * https://github.com/chronoxor/CppBenchmark/blob/master/examples/lockfree/mpsc-queue.hpp
 	 */
 	template<typename T>
@@ -107,37 +105,6 @@ namespace cam {
 			m_tail.store(l_next, std::memory_order_release);
 			delete l_tail;
 			return true;
-		}
-
-		/**
-		 * Serialize queue
-		 * @param p_archive archive to store queue
-		 */
-		template<class Archive>
-		void save(Archive& p_archive) const {
-			std::queue<T> l_serialized_queue;
-			MPSCQueueNode* l_tail = m_tail.load(std::memory_order_relaxed);
-			while (l_tail != nullptr) {
-				if (l_tail->data) {
-					l_serialized_queue.push(l_tail->data);
-				}
-				l_tail = l_tail->next.load(std::memory_order_acquire);
-			}
-			p_archive(l_serialized_queue);
-		}
-
-		/**
-		 * Deserialize queue
-		 * @param p_archive archive to restore queue
-		 */
-		template<class Archive>
-		void load(Archive& p_archive) {
-			std::queue<T> l_serialized_queue;
-			p_archive(l_serialized_queue);
-			while (!l_serialized_queue.empty()) {
-				enqueue(l_serialized_queue.front());
-				l_serialized_queue.pop();
-			}
 		}
 
 		// Delete copy constructor

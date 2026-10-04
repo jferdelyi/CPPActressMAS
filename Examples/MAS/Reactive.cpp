@@ -18,7 +18,10 @@
  **************************************************************************/
 
 #include <random>
+#include <sstream>
 #include <utility>
+
+#include <cereal/archives/portable_binary.hpp>
 
 #include <Environment.h>
 

@@ -16,7 +16,12 @@
  *                                                                        *
  **************************************************************************/
 
+#include <iostream>
+
 #include <Environment.h>
+
+// An agent saves its state (save_state), sends it in a message, and the receiver builds a copy of it
+// from that state (load_state). The copy is a new agent: it gets a new id and runs setup() again.
 
 static bool s_serialization_sent = false;
 
@@ -26,7 +31,6 @@ private:
 
 public:
 	explicit SerialAgentOut(const std::string& p_name) : Agent(p_name) {}
-	explicit SerialAgentOut() : Agent() {}
 
 	void setup() override {
 		// Set observables
@@ -41,12 +45,10 @@ public:
 		std::cout << "string " << m_string << std::endl;
 		std::cout << std::endl;
 
-		// Send serial data to "SerialAgentIn"
+		// Send its state to "SerialAgentIn"
 		if (!s_serialization_sent) {
-			// Serialize itself
 			m_string  = "my string OUT";
-			std::stringstream l_stream = serialize_to_stream<SerialAgentOut>();
-			send_by_name("SerialAgentIn", {{"data", l_stream.str()}, {"from", get_name()}});
+			send_by_name("SerialAgentIn", {{"data", save_state()}, {"from", get_name()}});
 			stop();
 			s_serialization_sent = true;
 		}
@@ -62,14 +64,12 @@ public:
 		std::cout << std::endl;
 	}
 
-	template <class Archive>
-	void save(Archive& p_archive) const {
-		p_archive(cereal::base_class<Agent>(this), m_string);
+	[[nodiscard]] json save_state() const override {
+		return {{"string", m_string}};
 	}
 
-	template <class Archive>
-	void load(Archive& p_archive) {
-		p_archive(cereal::base_class<Agent>(this), m_string);
+	void load_state(const json& p_state) override {
+		m_string = p_state.at("string").get<std::string>();
 	}
 };
 
@@ -86,8 +86,10 @@ public:
 		std::cout << get_id() << std::endl;
 		std::cout << "from " << p_message->content()["from"] << std::endl;
 		std::cout << "string " << m_string << std::endl;
-		std::stringstream l_stream = std::stringstream(p_message->content()["data"].get<std::string>());
-		std::cout << "id " << get_environment()->add<SerialAgentOut>(l_stream);
+		// A copy of the sender, with its state and a new id
+		auto l_copy = std::make_shared<SerialAgentOut>(p_message->content()["from"].get<std::string>());
+		l_copy->load_state(p_message->content()["data"]);
+		std::cout << "id " << get_environment()->add(l_copy);
 		std::cout << std::endl;
 	}
 
@@ -97,16 +99,6 @@ public:
 		std::cout << get_id() << std::endl;
 		std::cout << "string " << m_string << std::endl;
 		std::cout << std::endl;
-	}
-
-	template <class Archive>
-	void save(Archive& p_archive) const {
-		p_archive(cereal::base_class<Agent>( this), m_string);
-	}
-
-	template <class Archive>
-	void load(Archive& p_archive) const {
-		p_archive(cereal::base_class<Agent>( this), m_string);
 	}
 };
 

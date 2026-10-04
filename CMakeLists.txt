@@ -3,21 +3,10 @@ project(CPPActressMAS)
 
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(OpenSSL REQUIRED)
-find_package(PahoMqttCpp REQUIRED)
-
-# Distribution packages (Ubuntu, Debian) and dynamic vcpkg triplets only export the shared target
-# PahoMqttCpp::paho-mqttpp3; a static-only installation only exports PahoMqttCpp::paho-mqttpp3-static.
-# Use whichever is available (B1).
-if (TARGET PahoMqttCpp::paho-mqttpp3-static)
-	set(CAM_PAHO_TARGET PahoMqttCpp::paho-mqttpp3-static)
-else()
-	set(CAM_PAHO_TARGET PahoMqttCpp::paho-mqttpp3)
-endif()
-
 include_directories(Externals)
 include_directories(CPPActressMAS)
 
+# The core has no network dependency: the transports are separate libraries behind options (D1, D22).
 file(GLOB SOURCES
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h**
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.hpp
@@ -25,16 +14,21 @@ file(GLOB SOURCES
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.cpp
 )
+# The facade knows which transports are compiled in: it is a library of its own (cam_transport).
+list(REMOVE_ITEM SOURCES
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.cpp
+)
 
 option(BUILD_STATIC "Enable building static library" ON)
 option(BUILD_SHARED "Enable building shared library" ON)
 option(BUILD_EXAMPLES "Enable building examples" OFF)
 option(BUILD_BENCH "Enable building benchmarks (bench/, performance protocol)" OFF)
 option(CAM_BUILD_TESTS "Enable building tests (tests/, CTest)" ${PROJECT_IS_TOP_LEVEL})
+option(CAM_TRANSPORT_MQTT "Build the MQTT transport (Eclipse Paho fetched and built by the project, needs OpenSSL)" OFF)
 
 if (BUILD_STATIC)
 	add_library(CPPActressMASStatic STATIC ${SOURCES})
-	target_link_libraries(CPPActressMASStatic OpenSSL::SSL ${CAM_PAHO_TARGET})
 	if (CMAKE_BUILD_TYPE STREQUAL "Release")
 		if (WIN32)
 			target_compile_options(CPPActressMASStatic PRIVATE /O2 /W4 /LTCG)
@@ -47,7 +41,6 @@ endif()
 
 if (BUILD_SHARED)
 	add_library(CPPActressMAS SHARED ${SOURCES})
-	target_link_libraries(CPPActressMAS OpenSSL::SSL ${CAM_PAHO_TARGET})
 	if (CMAKE_BUILD_TYPE STREQUAL "Release")
 		if (WIN32)
 			target_compile_options(CPPActressMAS PRIVATE /O2 /W4 /LTCG)
@@ -57,6 +50,29 @@ if (BUILD_SHARED)
 			target_link_options(CPPActressMAS PRIVATE -flto)
 		endif()
 	endif()
+endif()
+
+# Core target the transports, the facade, the examples and the tests link to.
+if (TARGET CPPActressMAS)
+	set(CAM_CORE_TARGET CPPActressMAS)
+else()
+	set(CAM_CORE_TARGET CPPActressMASStatic)
+endif()
+
+if (CAM_TRANSPORT_MQTT)
+	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/mqtt)
+endif()
+
+# Facade: cam::transport::open(url) and cam::transport::connect(environment, url) over the transports
+# compiled in (loopback always, mqtt and mqtts with CAM_TRANSPORT_MQTT).
+add_library(cam_transport STATIC
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.cpp
+)
+target_link_libraries(cam_transport PUBLIC ${CAM_CORE_TARGET})
+if (CAM_TRANSPORT_MQTT)
+	target_compile_definitions(cam_transport PRIVATE CAM_TRANSPORT_MQTT=1)
+	target_link_libraries(cam_transport PUBLIC cam_transport_mqtt)
 endif()
 
 if (BUILD_EXAMPLES)

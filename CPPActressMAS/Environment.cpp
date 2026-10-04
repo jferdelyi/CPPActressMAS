@@ -23,7 +23,6 @@
 #include <uuid/UUID.hpp>
 
 #include "Agent.h"
-#include "PahoWrapper.hpp"
 
 namespace {
 
@@ -44,7 +43,6 @@ cam::Environment::Environment(const int p_no_turns, const EnvironmentMasMode& p_
 		m_no_turns(p_no_turns),
 		m_delay_after_turn(p_delay_after_turn),
 		m_agent_collection(p_mode, p_seed),
-		m_remote_client(nullptr),
 		m_boundary(0) {
 }
 
@@ -52,15 +50,10 @@ cam::Environment::~Environment() {
 	if (m_endpoint) {
 		disconnect();
 	}
-	if (m_remote_client) {
-		m_remote_client->disconnect_to_broker();
-		while (m_remote_client->is_connected());
-		delete m_remote_client;
-		m_remote_client = nullptr;
-	}
 }
 
-const std::string& cam::Environment::add(AgentPointer&& p_agent) {
+const std::string& cam::Environment::add(AgentPointer p_agent) {
+	p_agent->set_environment(this);
 	m_agent_collection.add(p_agent);
 	return p_agent->get_id();
 }
@@ -109,19 +102,6 @@ cam::Environment::send(const std::string& p_sender_id, const std::string& p_rece
 		return {};
 	}
 	if (!m_endpoint) {
-		if (m_remote_client) {
-			// Legacy MQTT path (PahoWrapper), replaced by the transport in a later step of mission 1.
-			const json& l_data = {
-					{"sender_id",     p_sender_id},
-					{"receiver_id",   p_receiver_id},
-					{"message",       std::vector(p_message, p_message + p_length)},
-					{"length",        p_length},
-					{"binary_format", p_binary_format}
-			};
-			const auto& l_message = m_remote_client->format_message(l_data, "object", "message");
-			m_remote_client->send_message_by_id(cam::Message::to_binary(l_message));
-			return {};
-		}
 		return make_error(ErrorCategory::Routing, ErrorCode::UnknownDestination, "unknown agent " + p_receiver_id);
 	}
 	const auto l_host = m_endpoint->locate_agent(p_receiver_id);
@@ -199,20 +179,6 @@ cam::Environment::send_by_name(const std::string& p_sender_id, const std::string
 							   const bool p_first_only, const MessageBinaryFormat& p_binary_format,
 							   const transport::SendOptions& p_options) const {
 	deliver_by_name(p_sender_id, p_receiver_name, p_message, p_length, p_is_fragment, p_first_only, p_binary_format);
-	if (m_remote_client && !m_endpoint) {
-		// Legacy MQTT path (PahoWrapper): always published, whatever the scope.
-		const json& l_data = {
-				{"sender_id",     p_sender_id},
-				{"receiver_name", p_receiver_name},
-				{"message",       std::vector(p_message, p_message + p_length)},
-				{"is_fragment",   p_is_fragment},
-				{"first_only",    p_first_only},
-				{"binary_format", p_binary_format}
-		};
-		const auto& l_message = m_remote_client->format_message(l_data, "object", "message");
-		m_remote_client->broadcast_message_by_name(cam::Message::to_binary(l_message));
-		return {};
-	}
 	if (p_options.m_scope != transport::Scope::Network) {
 		return {};
 	}
@@ -228,17 +194,6 @@ cam::transport::Result<void>
 cam::Environment::broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
 							const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options) const {
 	deliver_broadcast(p_sender_id, p_message, p_length, p_binary_format);
-	if (m_remote_client && !m_endpoint) {
-		// Legacy MQTT path (PahoWrapper): always published, whatever the scope.
-		const json& l_data = {
-				{"sender_id",     p_sender_id},
-				{"message",       std::vector(p_message, p_message + p_length)},
-				{"binary_format", p_binary_format}
-		};
-		const auto& l_message = m_remote_client->format_message(l_data, "object", "message");
-		m_remote_client->broadcast_message(cam::Message::to_binary(l_message));
-		return {};
-	}
 	if (p_options.m_scope != transport::Scope::Network) {
 		return {};
 	}
@@ -337,20 +292,6 @@ cam::Environment::get_filtered_agents(const std::string& p_fragment_name, const 
 	return l_returned_agents;
 }
 
-void cam::Environment::move(const std::stringstream& p_agent_stream, const json& p_message,
-							const std::string& p_environment_id) {
-	if (!m_remote_client) {
-		return;
-	}
-
-	const json& l_data = {
-			{"agent",   p_agent_stream.str()},
-			{"message", p_message}
-	};
-	const auto& l_message_to_send = m_remote_client->format_message(l_data, "byte", "agent");
-	m_remote_client->post_agent(p_environment_id, cam::Message::to_binary(l_message_to_send));
-}
-
 const std::vector<cam::ObservablesPointer>
 cam::Environment::get_list_of_observable_agents(const Agent* p_perceiving_agent) const {
 	std::vector<cam::ObservablesPointer> l_observable_agent_list;
@@ -390,6 +331,13 @@ void cam::Environment::process_buffers() {
 	if (!m_endpoint) {
 		m_agent_collection.process_buffers();
 		return;
+	}
+	for (const auto l_event: m_endpoint->take_events()) {
+		if (l_event == transport::TransportEvent::Reconnected) {
+			// The broker may have lost the retained presences: announce this environment again (N15).
+			announce_presence(true);
+		}
+		on_transport_event(l_event);
 	}
 	for (auto& l_envelope: m_endpoint->drain()) {
 		apply_incoming(std::move(l_envelope));
@@ -497,7 +445,8 @@ void cam::Environment::announce_presence(const bool p_online) {
 	}
 	transport::Envelope l_envelope = m_endpoint->make_envelope(transport::EnvelopeKind::Presence);
 	l_envelope.m_payload = std::move(l_presence);
-	if (const auto l_result = m_endpoint->enqueue(m_endpoint->address(transport::AddressKind::EnvPresence, m_id), std::move(l_envelope)); !l_result) {
+	const auto l_presence_address = m_endpoint->address(transport::AddressKind::EnvPresence, m_id);
+	if (const auto l_result = m_endpoint->enqueue(l_presence_address, std::move(l_envelope)); !l_result) {
 		on_delivery_failure(l_result.error());
 	}
 }
@@ -511,7 +460,8 @@ void cam::Environment::announce_agent(const transport::DirectoryEventKind p_even
 	l_event.m_environment_id = m_id;
 	transport::Envelope l_envelope = m_endpoint->make_envelope(transport::EnvelopeKind::Directory);
 	l_envelope.m_payload = std::move(l_event);
-	if (const auto l_result = m_endpoint->enqueue(m_endpoint->address(transport::AddressKind::EnvPresence, m_id), std::move(l_envelope)); !l_result) {
+	const auto l_presence_address = m_endpoint->address(transport::AddressKind::EnvPresence, m_id);
+	if (const auto l_result = m_endpoint->enqueue(l_presence_address, std::move(l_envelope)); !l_result) {
 		on_delivery_failure(l_result.error());
 	}
 }
@@ -565,6 +515,15 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 			const auto* l_presence = std::get_if<transport::Presence>(&p_envelope.m_payload);
 			if (!l_presence) {
 				m_endpoint->count_rejected();
+				break;
+			}
+			if (l_presence->m_environment_id == l_presence->m_node_id) {
+				// Presence of a node (a transport instance): its death takes every environment it hosted.
+				if (!l_presence->m_online) {
+					for (const auto& l_lost: m_endpoint->purge_node(l_presence->m_node_id)) {
+						on_environment_left(l_lost);
+					}
+				}
 				break;
 			}
 			const bool l_known = m_endpoint->knows_environment(l_presence->m_environment_id);
@@ -701,7 +660,8 @@ void cam::Environment::process_move_requests() {
 		transport::Envelope l_offer = m_endpoint->make_envelope(transport::EnvelopeKind::AgentOffer);
 		l_offer.m_priority = l_request.m_priority;
 		l_offer.m_payload = std::move(l_transfer);
-		if (const auto l_result = m_endpoint->enqueue(m_endpoint->address(transport::AddressKind::EnvAgent, l_request.m_target), std::move(l_offer)); !l_result) {
+		const auto l_offer_address = m_endpoint->address(transport::AddressKind::EnvAgent, l_request.m_target);
+		if (const auto l_result = m_endpoint->enqueue(l_offer_address, std::move(l_offer)); !l_result) {
 			restore_agent(l_transit, l_result.error());
 			continue;
 		}
@@ -721,7 +681,8 @@ void cam::Environment::send_control(const transport::EnvelopeKind p_kind, const 
 	l_envelope.m_payload = std::move(l_control);
 	// Decisions of the destination go to the origin's inbox; orders of the origin go to the destination's agent key.
 	const bool l_to_origin = p_kind == transport::EnvelopeKind::AgentAccept || p_kind == transport::EnvelopeKind::AgentReject;
-	const auto l_address = m_endpoint->address(l_to_origin ? transport::AddressKind::EnvIn : transport::AddressKind::EnvAgent, p_environment_id);
+	const auto l_kind = l_to_origin ? transport::AddressKind::EnvIn : transport::AddressKind::EnvAgent;
+	const auto l_address = m_endpoint->address(l_kind, p_environment_id);
 	if (const auto l_result = m_endpoint->enqueue(l_address, std::move(l_envelope)); !l_result) {
 		on_delivery_failure(l_result.error());
 	}
@@ -901,7 +862,8 @@ void cam::Environment::apply_agent_control(const transport::Envelope& p_envelope
 			l_event.m_previous_environment_id = l_arrival.m_origin;
 			transport::Envelope l_envelope = m_endpoint->make_envelope(EnvelopeKind::Directory);
 			l_envelope.m_payload = std::move(l_event);
-			if (const auto l_result = m_endpoint->enqueue(m_endpoint->address(transport::AddressKind::EnvPresence, m_id), std::move(l_envelope)); !l_result) {
+			const auto l_presence_address = m_endpoint->address(transport::AddressKind::EnvPresence, m_id);
+			if (const auto l_result = m_endpoint->enqueue(l_presence_address, std::move(l_envelope)); !l_result) {
 				on_delivery_failure(l_result.error());
 			}
 			m_endpoint->count_migration_completed();
@@ -913,34 +875,3 @@ void cam::Environment::apply_agent_control(const transport::Envelope& p_envelope
 	}
 }
 
-//###############################################################
-//	Remote handlers
-//###############################################################
-
-int cam::Environment::initialise_remote_connection_by_address(const std::string& p_id,
-															  const std::string& p_full_address,
-															  const json& p_connection_options) {
-	m_remote_client = new PahoWrapper(*this, p_id, p_full_address);
-	return m_remote_client->initialise_remote_connection_by_address(p_connection_options);
-}
-
-int cam::Environment::initialise_remote_connection(const std::string& p_id,
-												   const std::string& p_host,
-												   int p_port,
-												   const json& p_connection_options) {
-	return initialise_remote_connection_by_address(p_id, "tcp://" + p_host + ":" + std::to_string(p_port),
-												   p_connection_options);
-}
-
-void cam::Environment::on_new_agent(const json& p_json_message) {
-	const std::string l_message = p_json_message["agent"];
-	std::stringstream l_stream = std::stringstream(l_message);
-	add<Agent>(l_stream);
-}
-
-void cam::Environment::on_new_environment(const std::string& p_environment_id, const bool p_send_back) {
-	m_containers.insert(p_environment_id);
-	if (p_send_back) {
-		m_remote_client->callback_discovery(p_environment_id);
-	}
-}

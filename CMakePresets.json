@@ -8,6 +8,7 @@
 			"binaryDir": "${sourceDir}/build/${presetName}",
 			"cacheVariables": {
 				"BUILD_EXAMPLES": "ON",
+				"CAM_TRANSPORT_MQTT": "ON",
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
 			}
 		},
@@ -24,12 +25,22 @@
 			"cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
 		},
 		{
+			"name": "core",
+			"displayName": "Debug, core only (no network transport, no Paho, no OpenSSL)",
+			"inherits": "base",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CAM_TRANSPORT_MQTT": "OFF"
+			}
+		},
+		{
 			"name": "asan",
 			"displayName": "Debug + AddressSanitizer + UndefinedBehaviorSanitizer",
 			"inherits": "base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
 				"CAM_SANITIZER": "asan",
+				"CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
 				"CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
 				"CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
 				"CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
@@ -42,6 +53,7 @@
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
 				"CAM_SANITIZER": "tsan",
+				"CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
 				"CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
 				"CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread",
 				"CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=thread"
@@ -60,18 +72,20 @@
 		},
 		{
 			"name": "bench",
-			"displayName": "Benchmarks (-O3 -DNDEBUG, no -march=native, no -flto)",
+			"displayName": "Benchmarks (-O3 -DNDEBUG, no -march=native, no -flto, core only)",
 			"inherits": "base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "None",
 				"CMAKE_CXX_FLAGS": "-O3 -DNDEBUG",
-				"BUILD_BENCH": "ON"
+				"BUILD_BENCH": "ON",
+				"CAM_TRANSPORT_MQTT": "OFF"
 			}
 		}
 	],
 	"buildPresets": [
 		{ "name": "debug", "configurePreset": "debug" },
 		{ "name": "release", "configurePreset": "release" },
+		{ "name": "core", "configurePreset": "core" },
 		{ "name": "asan", "configurePreset": "asan" },
 		{ "name": "tsan", "configurePreset": "tsan" },
 		{ "name": "coverage", "configurePreset": "coverage" },
@@ -86,6 +100,7 @@
 		},
 		{ "name": "debug", "configurePreset": "debug", "inherits": "base" },
 		{ "name": "release", "configurePreset": "release", "inherits": "base" },
+		{ "name": "core", "configurePreset": "core", "inherits": "base" },
 		{ "name": "asan", "configurePreset": "asan", "inherits": "base" },
 		{ "name": "tsan", "configurePreset": "tsan", "inherits": "base" },
 		{ "name": "coverage", "configurePreset": "coverage", "inherits": "base" },

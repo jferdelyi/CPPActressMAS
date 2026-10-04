@@ -26,8 +26,7 @@
 #include <doctest/doctest.h>
 
 #include <Environment.h>
-
-#include <cereal/types/base_class.hpp>
+#include <transport/LoopbackTransport.h>
 
 #include <map>
 #include <sstream>
@@ -167,74 +166,81 @@ TEST_SUITE("characterization") {
 		CHECK(g_received == 1);  // C#: Add is immediate, the message is queued
 	}
 
-	// ---------------------------------------------------------------- N8, C17
-	std::string g_blob;
-	struct Migrant final : cam::Agent {  // serializes itself while handling "go"
+	// ---------------------------------------------------------------- N8, C17 (fixed in 1C)
+	// The migrated queue no longer carries the message being handled nor the last consumed one: the
+	// agent moves through the loopback transport (one turn per start(), see tests/integration/migration.cpp).
+	std::string g_away;
+	struct Migrant final : cam::Agent {  // moves while handling "go"
 		explicit Migrant(const std::string& p_name) : Agent(p_name) {}
-		Migrant() : Agent() {}
 		void action(const cam::MessagePointer& p_message) override {
 			g_processed.push_back(get_name() + ":" + p_message->to_string());
-			if (p_message->to_string() == "go" && g_blob.empty()) {
-				g_blob = serialize_to_stream<Migrant>().str();
+			if (p_message->to_string() == "go") {
+				(void) move(g_away);
 			}
 		}
-		template<class Archive>
-		void save(Archive& p_archive) const { p_archive(cereal::base_class<cam::Agent>(this)); }
-		template<class Archive>
-		void load(Archive& p_archive) { p_archive(cereal::base_class<cam::Agent>(this)); }
 	};
 
-	TEST_CASE("N8 C17: a copy serialized while handling a message does not handle it again" * doctest::should_fail()) {
-		g_blob.clear();
+	TEST_CASE("N8 C17 (fixed in 1C): a copy moved while handling a message does not handle it again") {
 		g_processed.clear();
+		auto l_transport = std::make_shared<cam::transport::LoopbackTransport>();
+		REQUIRE(l_transport->open());
 		cam::Environment l_env(1, Mode::Sequential);
+		cam::Environment l_copy_env(1, Mode::Sequential);
+		l_env.register_agent_type<Migrant>("Migrant");
+		l_copy_env.register_agent_type<Migrant>("Migrant");
+		REQUIRE(l_copy_env.connect(l_transport));
+		REQUIRE(l_env.connect(l_transport));
+		g_away = l_copy_env.get_id();
 		const std::string l_id = l_env.add<Migrant>("orig");
 		l_env.start();  // setup turn
 		l_env.send("ext", l_id, raw("go"), 2);
-		l_env.continue_simulation(1);  // handles "go" and serializes during that handling
+		l_env.start();  // handles "go" and asks to move during that handling
 		REQUIRE(g_processed == std::vector<std::string>{"orig:go"});
-
-		cam::Environment l_copy_env(2, Mode::Sequential);
-		std::stringstream l_stream(g_blob);
-		l_copy_env.add<Migrant>(l_stream);
-		l_copy_env.start();
-		CHECK(g_processed.size() == 1);  // the sentinel node of the queue replays "go"
+		l_copy_env.start();  // offer accepted
+		l_env.start();       // commit
+		l_copy_env.start();  // inserted, setup
+		l_copy_env.start();  // nothing to handle
+		CHECK(l_copy_env.agents_count() == 1);
+		CHECK(g_processed.size() == 1);
 	}
 
-	struct LateMigrant final : cam::Agent {  // serializes itself in default_action, two turns after its last message
+	struct LateMigrant final : cam::Agent {  // moves in default_action, two turns after its last message
 		explicit LateMigrant(const std::string& p_name) : Agent(p_name) {}
-		LateMigrant() : Agent() {}
 		int m_idle = 0;
 		void action(const cam::MessagePointer& p_message) override {
 			g_processed.push_back(get_name() + ":" + p_message->to_string());
 		}
 		void default_action() override {
-			if (++m_idle == 2 && g_blob.empty()) {
-				g_blob = serialize_to_stream<LateMigrant>().str();
+			if (++m_idle == 2) {
+				(void) move(g_away);
 			}
 		}
-		template<class Archive>
-		void save(Archive& p_archive) const { p_archive(cereal::base_class<cam::Agent>(this)); }
-		template<class Archive>
-		void load(Archive& p_archive) { p_archive(cereal::base_class<cam::Agent>(this)); }
 	};
 
-	TEST_CASE("N8 C17: a copy serialized two turns after its last message handles nothing" * doctest::should_fail()) {
-		g_blob.clear();
+	TEST_CASE("N8 C17 (fixed in 1C): a copy moved two turns after its last message handles nothing") {
 		g_processed.clear();
+		auto l_transport = std::make_shared<cam::transport::LoopbackTransport>();
+		REQUIRE(l_transport->open());
 		cam::Environment l_env(1, Mode::Sequential);
+		cam::Environment l_copy_env(1, Mode::Sequential);
+		l_env.register_agent_type<LateMigrant>("LateMigrant");
+		l_copy_env.register_agent_type<LateMigrant>("LateMigrant");
+		REQUIRE(l_copy_env.connect(l_transport));
+		REQUIRE(l_env.connect(l_transport));
+		g_away = l_copy_env.get_id();
 		const std::string l_id = l_env.add<LateMigrant>("orig");
 		l_env.start();
 		l_env.send("ext", l_id, raw("old"), 3);
-		l_env.continue_simulation(1);  // consumes "old"
-		l_env.continue_simulation(2);  // two turns without a message: serialization at the second
+		l_env.start();  // consumes "old"
+		l_env.start();  // idle 1
+		l_env.start();  // idle 2: asks to move
 		REQUIRE(g_processed == std::vector<std::string>{"orig:old"});
-
-		cam::Environment l_copy_env(2, Mode::Sequential);
-		std::stringstream l_stream(g_blob);
-		l_copy_env.add<LateMigrant>(l_stream);
 		l_copy_env.start();
-		CHECK(g_processed.size() == 1);  // the last consumed message is replayed by the copy
+		l_env.start();
+		l_copy_env.start();
+		l_copy_env.start();
+		CHECK(l_copy_env.agents_count() == 1);
+		CHECK(g_processed.size() == 1);
 	}
 
 	int g_destroyed = 0;
@@ -315,22 +321,8 @@ TEST_SUITE("characterization") {
 		CHECK_THROWS_AS(l_env.start(), std::runtime_error);
 	}
 
-	// ---------------------------------------------------------------- C15
-	struct Anonymous final : cam::Agent {
-		Anonymous() : Agent() {}  // protected constructor meant for deserialization: no UUID, no name
-		void action(const cam::MessagePointer&) override { ++g_received; }
-	};
-
-	TEST_CASE("C15: default-constructed agents get distinct identifiers" * doctest::should_fail()) {
-		g_received = 0;
-		cam::Environment l_env(1, Mode::Sequential);
-		const std::string l_id1 = l_env.add<Anonymous>();
-		const std::string l_id2 = l_env.add<Anonymous>();
-		CHECK_FALSE(l_id1.empty());
-		CHECK(l_id1 != l_id2);
-		l_env.start();
-		CHECK(l_env.agents_count() == 2);  // the second agent does not enter m_agents (same empty key)
-	}
+	// C15 (default-constructed agents without identifier) left with the protected constructor
+	// Agent() in 1C: every agent now has a UUID from construction.
 
 	// ---------------------------------------------------------------- C19
 	TEST_CASE("C19: a message built from a JSON string with the RAW format holds the bytes of the string" * doctest::should_fail()) {
@@ -339,22 +331,23 @@ TEST_SUITE("characterization") {
 		CHECK(l_message.to_string() == "hello");
 	}
 
-	// ---------------------------------------------------------------- C20
+	// ---------------------------------------------------------------- C20 (fixed in 1C)
+	std::vector<std::string> g_move_results;
 	struct Mover final : cam::Agent {
 		explicit Mover(const std::string& p_name) : Agent(p_name) {}
-		Mover() : Agent() {}
-		void default_action() override { move<Mover>("nowhere", json{{"k", 1}}); }
-		template<class Archive>
-		void save(Archive& p_archive) const { p_archive(cereal::base_class<cam::Agent>(this)); }
-		template<class Archive>
-		void load(Archive& p_archive) { p_archive(cereal::base_class<cam::Agent>(this)); }
+		void default_action() override {
+			const auto l_result = move("nowhere");
+			g_move_results.emplace_back(l_result ? "ok" : cam::transport::to_string(l_result.error().m_code));
+		}
 	};
 
-	TEST_CASE("C20: move without a remote connection keeps the agent in its environment" * doctest::should_fail()) {
+	TEST_CASE("C20 (fixed in 1C): move without a transport keeps the agent in its environment") {
+		g_move_results.clear();
 		cam::Environment l_env(3, Mode::Sequential);
 		l_env.add<Mover>("m");
-		l_env.start();  // turn 1: move() without a client sends nothing but calls stop(): agent lost
+		l_env.start();  // turns 1 and 2: move() without a transport is refused, the agent stays
 		CHECK(l_env.agents_count() == 1);
+		CHECK(g_move_results == std::vector<std::string>{"not connected", "not connected"});
 	}
 
 	// ---------------------------------------------------------------- C22

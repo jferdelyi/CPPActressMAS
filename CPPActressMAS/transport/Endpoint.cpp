@@ -177,6 +177,18 @@ namespace cam::transport {
 		return true;
 	}
 
+	void Endpoint::push_event(const TransportEvent p_event) {
+		const std::lock_guard<std::mutex> l_lock(m_inbox_mutex);
+		m_events.push_back(p_event);
+	}
+
+	std::vector<TransportEvent> Endpoint::take_events() {
+		const std::lock_guard<std::mutex> l_lock(m_inbox_mutex);
+		std::vector<TransportEvent> l_events;
+		l_events.swap(m_events);
+		return l_events;
+	}
+
 	std::string Endpoint::flow_key(const Envelope& p_envelope) {
 		std::string l_key = p_envelope.m_sender_environment;
 		l_key += '|';
@@ -343,6 +355,19 @@ namespace cam::transport {
 		}
 	}
 
+	std::vector<EnvironmentInfo> Endpoint::purge_node(const std::string& p_node_id) {
+		std::vector<EnvironmentInfo> l_lost;
+		for (auto& [l_id, l_info]: m_environments) {
+			if (l_info.m_node == p_node_id && l_info.m_online) {
+				l_lost.push_back(l_info);
+			}
+		}
+		for (const auto& l_info: l_lost) {
+			purge_environment(l_info.m_id);
+		}
+		return l_lost;
+	}
+
 	void Endpoint::update_environment(const Presence& p_presence) {
 		EnvironmentInfo& l_info = m_environments[p_presence.m_environment_id];
 		l_info.m_id = p_presence.m_environment_id;
@@ -436,7 +461,8 @@ namespace cam::transport {
 		return l_result;
 	}
 
-	EndpointRegistry::LocalDelivery EndpointRegistry::deliver_locally(const Endpoint* p_sender, const Address& p_address, const Envelope& p_envelope) const {
+	EndpointRegistry::LocalDelivery EndpointRegistry::deliver_locally(const Endpoint* p_sender, const Address& p_address,
+																						  const Envelope& p_envelope) const {
 		LocalDelivery l_delivery;
 		switch (p_address.m_kind) {
 			case AddressKind::EnvIn:

@@ -18,10 +18,12 @@
 
 #pragma once
 
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/types/vector.hpp>            // Serialize vector
-#include <cereal/types/string.hpp>            // Serialize string
-#include <cereal/types/unordered_map.hpp>    // Serialize unordered map
+#include <cassert>
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "MPSCQueue.hpp"
 #include "Message.h"
@@ -263,16 +265,6 @@ namespace cam {
 		transport::Result<void> move(const std::string& p_environment_id, const transport::SendOptions& p_options = {});
 
 		/**
-		 * Move to another environment through the legacy MQTT client (cereal serialization of T).
-		 * @param p_environment_id New environment
-		 * @param p_message Move message
-		 **/
-		template<ConceptAgent T>
-		void move(const std::string& p_environment_id, const json& p_message) {
-			internal_move(serialize_to_stream<T>(), p_message, p_environment_id);
-		}
-
-		/**
 		 * State of the agent carried by a migration, as JSON; the default is an empty object (never null).
 		 * Derived agents return their own fields here.
 		 * @return The state
@@ -356,56 +348,6 @@ namespace cam {
 		 **/
 		virtual void default_action();
 
-		/**
-		 * Serialize agent
-		 * @return stream
-		 */
-		template<ConceptAgent T>
-		std::stringstream serialize_to_stream() {
-			std::stringstream l_stream;
-			cereal::PortableBinaryOutputArchive l_output_archive(l_stream);
-			l_output_archive(*dynamic_cast<T*>(this));
-			return l_stream;
-		}
-
-		/**
-		 * Serialize agent
-		 * @param p_stream input stream
-		 */
-		template<ConceptAgent T>
-		void deserialize_from_stream(std::stringstream& p_stream) {
-			cereal::PortableBinaryInputArchive l_input_archive(p_stream);
-			l_input_archive(*dynamic_cast<T*>(this));
-		}
-
-		/**
-		 * Serialize agent
-		 * @param p_archive archive to store agent
-		 */
-		template<class Archive>
-		void save(Archive& p_archive) const {
-			std::unordered_map<std::string, std::vector<std::uint8_t>> l_serialized_observables;
-			for (const auto& l_observable: *m_observables) {
-				l_serialized_observables.emplace(l_observable.first, json::to_msgpack(l_observable.second));
-			}
-			p_archive(m_id, m_name, m_is_dead, m_is_setup, m_is_using_observables, m_messages,
-					  l_serialized_observables);
-		}
-
-		/**
-		 * Deserialize agent
-		 * @param p_archive archive to restore agent
-		 */
-		template<class Archive>
-		void load(Archive& p_archive) {
-			std::unordered_map<std::string, std::vector<std::uint8_t>> l_serialized_observables;
-			p_archive(m_id, m_name, m_is_dead, m_is_setup, m_is_using_observables, m_messages,
-					  l_serialized_observables);
-			for (const auto& l_observable: l_serialized_observables) {
-				m_observables->emplace(l_observable.first, json::from_msgpack(l_observable.second));
-			}
-		}
-
 		// Delete copy constructor
 		Agent(const Agent&) = delete;
 
@@ -414,27 +356,13 @@ namespace cam {
 	protected:
 
 		/**
-		 * Constructor by stream
-		 */
-		explicit Agent();
-
-		/**
 		 * Get environment
-		 * @param p_archive archive to restore agent
+		 * @return The environment
 		 */
 		Environment* get_environment() const {
 			assert(m_environment);
 			return m_environment;
 		}
-
-		/**
-		 * Internal move
-		  * @param p_agent_stream The agent stream
-		 * @param p_message Move message
-		 * @param p_environment_id New environment
-		 */
-		void internal_move(const std::stringstream& p_agent_stream, const json& p_message,
-						   const std::string& p_environment_id);
 
 	private:
 

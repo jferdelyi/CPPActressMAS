@@ -79,8 +79,6 @@ cam_add_crash_probe(remove_during_parallel_turn C10 tsan "ThreadSanitizer: (data
 cam_add_crash_probe(remove_during_sequential_turn C12 asan "container-overflow|member call on null pointer|AddressSanitizer: SEGV")
 # C16: add<T>() returns a reference to the agent's id, dangling once the agent is destroyed.
 cam_add_crash_probe(dangling_add_ref C16 asan "heap-use-after-free")
-# C21: serialize_to_stream<T>() with T different from the dynamic type dereferences a null dynamic_cast.
-cam_add_crash_probe(serialize_wrong_type C21 asan "reference binding to null pointer|AddressSanitizer: SEGV")
 # T1: live observables map read by other agents while its owner writes it.
 cam_add_crash_probe(observables_parallel T1 tsan "ThreadSanitizer: data race")
 # T2: stop() writes m_is_dead while send_by_name() reads it from another thread.
@@ -163,7 +161,7 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 
 	# Needs a broker: CAM_MQTT_HOST and CAM_MQTT_PORT in the environment, otherwise the test skips (exit 77).
 	add_executable(cam_network_tests network/network_tests.cpp)
-	target_link_libraries(cam_network_tests cam_test_support ${CAM_TEST_LIBRARY})
+	target_link_libraries(cam_network_tests cam_test_support cam_transport)
 	add_test(NAME mqtt.network COMMAND cam_network_tests)
 	set_tests_properties(mqtt.network PROPERTIES LABELS "mqtt;integration" SKIP_RETURN_CODE 77 TIMEOUT 120)
 	cam_apply_tsan_suppressions(mqtt.network)

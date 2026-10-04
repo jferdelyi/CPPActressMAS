@@ -80,6 +80,7 @@ namespace cam::transport {
 
 		mutable std::mutex m_inbox_mutex;
 		std::deque<Incoming> m_inbox;
+		std::vector<TransportEvent> m_events;
 
 		mutable std::mutex m_outbox_mutex;
 		std::deque<Outgoing> m_outbox;
@@ -196,6 +197,18 @@ namespace cam::transport {
 		bool deliver(const Address& p_address, std::vector<std::uint8_t>&& p_bytes);
 
 		/**
+		 * Deposit a connection event (transport threads).
+		 * @param p_event The event
+		 **/
+		void push_event(TransportEvent p_event);
+
+		/**
+		 * Take the connection events received since the last call (simulation thread).
+		 * @return The events, oldest first
+		 **/
+		std::vector<TransportEvent> take_events();
+
+		/**
 		 * Take everything received since the last call, decode and validate it, drop echoes and
 		 * duplicates, reorder per stream within the configured bounds, and return what is ready, agent
 		 * control first, then presence and directory, then messages (simulation thread, turn boundary).
@@ -210,6 +223,14 @@ namespace cam::transport {
 		void set_agent_location(const std::string& p_agent_id, const std::string& p_environment_id);
 		void remove_agent(const std::string& p_agent_id);
 		void purge_environment(const std::string& p_environment_id);
+
+		/**
+		 * A node died: every environment it hosted goes offline and loses its agents.
+		 * @param p_node_id The node
+		 * @return The environments that were online on that node
+		 **/
+		std::vector<EnvironmentInfo> purge_node(const std::string& p_node_id);
+
 		void update_environment(const Presence& p_presence);
 		[[nodiscard]] std::vector<EnvironmentInfo> environments() const;
 		[[nodiscard]] bool knows_environment(const std::string& p_environment_id) const;
