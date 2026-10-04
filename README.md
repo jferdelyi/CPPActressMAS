@@ -14,8 +14,9 @@ The project works on
 Dependencies:
  - cmake 3.22 (may work with lower versions)
  - C++20
+ - OpenSSL (development headers) only for the MQTT transport (`CAM_TRANSPORT_MQTT`); Eclipse Paho is fetched and built by the project
 
-This project is developed with CLion (CMake). Compilation in pure CMake, the library, the examples and the tests are compiled through the presets of `CMakePresets.json` (`debug`, `release`, `asan`, `tsan`, `coverage`, `bench`; build directories under `build/<preset>`):
+This project is developed with CLion (CMake). Compilation in pure CMake, the library, the examples and the tests are compiled through the presets of `CMakePresets.json` (`debug`, `release`, `core`, `asan`, `tsan`, `coverage`, `bench`; build directories under `build/<preset>`):
 ``` bash
 git clone https://github.com/jferdelyi/CPPActressMAS.git
 cd CPPActressMAS
@@ -24,11 +25,25 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-Options: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the project is the top-level project), `BUILD_BENCH` (ON in the `bench` preset only), `BUILD_STATIC` and `BUILD_SHARED` (ON).
+Options: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the project is the top-level project), `BUILD_BENCH` (ON in the `bench` preset only), `BUILD_STATIC` and `BUILD_SHARED` (ON), `CAM_TRANSPORT_MQTT` (OFF by default; ON in the `debug`, `release`, `asan` and `tsan` presets, OFF in `core` and `bench`). The core library (`CPPActressMAS`, `CPPActressMASStatic`) never depends on a network library; the transports are separate libraries behind the facade `cam_transport`.
+
+## Network
+
+An environment stays offline until it is connected to a transport. One line connects it, the scheme of the URL selects the transport among those compiled in (`loopback://` always, `mqtt://` and `mqtts://` with `CAM_TRANSPORT_MQTT`):
+``` cpp
+#include <transport/Facade.h>
+
+cam::Environment l_environment;
+l_environment.register_agent_type<MyMobileAgent>("MyMobileAgent");   // agents allowed to arrive here by migration
+if (const auto l_result = cam::transport::connect(l_environment, "mqtt://127.0.0.1:1883/my-simulation"); !l_result) {
+	std::cerr << l_result.error().m_message << std::endl;
+}
+```
+Messages by id reach a remote agent through the directory of the connected environments; `send_by_name`, `send_by_fragment_name` and `broadcast` stay local unless the last parameter asks for the network scope (a `cam::transport::SendOptions` with `m_scope = cam::transport::Scope::Network`). Everything received from the network is applied at the turn boundary. An agent moves to another environment with `move(environment_id)`: its state (`save_state()`, `load_state()`), its observables and its pending messages travel with it, and it runs `setup()` again on arrival. Several environments of one process can share one transport (`cam::transport::open(url)`, then `environment.connect(transport)`): they then form one node with one connection. Statistics of the transport side: `environment.statistics()`; the other environments: `environment.environments()`.
 
 ## Tests
 
-CTest labels: `unit` (API smoke tests), `characterization` (known defects pinned as expected failures: crash probes run in a separate process under the `asan` or `tsan` preset and are checked against the sanitizer signature; value defects are doctest cases marked `should_fail`), `integration` (approval tests of the deterministic examples, normalised output), `mqtt` (two environments through a broker; skipped with exit code 77 unless `CAM_MQTT_HOST` and `CAM_MQTT_PORT` point to a reachable broker), `perf` (smoke run of the benchmarks of `bench/`).
+CTest labels: `unit` (API smoke tests, envelope codec and endpoint), `characterization` (known defects pinned as expected failures: crash probes run in a separate process under the `asan` or `tsan` preset and are checked against the sanitizer signature; value defects are doctest cases marked `should_fail`), `integration` (approval tests of the deterministic examples, normalised output; environments connected through the loopback transport; agent migration), `mqtt` (environments through a broker; skipped with exit code 77 unless `CAM_MQTT_HOST` and `CAM_MQTT_PORT` point to a reachable broker and the build has the MQTT transport; the reconnection test also needs `CAM_MQTT_BROKER_CONTROL`, a script accepting `stop` and `start`), `perf` (smoke run of the benchmarks of `bench/`).
 ``` bash
 ctest --preset debug -L unit
 CAM_MQTT_HOST=127.0.0.1 CAM_MQTT_PORT=1883 ctest --preset debug -L mqtt
