@@ -33,6 +33,12 @@
 - **Exemples réseau** : `Mobile [hôte [port]]` et `MobilePingPong [hôte [port]]` (défaut `127.0.0.1 1883`) via `cam::transport::connect` ; le patch d'arguments d'`outils/mqtt/` n'est plus nécessaire.
 - **Vecteurs binaires** (`tests/vectors/envelope/compact/v1/*.bin`) : petit-boutiste par construction du codec, indépendants de la plateforme ; `git` ne doit pas les convertir (pas de `.gitattributes` encore, B16 : vérifier `core.autocrlf` n'altère pas les `.bin`, qui ne contiennent pas de `\r\n` significatif mais pourraient en contenir par hasard).
 
+## 2 ter. Impact de l'étape 2A (transport Zenoh)
+
+- **Transport Zenoh** (`CPPActressMAS/transport/zenoh/`, option `CAM_TRANSPORT_ZENOH`, OFF par défaut) : zenoh-c et zenoh-cpp **1.7.1 exactement** (`find_package(zenohc 1.7.1 EXACT)` puis `find_package(zenohcxx 1.7.1 EXACT)`). Sous Windows : archives GitHub `zenoh-c-1.7.1-x86_64-pc-windows-msvc-standalone.zip` et `zenoh-cpp-1.7.1-standalone.zip`, décompressées dans un préfixe, puis `-Dzenohc_DIR=<préfixe>\lib\cmake\zenohc -Dzenohcxx_DIR=<préfixe>\lib\cmake\zenohcxx`. Le `CMakeLists.txt` lie `zenohc::static` sur macOS (`libzenohc.a`) et `zenohc::shared` partout ailleurs quand le paquet fournit cette cible (Linux : `libzenohc.so`, lisible par ThreadSanitizer comme un module à part, T10) : sous Windows ce sera donc la dynamique, `zenohc.dll` à côté de l'exécutable (ou dans le `PATH`) ; si l'on force la statique, `zenohc.lib` exige les bibliothèques système du runtime Rust (`ws2_32`, `userenv`, `bcrypt`, `ntdll`, `advapi32`). Les en-têtes de zenoh-cpp exigent C++17 au moins et `ZENOHCXX_ZENOHC` (posé par le projet).
+- **Tests** : `zenoh.network` ouvre des sockets TCP sur `127.0.0.1` (ports 17447 à 17451), aucun multicast ; le pare-feu Windows peut demander une autorisation à la première exécution. `ctest -C Debug -LE zenoh` pour l'éviter.
+- **Exemples** : `Mobile` et `MobilePingPong` sans argument sont des pairs Zenoh locaux ; `Mobile mqtt://127.0.0.1:1883/mobile` pour MQTT.
+
 ## 3. Procédure de build proposée (à exécuter par toi, non vérifiée)
 
 Prérequis : Visual Studio 2022 (MSVC 19.3x, C++20), CMake ≥ 3.22, vcpkg (OpenSSL seulement), accès réseau à GitHub à la première configuration avec `CAM_TRANSPORT_MQTT=ON`.
