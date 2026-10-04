@@ -14,7 +14,7 @@ The project works on
 Dependencies:
  - cmake 3.22 (may work with lower versions)
  - C++20
- - OpenSSL (development headers) only for the MQTT transport (`CAM_TRANSPORT_MQTT`); Eclipse Paho is fetched and built by the project
+ - OpenSSL (development headers) only for the MQTT transport (`CAM_TRANSPORT_MQTT`); libmosquitto 2.0.22 (the Eclipse Mosquitto client library) is fetched and built by the project
  - zenoh-c and zenoh-cpp 1.7.1 only for the Zenoh transport (`CAM_TRANSPORT_ZENOH`), found with `find_package(zenohc)` and `find_package(zenohcxx)`
 
 This project is developed with CLion (CMake). Compilation in pure CMake, the library, the examples and the tests are compiled through the presets of `CMakePresets.json` (`debug`, `release`, `core`, `asan`, `tsan`, `coverage`, `bench`; build directories under `build/<preset>`):
