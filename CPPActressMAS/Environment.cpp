@@ -44,7 +44,8 @@ cam::Environment::Environment(const int p_no_turns, const EnvironmentMasMode& p_
 		m_no_turns(p_no_turns),
 		m_delay_after_turn(p_delay_after_turn),
 		m_agent_collection(p_mode, p_seed),
-		m_remote_client(nullptr) {
+		m_remote_client(nullptr),
+		m_boundary(0) {
 }
 
 cam::Environment::~Environment() {
@@ -132,31 +133,41 @@ cam::Environment::send(const std::string& p_sender_id, const std::string& p_rece
 						   p_receiver_id, {}, false, p_sender_id, p_message, p_length, p_binary_format, p_options);
 }
 
+cam::MessagePointer cam::Environment::make_message(const std::string& p_sender_id, const std::string& p_receiver_id,
+												   const uint8_t* p_message, const size_t& p_length,
+												   const MessageBinaryFormat& p_binary_format,
+												   const std::string& p_sender_environment) {
+	auto l_message = std::make_shared<Message>(p_sender_id, p_receiver_id, p_message, p_length, p_binary_format);
+	l_message->m_sender_environment = p_sender_environment;
+	return l_message;
+}
+
 bool cam::Environment::deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id,
 									 const uint8_t* p_message, const size_t& p_length,
-									 const MessageBinaryFormat& p_binary_format) const {
+									 const MessageBinaryFormat& p_binary_format, const std::string& p_sender_environment) const {
 	const AgentPointer l_agent = m_agent_collection.get(p_receiver_id);
 	if (!l_agent) {
 		return false;
 	}
 	if (!l_agent->is_dead()) {
-		l_agent->post(std::make_shared<Message>(p_sender_id, p_receiver_id, p_message, p_length, p_binary_format));
+		l_agent->post(make_message(p_sender_id, p_receiver_id, p_message, p_length, p_binary_format, p_sender_environment));
 	}
 	return true;
 }
 
 void cam::Environment::deliver_broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-										 const MessageBinaryFormat& p_binary_format) const {
+										 const MessageBinaryFormat& p_binary_format, const std::string& p_sender_environment) const {
 	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
 		if (l_id != p_sender_id && !l_agent->is_dead()) {
-			l_agent->post(std::make_shared<Message>(p_sender_id, l_id, p_message, p_length, p_binary_format));
+			l_agent->post(make_message(p_sender_id, l_id, p_message, p_length, p_binary_format, p_sender_environment));
 		}
 	}
 }
 
 bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
 									   const uint8_t* p_message, const size_t& p_length, const bool p_is_fragment,
-									   const bool p_first_only, const MessageBinaryFormat& p_binary_format) const {
+									   const bool p_first_only, const MessageBinaryFormat& p_binary_format,
+									   const std::string& p_sender_environment) const {
 	bool l_delivered = false;
 	auto l_filtered_elements =
 		m_agent_collection.m_agents_by_name | std::views::filter([p_is_fragment, p_receiver_name](auto& p_value) {
@@ -173,7 +184,7 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 			continue;
 		}
 
-		l_agent->post(std::make_shared<Message>(p_sender_id, l_id, p_message, p_length, p_binary_format));
+		l_agent->post(make_message(p_sender_id, l_id, p_message, p_length, p_binary_format, p_sender_environment));
 		l_delivered = true;
 		if (p_first_only) {
 			break;
@@ -242,8 +253,10 @@ cam::transport::Result<void>
 cam::Environment::enqueue_message(const transport::Address& p_address, const transport::TargetKind p_target_kind,
 								  const std::string& p_target_id, const std::string& p_target_name, const bool p_first_only,
 								  const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-								  const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options) const {
+								  const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options,
+								  const std::string& p_origin_environment) const {
 	transport::Envelope l_envelope = m_endpoint->make_envelope(transport::EnvelopeKind::Message);
+	l_envelope.m_origin_environment = p_origin_environment == m_id ? std::string() : p_origin_environment;
 	l_envelope.m_sender_agent = p_sender_id;
 	l_envelope.m_target_kind = p_target_kind;
 	l_envelope.m_target_id = p_target_id;
@@ -362,6 +375,7 @@ cam::Environment::get_list_of_observable_agents(const Agent* p_perceiving_agent)
 
 void cam::Environment::run_turn(const int p_turn) {
 	m_agent_collection.run_turn();
+	process_move_requests();
 	if (m_endpoint) {
 		flush_outbox();
 	}
@@ -372,6 +386,7 @@ void cam::Environment::run_turn(const int p_turn) {
 }
 
 void cam::Environment::process_buffers() {
+	++m_boundary;
 	if (!m_endpoint) {
 		m_agent_collection.process_buffers();
 		return;
@@ -379,6 +394,7 @@ void cam::Environment::process_buffers() {
 	for (auto& l_envelope: m_endpoint->drain()) {
 		apply_incoming(std::move(l_envelope));
 	}
+	expire_migrations();
 	const auto l_changes = m_agent_collection.process_buffers(true);
 	for (const auto& [l_id, l_name]: l_changes.m_removed) {
 		announce_agent(transport::DirectoryEventKind::AgentRemoved, l_id, l_name);
@@ -418,6 +434,24 @@ cam::transport::Result<void> cam::Environment::disconnect() {
 	if (!m_endpoint) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "environment not connected");
 	}
+	// Migrations cannot survive the transport: agents leaving resume here, agents arriving are dropped.
+	{
+		const std::lock_guard<std::mutex> l_lock(m_move_mutex);
+		for (const auto& l_request: m_move_requests) {
+			if (const AgentPointer l_agent = m_agent_collection.get(l_request.m_agent_id); l_agent) {
+				l_agent->m_in_transit = false;
+			}
+		}
+		m_move_requests.clear();
+	}
+	for (const auto& [l_transfer_id, l_transit]: m_transits) {
+		restore_agent(l_transit, make_error(ErrorCategory::State, ErrorCode::NotConnected, "disconnected during the move"));
+	}
+	m_transits.clear();
+	for (std::size_t i = 0; i < m_arrivals.size(); i++) {
+		m_endpoint->count_migration_failed();
+	}
+	m_arrivals.clear();
 	announce_presence(false);
 	flush_outbox();
 	const auto l_result = m_endpoint->detach();
@@ -490,14 +524,24 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 		case EnvelopeKind::Message: {
 			const uint8_t* l_bytes = p_envelope.m_content.empty() ? nullptr : p_envelope.m_content.data();
 			const size_t l_length = p_envelope.m_content.size();
+			const std::string& l_origin = p_envelope.effective_sender_environment();
 			switch (p_envelope.m_target_kind) {
 				case TargetKind::Id: {
-					const AgentPointer l_agent = m_agent_collection.get(p_envelope.m_target_id);
-					if (!l_agent) {
+					if (deliver_local(p_envelope.m_sender_agent, p_envelope.m_target_id, l_bytes, l_length,
+									  p_envelope.m_content_encoding, l_origin)) {
+						break;
+					}
+					if (const auto l_moved = m_moved_agents.find(p_envelope.m_target_id); l_moved != m_moved_agents.end()) {
+						// The agent left recently and the sender's directory lags behind: forward to its new host.
+						transport::SendOptions l_options;
+						l_options.m_priority = p_envelope.m_priority;
+						if (enqueue_message(m_endpoint->address(transport::AddressKind::EnvIn, l_moved->second.m_host), TargetKind::Id,
+											p_envelope.m_target_id, {}, false, p_envelope.m_sender_agent, l_bytes, l_length,
+											p_envelope.m_content_encoding, l_options, l_origin)) {
+							m_endpoint->count_forwarded();
+						}
+					} else {
 						m_endpoint->count_unknown_destination();
-					} else if (!l_agent->is_dead()) {
-						l_agent->post(std::make_shared<Message>(p_envelope.m_sender_agent, p_envelope.m_target_id, l_bytes, l_length,
-																p_envelope.m_content_encoding));
 					}
 					break;
 				}
@@ -505,15 +549,10 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 				case TargetKind::Fragment:
 					deliver_by_name(p_envelope.m_sender_agent, p_envelope.m_target_name, l_bytes, l_length,
 									p_envelope.m_target_kind == TargetKind::Fragment, p_envelope.m_first_only,
-									p_envelope.m_content_encoding);
+									p_envelope.m_content_encoding, l_origin);
 					break;
 				case TargetKind::Broadcast:
-					for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
-						if (l_id != p_envelope.m_sender_agent && !l_agent->is_dead()) {
-							l_agent->post(std::make_shared<Message>(p_envelope.m_sender_agent, l_id, l_bytes, l_length,
-																	p_envelope.m_content_encoding));
-						}
-					}
+					deliver_broadcast(p_envelope.m_sender_agent, l_bytes, l_length, p_envelope.m_content_encoding, l_origin);
 					break;
 				case TargetKind::Environment:
 				default:
@@ -565,10 +604,312 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 			}
 			break;
 		}
+		case EnvelopeKind::AgentOffer:
+			apply_agent_offer(p_envelope);
+			break;
+		case EnvelopeKind::AgentAccept:
+		case EnvelopeKind::AgentReject:
+		case EnvelopeKind::AgentCommit:
+		case EnvelopeKind::AgentAbort:
+			apply_agent_control(p_envelope);
+			break;
 		default:
-			// Agent migration and queries arrive in a later step of mission 1.
+			// Queries and replies belong to transports with request/reply (mission 2).
 			m_endpoint->count_rejected();
 			break;
+	}
+}
+
+//###############################################################
+//	Migration
+//###############################################################
+
+cam::transport::Result<void> cam::Environment::request_move(const Agent& p_agent, const std::string& p_environment_id,
+															const transport::SendOptions& p_options) {
+	if (!m_endpoint) {
+		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "move needs a transport");
+	}
+	if (p_agent.is_in_transit()) {
+		return make_error(ErrorCategory::State, ErrorCode::InTransit, "agent already moving");
+	}
+	if (p_environment_id == m_id) {
+		return make_error(ErrorCategory::Routing, ErrorCode::InvalidTarget, "the agent is already in this environment");
+	}
+	if (!m_endpoint->knows_environment(p_environment_id)) {
+		return make_error(ErrorCategory::Routing, ErrorCode::UnknownDestination, "unknown environment " + p_environment_id);
+	}
+	if (!m_agent_type_names.contains(std::type_index(typeid(p_agent)))) {
+		return make_error(ErrorCategory::Validation, ErrorCode::UnknownAgentType,
+						  "agent type not registered here (Environment::register_agent_type)");
+	}
+	const std::lock_guard<std::mutex> l_lock(m_move_mutex);
+	m_move_requests.push_back(MoveRequest{p_agent.get_id(), p_environment_id, p_options.m_priority});
+	return {};
+}
+
+void cam::Environment::process_move_requests() {
+	std::vector<MoveRequest> l_requests;
+	{
+		const std::lock_guard<std::mutex> l_lock(m_move_mutex);
+		l_requests.swap(m_move_requests);
+	}
+	for (const auto& l_request: l_requests) {
+		const AgentPointer l_agent = m_agent_collection.get(l_request.m_agent_id);
+		if (!l_agent) {
+			continue;
+		}
+		if (!m_endpoint) {
+			l_agent->m_in_transit = false;
+			continue;
+		}
+		Transit l_transit;
+		l_transit.m_agent_id = l_request.m_agent_id;
+		l_transit.m_target = l_request.m_target;
+		l_transit.m_deadline = std::chrono::steady_clock::now() + m_endpoint->config().m_migration_timeout;
+		l_transit.m_carried = l_agent->take_messages();
+
+		const Agent& l_agent_ref = *l_agent;
+		transport::AgentTransfer l_transfer;
+		l_transfer.m_transfer_id = UUID::generate_uuid();
+		l_transfer.m_type_name = m_agent_type_names.at(std::type_index(typeid(l_agent_ref)));
+		l_transfer.m_agent_id = l_agent->get_id();
+		l_transfer.m_agent_name = l_agent->get_name();
+		l_transfer.m_state_encoding = MessageBinaryFormat::MessagePack;
+		l_transfer.m_state = json::to_msgpack(l_agent->save_state());
+		l_transfer.m_uses_observables = l_agent->is_using_observables();
+		json l_observables = json::object();
+		for (const auto& [l_key, l_value]: *l_agent->m_observables) {
+			l_observables[l_key] = l_value;
+		}
+		l_transfer.m_observables = json::to_msgpack(l_observables);
+		for (const auto& l_message: l_transit.m_carried) {
+			transport::Envelope l_queued;
+			l_queued.m_kind = transport::EnvelopeKind::Message;
+			l_queued.m_sender_environment = m_id;
+			l_queued.m_origin_environment = l_message->get_sender_environment();
+			l_queued.m_epoch = m_endpoint->epoch();
+			l_queued.m_stream_kind = transport::StreamKind::In;
+			l_queued.m_stream_target = l_request.m_target;
+			l_queued.m_sender_agent = l_message->get_sender();
+			l_queued.m_target_kind = transport::TargetKind::Id;
+			l_queued.m_target_id = l_agent->get_id();
+			l_queued.m_content_encoding = l_message->get_binary_format();
+			l_queued.m_content = l_message->get_binary_message();
+			l_transfer.m_queue.push_back(std::move(l_queued));
+		}
+		const std::string l_transfer_id = l_transfer.m_transfer_id;
+		transport::Envelope l_offer = m_endpoint->make_envelope(transport::EnvelopeKind::AgentOffer);
+		l_offer.m_priority = l_request.m_priority;
+		l_offer.m_payload = std::move(l_transfer);
+		if (const auto l_result = m_endpoint->enqueue(m_endpoint->address(transport::AddressKind::EnvAgent, l_request.m_target), std::move(l_offer)); !l_result) {
+			restore_agent(l_transit, l_result.error());
+			continue;
+		}
+		m_transits.emplace(l_transfer_id, std::move(l_transit));
+	}
+}
+
+void cam::Environment::send_control(const transport::EnvelopeKind p_kind, const std::string& p_environment_id,
+									const std::string& p_transfer_id, const std::string& p_agent_id, const bool p_accepted,
+									const std::string& p_reason) {
+	transport::AgentControl l_control;
+	l_control.m_transfer_id = p_transfer_id;
+	l_control.m_agent_id = p_agent_id;
+	l_control.m_accepted = p_accepted;
+	l_control.m_reason = p_reason;
+	transport::Envelope l_envelope = m_endpoint->make_envelope(p_kind);
+	l_envelope.m_payload = std::move(l_control);
+	// Decisions of the destination go to the origin's inbox; orders of the origin go to the destination's agent key.
+	const bool l_to_origin = p_kind == transport::EnvelopeKind::AgentAccept || p_kind == transport::EnvelopeKind::AgentReject;
+	const auto l_address = m_endpoint->address(l_to_origin ? transport::AddressKind::EnvIn : transport::AddressKind::EnvAgent, p_environment_id);
+	if (const auto l_result = m_endpoint->enqueue(l_address, std::move(l_envelope)); !l_result) {
+		on_delivery_failure(l_result.error());
+	}
+}
+
+void cam::Environment::restore_agent(const Transit& p_transit, const transport::Error& p_error) {
+	if (const AgentPointer l_agent = m_agent_collection.get(p_transit.m_agent_id); l_agent) {
+		// Messages carried by the offer come back first, then those received while leaving.
+		const auto l_held = l_agent->take_messages();
+		for (const auto& l_message: p_transit.m_carried) {
+			l_agent->post(l_message);
+		}
+		for (const auto& l_message: l_held) {
+			l_agent->post(l_message);
+		}
+		l_agent->m_in_transit = false;
+	}
+	m_endpoint->count_migration_failed();
+	on_delivery_failure(p_error);
+}
+
+void cam::Environment::forward_messages(const std::string& p_agent_id, const std::string& p_host,
+										const std::vector<MessagePointer>& p_messages) {
+	for (const auto& l_message: p_messages) {
+		const auto& l_bytes = l_message->get_binary_message();
+		if (enqueue_message(m_endpoint->address(transport::AddressKind::EnvIn, p_host), transport::TargetKind::Id, p_agent_id, {},
+							false, l_message->get_sender(), l_bytes.empty() ? nullptr : l_bytes.data(), l_bytes.size(),
+							l_message->get_binary_format(), {}, l_message->get_sender_environment())) {
+			m_endpoint->count_forwarded();
+		}
+	}
+}
+
+void cam::Environment::expire_migrations() {
+	const auto l_now = std::chrono::steady_clock::now();
+	for (auto l_it = m_transits.begin(); l_it != m_transits.end();) {
+		if (l_now >= l_it->second.m_deadline) {
+			send_control(transport::EnvelopeKind::AgentAbort, l_it->second.m_target, l_it->first, l_it->second.m_agent_id, false, "timeout");
+			restore_agent(l_it->second, make_error(ErrorCategory::Transport, ErrorCode::Timeout,
+												   "no answer from " + l_it->second.m_target + " for agent " + l_it->second.m_agent_id));
+			l_it = m_transits.erase(l_it);
+		} else {
+			++l_it;
+		}
+	}
+	for (auto l_it = m_arrivals.begin(); l_it != m_arrivals.end();) {
+		if (l_now >= l_it->second.m_deadline) {
+			m_endpoint->count_migration_failed();
+			l_it = m_arrivals.erase(l_it);
+		} else {
+			++l_it;
+		}
+	}
+	const std::uint64_t l_grace = m_endpoint->config().m_forward_grace_turns;
+	for (auto l_it = m_moved_agents.begin(); l_it != m_moved_agents.end();) {
+		if (m_boundary - l_it->second.m_boundary > l_grace) {
+			l_it = m_moved_agents.erase(l_it);
+		} else {
+			++l_it;
+		}
+	}
+}
+
+void cam::Environment::apply_agent_offer(const transport::Envelope& p_envelope) {
+	const auto* l_transfer = std::get_if<transport::AgentTransfer>(&p_envelope.m_payload);
+	if (!l_transfer) {
+		m_endpoint->count_rejected();
+		return;
+	}
+	const std::string& l_origin = p_envelope.m_sender_environment;
+	const auto l_factory = m_agent_factories.find(l_transfer->m_type_name);
+	if (l_factory == m_agent_factories.end()) {
+		send_control(transport::EnvelopeKind::AgentReject, l_origin, l_transfer->m_transfer_id, l_transfer->m_agent_id, false,
+					 "unknown agent type " + l_transfer->m_type_name);
+		m_endpoint->count_migration_failed();
+		return;
+	}
+	if (m_arrivals.contains(l_transfer->m_transfer_id)) {
+		return;  // the same offer twice: already answered
+	}
+	if (m_agent_collection.contains(l_transfer->m_agent_id)) {
+		send_control(transport::EnvelopeKind::AgentReject, l_origin, l_transfer->m_transfer_id, l_transfer->m_agent_id, false,
+					 "agent already present");
+		m_endpoint->count_migration_failed();
+		return;
+	}
+	AgentPointer l_agent;
+	try {
+		l_agent = l_factory->second(l_transfer->m_agent_name);
+		l_agent->set_environment(this);
+		l_agent->set_identity(l_transfer->m_agent_id, l_transfer->m_agent_name);
+		l_agent->m_is_using_observables = l_transfer->m_uses_observables;
+		if (!l_transfer->m_observables.empty()) {
+			const json l_observables = json::from_msgpack(l_transfer->m_observables);
+			for (const auto& [l_key, l_value]: l_observables.items()) {
+				l_agent->m_observables->insert_or_assign(l_key, l_value);
+			}
+		}
+		if (!l_transfer->m_state.empty()) {
+			l_agent->load_state(Message::to_json(l_transfer->m_state, l_transfer->m_state_encoding));
+		}
+	} catch (const std::exception& p_exception) {
+		send_control(transport::EnvelopeKind::AgentReject, l_origin, l_transfer->m_transfer_id, l_transfer->m_agent_id, false,
+					 std::string("invalid agent state: ") + p_exception.what());
+		m_endpoint->count_migration_failed();
+		return;
+	}
+	for (const auto& l_queued: l_transfer->m_queue) {
+		l_agent->post(make_message(l_queued.m_sender_agent, l_transfer->m_agent_id,
+								   l_queued.m_content.empty() ? nullptr : l_queued.m_content.data(), l_queued.m_content.size(),
+								   l_queued.m_content_encoding, l_queued.effective_sender_environment()));
+	}
+	PendingArrival l_arrival;
+	l_arrival.m_agent = l_agent;
+	l_arrival.m_origin = l_origin;
+	l_arrival.m_deadline = std::chrono::steady_clock::now() + m_endpoint->config().m_accept_hold_timeout;
+	m_arrivals.emplace(l_transfer->m_transfer_id, std::move(l_arrival));
+	send_control(transport::EnvelopeKind::AgentAccept, l_origin, l_transfer->m_transfer_id, l_transfer->m_agent_id, true, "");
+}
+
+void cam::Environment::apply_agent_control(const transport::Envelope& p_envelope) {
+	using transport::EnvelopeKind;
+	const auto* l_control = std::get_if<transport::AgentControl>(&p_envelope.m_payload);
+	if (!l_control) {
+		m_endpoint->count_rejected();
+		return;
+	}
+	switch (p_envelope.m_kind) {
+		case EnvelopeKind::AgentAccept:
+		case EnvelopeKind::AgentReject: {
+			const auto l_it = m_transits.find(l_control->m_transfer_id);
+			if (l_it == m_transits.end() || l_it->second.m_target != p_envelope.m_sender_environment) {
+				m_endpoint->count_stale_control();
+				return;
+			}
+			const Transit l_transit = std::move(l_it->second);
+			m_transits.erase(l_it);
+			if (p_envelope.m_kind == EnvelopeKind::AgentReject) {
+				const bool l_unknown_type = l_control->m_reason.rfind("unknown agent type", 0) == 0;
+				restore_agent(l_transit, make_error(ErrorCategory::Routing, l_unknown_type ? ErrorCode::UnknownAgentType : ErrorCode::InvalidTarget,
+													"move refused by " + l_transit.m_target + ": " + l_control->m_reason));
+				return;
+			}
+			send_control(EnvelopeKind::AgentCommit, l_transit.m_target, l_control->m_transfer_id, l_transit.m_agent_id, true, "");
+			if (const AgentPointer l_agent = m_agent_collection.get(l_transit.m_agent_id); l_agent) {
+				const auto l_held = l_agent->take_messages();
+				m_agent_collection.remove(l_transit.m_agent_id);
+				forward_messages(l_transit.m_agent_id, l_transit.m_target, l_held);
+			}
+			m_endpoint->set_agent_location(l_transit.m_agent_id, l_transit.m_target);
+			m_moved_agents[l_transit.m_agent_id] = MovedAgent{l_transit.m_target, m_boundary};
+			m_endpoint->count_migration_completed();
+			return;
+		}
+		case EnvelopeKind::AgentCommit:
+		case EnvelopeKind::AgentAbort: {
+			const auto l_it = m_arrivals.find(l_control->m_transfer_id);
+			if (l_it == m_arrivals.end() || l_it->second.m_origin != p_envelope.m_sender_environment) {
+				m_endpoint->count_stale_control();
+				return;
+			}
+			const PendingArrival l_arrival = std::move(l_it->second);
+			m_arrivals.erase(l_it);
+			if (p_envelope.m_kind == EnvelopeKind::AgentAbort) {
+				m_endpoint->count_migration_failed();
+				return;
+			}
+			l_arrival.m_agent->reset();  // setup runs again on arrival (C#: MustRunSetup)
+			m_agent_collection.insert(l_arrival.m_agent);
+			m_moved_agents.erase(l_arrival.m_agent->get_id());
+			m_endpoint->set_agent_location(l_arrival.m_agent->get_id(), m_id);
+			transport::DirectoryEvent l_event;
+			l_event.m_event = transport::DirectoryEventKind::AgentMoved;
+			l_event.m_agent_id = l_arrival.m_agent->get_id();
+			l_event.m_agent_name = l_arrival.m_agent->get_name();
+			l_event.m_environment_id = m_id;
+			l_event.m_previous_environment_id = l_arrival.m_origin;
+			transport::Envelope l_envelope = m_endpoint->make_envelope(EnvelopeKind::Directory);
+			l_envelope.m_payload = std::move(l_event);
+			if (const auto l_result = m_endpoint->enqueue(m_endpoint->address(transport::AddressKind::EnvPresence, m_id), std::move(l_envelope)); !l_result) {
+				on_delivery_failure(l_result.error());
+			}
+			m_endpoint->count_migration_completed();
+			return;
+		}
+		default:
+			m_endpoint->count_rejected();
+			return;
 	}
 }
 

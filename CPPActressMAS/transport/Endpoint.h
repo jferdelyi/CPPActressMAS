@@ -223,6 +223,8 @@ namespace cam::transport {
 		void count_unknown_destination() { ++m_unknown_destination; }
 		void count_forwarded() { ++m_statistics.m_forwarded; }
 		void count_stale_control() { ++m_statistics.m_stale_control; }
+		void count_migration_completed() { ++m_statistics.m_migrations_completed; }
+		void count_migration_failed() { ++m_statistics.m_migrations_failed; }
 		void count_lost(const std::uint64_t p_count) { m_statistics.m_lost += p_count; }
 	};
 

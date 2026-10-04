@@ -18,8 +18,13 @@
 
 #pragma once
 
+#include <chrono>
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <set>
+#include <typeindex>
+#include <unordered_map>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -59,11 +64,48 @@ namespace cam {
 	 * An abstract base class for the multiagent environment, where all the agents are executed.
 	 **/
 	class Environment {
+		friend Agent;
 		friend PahoWrapper;
 		friend Callback;
 		friend SubscribeActionListener;
 
 	private:
+		/**
+		 * A move asked by an agent during a turn, handled at the end of the turn.
+		 **/
+		struct MoveRequest {
+			std::string m_agent_id;
+			std::string m_target;
+			std::uint32_t m_priority = 0;
+		};
+
+		/**
+		 * A migration started here, waiting for the destination.
+		 **/
+		struct Transit {
+			std::string m_agent_id;
+			std::string m_target;
+			std::chrono::steady_clock::time_point m_deadline;
+			std::vector<MessagePointer> m_carried;  ///< messages sent with the offer, given back if the move fails
+		};
+
+		/**
+		 * An agent received here, waiting for the confirmation of its origin.
+		 **/
+		struct PendingArrival {
+			AgentPointer m_agent;
+			std::string m_origin;
+			std::chrono::steady_clock::time_point m_deadline;
+		};
+
+		/**
+		 * An agent that left: messages still arriving for it are forwarded for a few turns.
+		 **/
+		struct MovedAgent {
+			std::string m_host;
+			std::uint64_t m_boundary;
+		};
+
 		/**
 		 * Unique id of the environment (UUID), the same online and offline.
 		 **/
@@ -103,6 +145,38 @@ namespace cam {
 		 * Side of this environment on its transport; null while offline.
 		 **/
 		std::unique_ptr<transport::Endpoint> m_endpoint;
+
+		/**
+		 * Agent types allowed to arrive here, by wire name: factory from the agent name.
+		 **/
+		std::unordered_map<std::string, std::function<AgentPointer(const std::string&)>> m_agent_factories;
+
+		/**
+		 * Wire name of each registered C++ type (used when an agent of this environment leaves).
+		 **/
+		std::unordered_map<std::type_index, std::string> m_agent_type_names;
+
+		/**
+		 * Moves asked during the turn (any thread), handled at the end of the turn.
+		 **/
+		std::mutex m_move_mutex;
+		std::vector<MoveRequest> m_move_requests;
+
+		/**
+		 * Migrations in progress, by transfer id: started here (m_transits) or received here (m_arrivals).
+		 **/
+		std::unordered_map<std::string, Transit> m_transits;
+		std::unordered_map<std::string, PendingArrival> m_arrivals;
+
+		/**
+		 * Agents that left, with their new host, for the forwarding grace period.
+		 **/
+		std::unordered_map<std::string, MovedAgent> m_moved_agents;
+
+		/**
+		 * Number of turn boundaries seen (forwarding grace is counted in boundaries).
+		 **/
+		std::uint64_t m_boundary;
 
 	public:
 
@@ -357,6 +431,28 @@ namespace cam {
 		[[nodiscard]] transport::Statistics statistics() const;
 
 		/**
+		 * Allow agents of type T to arrive here by migration under a stable wire name, and give the
+		 * agents of type T living here that name when they leave. T is built as T(const std::string& name),
+		 * then load_state() restores it. The registry is also the white list: an offer of an unregistered
+		 * type is refused.
+		 * @param p_type_name The wire name of the type (the same on every environment)
+		 **/
+		template<ConceptAgent T>
+		void register_agent_type(const std::string& p_type_name) {
+			m_agent_factories[p_type_name] = [](const std::string& p_name) { return AgentPointer(new T(p_name)); };
+			m_agent_type_names[std::type_index(typeid(T))] = p_type_name;
+		}
+
+		/**
+		 * True if agents of this wire name may arrive here.
+		 * @param p_type_name The wire name
+		 * @return True if registered
+		 **/
+		[[nodiscard]] bool is_agent_type_registered(const std::string& p_type_name) const {
+			return m_agent_factories.contains(p_type_name);
+		}
+
+		/**
 		 * A method that may be optionally overridden to perform additional
 		 * processing after the simulation has finished.
 		 **/
@@ -463,7 +559,8 @@ namespace cam {
 		virtual void on_environment_left(const transport::EnvironmentInfo&) {}
 
 		/**
-		 * Handler called when an envelope could not be published at the end of a turn.
+		 * Handler called when an envelope could not be published at the end of a turn, or when a
+		 * migration started here failed (refused, timed out: the agent resumed here).
 		 * @param p_error The error
 		 */
 		virtual void on_delivery_failure(const transport::Error&) {}
@@ -566,10 +663,12 @@ namespace cam {
 
 		/**
 		 * Deliver a message to a local agent by id; nothing leaves the environment.
+		 * @param p_sender_environment Origin environment of a message received through the transport
 		 * @return True if the agent exists here
 		 **/
 		bool deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
-						   const size_t& p_length, const MessageBinaryFormat& p_binary_format) const;
+						   const size_t& p_length, const MessageBinaryFormat& p_binary_format,
+						   const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to the local agents matching a name or a fragment.
@@ -577,13 +676,60 @@ namespace cam {
 		 **/
 		bool deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message,
 							 const size_t& p_length, bool p_is_fragment, bool p_first_only,
-							 const MessageBinaryFormat& p_binary_format) const;
+							 const MessageBinaryFormat& p_binary_format, const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to every local agent but the sender.
 		 **/
 		void deliver_broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-							   const MessageBinaryFormat& p_binary_format) const;
+							   const MessageBinaryFormat& p_binary_format, const std::string& p_sender_environment = {}) const;
+
+		/**
+		 * Build a message for a local queue.
+		 **/
+		static MessagePointer make_message(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
+										   const size_t& p_length, const MessageBinaryFormat& p_binary_format,
+										   const std::string& p_sender_environment);
+
+		//###############################################################
+		//	Migration (three steps: offer, accept or reject, commit or abort)
+		//###############################################################
+
+		/**
+		 * Called by Agent::move from the agent's thread: checks, then queues the move for the end of the turn.
+		 **/
+		transport::Result<void> request_move(const Agent& p_agent, const std::string& p_environment_id,
+											 const transport::SendOptions& p_options);
+
+		/**
+		 * End of turn: send an AgentOffer for every move asked during the turn.
+		 **/
+		void process_move_requests();
+
+		/**
+		 * Turn boundary: give up the migrations whose deadline passed (origin: restore; destination: discard),
+		 * forget the moved agents past the forwarding grace.
+		 **/
+		void expire_migrations();
+
+		/**
+		 * Queue a control envelope (accept, reject, commit, abort) about a transfer.
+		 **/
+		void send_control(transport::EnvelopeKind p_kind, const std::string& p_environment_id, const std::string& p_transfer_id,
+						  const std::string& p_agent_id, bool p_accepted, const std::string& p_reason);
+
+		/**
+		 * End of a transit without success: the agent runs here again with all its messages.
+		 **/
+		void restore_agent(const Transit& p_transit, const transport::Error& p_error);
+
+		/**
+		 * Forward to the new host of an agent the messages it received here while leaving.
+		 **/
+		void forward_messages(const std::string& p_agent_id, const std::string& p_host, const std::vector<MessagePointer>& p_messages);
+
+		void apply_agent_offer(const transport::Envelope& p_envelope);
+		void apply_agent_control(const transport::Envelope& p_envelope);
 
 		/**
 		 * Queue the presence of this environment (online or offline) for the end of the turn.
@@ -607,7 +753,8 @@ namespace cam {
 		transport::Result<void> enqueue_message(const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
 												const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-												const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options) const;
+												const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options,
+												const std::string& p_origin_environment = {}) const;
 	};
 
 	// Environment pointer

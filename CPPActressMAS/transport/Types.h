@@ -177,6 +177,8 @@ namespace cam::transport {
 		std::uint64_t m_forwarded = 0;
 		std::uint64_t m_stale_control = 0;
 		std::uint64_t m_unknown_destination = 0;
+		std::uint64_t m_migrations_completed = 0;  ///< agents that left or arrived with a confirmed migration
+		std::uint64_t m_migrations_failed = 0;     ///< refused, timed out or abandoned migrations
 	};
 
 	/**
@@ -221,7 +223,8 @@ namespace cam::transport {
 		TransportFailure,
 		UnknownAgentType,
 		InvalidConfiguration,
-		NotSupported
+		NotSupported,
+		InTransit
 	};
 
 	/**

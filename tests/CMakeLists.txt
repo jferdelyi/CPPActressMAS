@@ -149,6 +149,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(integration.loopback PROPERTIES LABELS integration TIMEOUT 300)
 	cam_apply_tsan_suppressions(integration.loopback)
 
+	# Three-step agent migration between environments connected through the loopback transport.
+	add_executable(cam_migration_tests integration/migration.cpp)
+	target_link_libraries(cam_migration_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME integration.migration COMMAND cam_migration_tests)
+	set_tests_properties(integration.migration PROPERTIES LABELS integration TIMEOUT 300)
+	cam_apply_tsan_suppressions(integration.migration)
+
 	add_executable(cam_known_defects characterization/known_defects.cpp)
 	target_link_libraries(cam_known_defects cam_doctest_main ${CAM_TEST_LIBRARY})
 	add_test(NAME characterization.known_defects COMMAND cam_known_defects)

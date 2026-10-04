@@ -43,13 +43,22 @@ namespace cam {
 	 * communication between the agents is exclusively performed by exchanging
 	 * messages.
 	 **/
+	class Environment;
+
 	class Message final {
+		friend Environment;
 
 	protected:
 		/**
 		 * Sender.
 		 **/
 		std::string m_sender;
+
+		/**
+		 * Environment the sender belongs to when the message came through the transport; empty for a
+		 * local message.
+		 **/
+		std::string m_sender_environment;
 
 		/**
 		 * Receiver.
@@ -98,6 +107,13 @@ namespace cam {
 		 * @return Receiver.
 		 **/
 		[[nodiscard]] const std::string& get_receiver() const { return m_receiver; }
+
+		/**
+		 * Get the environment of the sender: empty for a local message, the id of the origin environment
+		 * for a message received through the transport.
+		 * @return Environment id or empty
+		 **/
+		[[nodiscard]] const std::string& get_sender_environment() const { return m_sender_environment; }
 
 		/**
 		 * Get binary message.

@@ -38,6 +38,11 @@ void cam::AgentCollection::add(const AgentPointer& p_agent) {
 	m_new_agents.enqueue(p_agent);
 }
 
+void cam::AgentCollection::insert(const AgentPointer& p_agent) {
+	m_agents.insert(std::make_pair(p_agent->get_id(), p_agent));
+	m_agents_by_name.insert(std::make_pair(p_agent->get_name(), p_agent->get_id()));
+}
+
 const cam::AgentPointer& cam::AgentCollection::random_agent() const {
 	auto l_it = m_agents.begin();
 	do {

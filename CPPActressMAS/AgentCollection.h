@@ -90,6 +90,12 @@ namespace cam {
 		void add(const AgentPointer& p_agent);
 
 		/**
+		 * Insert an agent at once, outside any turn (turn boundary only: arrival of a migrated agent)
+		 * @param p_agent Agent to insert
+		 **/
+		void insert(const AgentPointer& p_agent);
+
+		/**
 		 * Returns a randomly selected agent from the environment
 		 * @return Random agent
 		 **/

@@ -80,6 +80,11 @@ namespace cam {
 		bool m_is_dead;
 
 		/**
+		 * True while a migration of this agent is in progress: the agent does not run, its messages wait.
+		 **/
+		bool m_in_transit;
+
+		/**
 		 * Messages arrived.
 		 **/
 		MPSCQueue<MessagePointer> m_messages;
@@ -144,6 +149,12 @@ namespace cam {
 		 * @return True if is dead
 		 **/
 		[[nodiscard]] bool is_dead() const { return m_is_dead; }
+
+		/**
+		 * True while a migration of this agent is in progress.
+		 * @return True if in transit
+		 **/
+		[[nodiscard]] bool is_in_transit() const { return m_in_transit; }
 
 		/**
 		 * Run one turn (for one agent)
@@ -241,7 +252,18 @@ namespace cam {
 		transport::Result<void> broadcast(const json& p_message, const transport::SendOptions& p_options = {}) const;
 
 		/**
-		 * Move to another environment.
+		 * Move to another environment through the transport (three-step migration). The agent type must
+		 * be registered on both sides (Environment::register_agent_type). The agent keeps its id, carries
+		 * save_state(), its observables and its unconsumed messages, and runs setup() again on arrival.
+		 * Until the destination confirms, the agent stays here, inactive; it resumes if the move fails.
+		 * @param p_environment_id Destination environment id
+		 * @param p_options Send options (priority)
+		 * @return Success (move started), or NotConnected, UnknownDestination, UnknownAgentType, InTransit
+		 **/
+		transport::Result<void> move(const std::string& p_environment_id, const transport::SendOptions& p_options = {});
+
+		/**
+		 * Move to another environment through the legacy MQTT client (cereal serialization of T).
 		 * @param p_environment_id New environment
 		 * @param p_message Move message
 		 **/
@@ -249,6 +271,19 @@ namespace cam {
 		void move(const std::string& p_environment_id, const json& p_message) {
 			internal_move(serialize_to_stream<T>(), p_message, p_environment_id);
 		}
+
+		/**
+		 * State of the agent carried by a migration, as JSON; the default is an empty object (never null).
+		 * Derived agents return their own fields here.
+		 * @return The state
+		 **/
+		[[nodiscard]] virtual json save_state() const { return json::object(); }
+
+		/**
+		 * Restore the state saved by save_state() on arrival in another environment.
+		 * @param p_state The state
+		 **/
+		virtual void load_state(const json& p_state) { (void) p_state; }
 
 		/**
 		 * Call to reset agent i.e. set setup and dead to false
@@ -408,6 +443,29 @@ namespace cam {
 		 * @param p_environment The environment
 		 **/
 		void set_environment(Environment* p_environment) { m_environment = p_environment; }
+
+		/**
+		 * Give the agent the identity it had before a migration (environment only).
+		 * @param p_id The id
+		 * @param p_name The name
+		 **/
+		void set_identity(std::string p_id, std::string p_name) {
+			m_id = std::move(p_id);
+			m_name = std::move(p_name);
+		}
+
+		/**
+		 * Take every message waiting in the queue (environment only, turn boundary).
+		 * @return The messages, oldest first
+		 **/
+		std::vector<MessagePointer> take_messages() {
+			std::vector<MessagePointer> l_messages;
+			MessagePointer l_message;
+			while (m_messages.dequeue(l_message)) {
+				l_messages.push_back(l_message);
+			}
+			return l_messages;
+		}
 	};
 
 	// Agent pointer

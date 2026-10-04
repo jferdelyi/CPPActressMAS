@@ -556,6 +556,7 @@ namespace cam::transport {
 			case ErrorCode::UnknownAgentType: return "unknown agent type";
 			case ErrorCode::InvalidConfiguration: return "invalid configuration";
 			case ErrorCode::NotSupported: return "not supported";
+			case ErrorCode::InTransit: return "agent in transit";
 			default: return "unknown";
 		}
 	}
