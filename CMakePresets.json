@@ -27,7 +27,7 @@
 		},
 		{
 			"name": "core",
-			"displayName": "Debug, core only (no network transport, no Paho, no OpenSSL, no Zenoh)",
+			"displayName": "Debug, core only (no network transport, no libmosquitto, no OpenSSL, no Zenoh)",
 			"inherits": "base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",

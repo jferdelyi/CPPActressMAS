@@ -1,52 +1,41 @@
 # MQTT transport of CPPActressMAS (cam_transport_mqtt), behind CAM_TRANSPORT_MQTT.
 #
-# Eclipse Paho is built by the project from pinned archives (D22): Paho MQTT C++ 1.4.0 with its bundled
-# Paho MQTT C 1.3.13, static, with SSL (OpenSSL of the system), compiled with the C++ standard of the
-# project (B19: a Paho built in C++11 and linked to C++20 code crashes at the first publish on macOS).
+# libmosquitto is built by the project from a pinned archive (D22): Eclipse Mosquitto 2.0.22, client library
+# only (no broker, no clients, no cJSON, no C++ wrapper), static, threaded (the simulation thread publishes
+# while the loop thread reads), with TLS (OpenSSL of the system). The project publishes no checksum: the
+# SHA-256 below was computed on the GitHub tag archive the day it was pinned (2026-10-04).
 
 include(FetchContent)
 
 if (POLICY CMP0135)
-	cmake_policy(SET CMP0135 NEW)  # timestamps of the extracted archives: time of extraction
+	cmake_policy(SET CMP0135 NEW)  # timestamps of the extracted archive: time of extraction
 endif()
-# Paho C 1.3.13 still declares cmake_minimum_required(VERSION 3.1), refused by CMake 4: allow it.
-set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 
-FetchContent_Declare(paho_mqtt_cpp
-	URL https://github.com/eclipse/paho.mqtt.cpp/archive/refs/tags/v1.4.0.tar.gz
-	URL_HASH SHA256=758c504b585402fbeb47822e52897239bbd53b4236ac3908cc040e09d2a8d8e1
+FetchContent_Declare(libmosquitto
+	URL https://github.com/eclipse-mosquitto/mosquitto/archive/refs/tags/v2.0.22.tar.gz
+	URL_HASH SHA256=a2850bd168cd9f1baa954c30994167f9f8c54ee4966ef34738620a48f63657d5
 	SOURCE_SUBDIR not-added-here)
-FetchContent_MakeAvailable(paho_mqtt_cpp)
+FetchContent_MakeAvailable(libmosquitto)
 
-# Paho C++ builds Paho C from its externals/paho-mqtt-c directory (empty in the archive): fill it.
-FetchContent_Declare(paho_mqtt_c
-	URL https://github.com/eclipse/paho.mqtt.c/archive/refs/tags/v1.3.13.tar.gz
-	URL_HASH SHA256=47c77e95609812da82feee30db435c3b7c720d4fd3147d466ead126e657b6d9c
-	SOURCE_DIR ${paho_mqtt_cpp_SOURCE_DIR}/externals/paho-mqtt-c
-	SOURCE_SUBDIR not-added-here)
-FetchContent_MakeAvailable(paho_mqtt_c)
-
-set(PAHO_WITH_MQTT_C TRUE CACHE BOOL "Paho C built with Paho C++" FORCE)
-set(PAHO_WITH_SSL TRUE CACHE BOOL "Paho with SSL" FORCE)
-set(PAHO_BUILD_STATIC TRUE CACHE BOOL "Paho static" FORCE)
-set(PAHO_BUILD_SHARED FALSE CACHE BOOL "Paho shared" FORCE)
-set(PAHO_BUILD_SAMPLES FALSE CACHE BOOL "" FORCE)
-set(PAHO_BUILD_EXAMPLES FALSE CACHE BOOL "" FORCE)
-set(PAHO_BUILD_TESTS FALSE CACHE BOOL "" FORCE)
-set(PAHO_BUILD_DOCUMENTATION FALSE CACHE BOOL "" FORCE)
-set(PAHO_ENABLE_TESTING FALSE CACHE BOOL "" FORCE)
-set(PAHO_HIGH_PERFORMANCE TRUE CACHE BOOL "" FORCE)
-add_subdirectory(${paho_mqtt_cpp_SOURCE_DIR} ${paho_mqtt_cpp_BINARY_DIR} EXCLUDE_FROM_ALL)
-
-# Paho C++ forces C++11 in its own directory: align its targets on the project (B19).
-set_target_properties(paho-mqttpp3-static PROPERTIES CXX_STANDARD ${CMAKE_CXX_STANDARD} CXX_STANDARD_REQUIRED ON)
+set(WITH_BROKER OFF CACHE BOOL "Mosquitto broker" FORCE)
+set(WITH_CLIENTS OFF CACHE BOOL "Mosquitto command line clients" FORCE)
+set(WITH_APPS OFF CACHE BOOL "Mosquitto apps" FORCE)
+set(WITH_PLUGINS OFF CACHE BOOL "Mosquitto plugins" FORCE)
+set(WITH_CJSON OFF CACHE BOOL "Mosquitto cJSON support" FORCE)
+set(DOCUMENTATION OFF CACHE BOOL "Mosquitto documentation" FORCE)
+set(WITH_LIB_CPP OFF CACHE BOOL "Mosquitto C++ wrapper" FORCE)
+set(WITH_STATIC_LIBRARIES ON CACHE BOOL "libmosquitto static" FORCE)
+set(WITH_PIC ON CACHE BOOL "libmosquitto static with PIC" FORCE)
+set(WITH_THREADING ON CACHE BOOL "libmosquitto locks (publish from another thread)" FORCE)
+set(WITH_TLS ON CACHE BOOL "libmosquitto TLS" FORCE)
+set(WITH_TLS_PSK OFF CACHE BOOL "" FORCE)
+set(WITH_SRV OFF CACHE BOOL "" FORCE)
+set(WITH_SOCKS OFF CACHE BOOL "" FORCE)
+set(WITH_UNIX_SOCKETS OFF CACHE BOOL "" FORCE)
+set(WITH_DLT OFF CACHE BOOL "" FORCE)
+add_subdirectory(${libmosquitto_SOURCE_DIR} ${libmosquitto_BINARY_DIR} EXCLUDE_FROM_ALL)
 
 add_library(cam_transport_mqtt STATIC ${CMAKE_CURRENT_LIST_DIR}/MqttTransport.cpp ${CMAKE_CURRENT_LIST_DIR}/MqttTransport.h)
-# Paho headers are a dependency: system headers, their warnings are not the project's (D36).
-target_include_directories(cam_transport_mqtt SYSTEM PUBLIC ${paho_mqtt_cpp_SOURCE_DIR}/include)
-target_link_libraries(cam_transport_mqtt PUBLIC ${CAM_CORE_TARGET} paho-mqttpp3-static)
-# Apple clang searches /usr/local/include before the -isystem directories: a Paho installed there shadows the
-# fetched headers (B20). Say so at configure time rather than compile against another copy silently.
-if (APPLE AND EXISTS /usr/local/include/mqtt/async_client.h)
-	message(WARNING "A Paho MQTT C++ installation in /usr/local/include/mqtt shadows the headers fetched by the project with Apple clang (B20): remove it, or expect its version and its warnings")
-endif()
+# libmosquitto headers are a dependency: system headers, their warnings are not the project's (D36).
+target_include_directories(cam_transport_mqtt SYSTEM PRIVATE ${libmosquitto_SOURCE_DIR}/include)
+target_link_libraries(cam_transport_mqtt PUBLIC ${CAM_CORE_TARGET} PRIVATE libmosquitto_static)

@@ -25,7 +25,7 @@ option(BUILD_SHARED "Enable building shared library" ON)
 option(BUILD_EXAMPLES "Enable building examples" OFF)
 option(BUILD_BENCH "Enable building benchmarks (bench/, performance protocol)" OFF)
 option(CAM_BUILD_TESTS "Enable building tests (tests/, CTest)" ${PROJECT_IS_TOP_LEVEL})
-option(CAM_TRANSPORT_MQTT "Build the MQTT transport (Eclipse Paho fetched and built by the project, needs OpenSSL)" OFF)
+option(CAM_TRANSPORT_MQTT "Build the MQTT transport (libmosquitto fetched and built by the project, needs OpenSSL)" OFF)
 option(CAM_TRANSPORT_ZENOH "Build the Zenoh transport (zenoh-c and zenoh-cpp 1.7.1 from the system)" OFF)
 
 if (BUILD_STATIC)

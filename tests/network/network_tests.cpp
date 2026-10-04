@@ -276,6 +276,18 @@ TEST_SUITE("mqtt") {
 		REQUIRE(l_env_b.disconnect());
 	}
 
+	TEST_CASE("a transport is opened once and a closed port is refused") {
+		const auto l_opened = cam::transport::open(g_url + "/cam-test-open-" + process_suffix());
+		REQUIRE(l_opened);
+		const auto l_again = l_opened.value()->open();
+		CHECK_FALSE(l_again);
+		CHECK(l_again.error().m_code == ErrorCode::AlreadyConnected);
+		CHECK(l_opened.value()->close(2s));
+		// Nothing listens on port 1: the connection is refused at once, no broker involved.
+		const auto l_refused = cam::transport::open("mqtt://127.0.0.1:1/cam-test-open");
+		CHECK_FALSE(l_refused);
+	}
+
 	TEST_CASE("an environment discovers the other environments connected to the broker") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");

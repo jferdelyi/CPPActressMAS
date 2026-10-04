@@ -25,10 +25,9 @@
 
 #include "../Endpoint.h"
 #include "../PresenceCache.h"
-#include "../Worker.h"
 
 /**
- * CPPActressMAS transport layer: MQTT (Eclipse Paho, built by the project). This header has no Paho
+ * CPPActressMAS transport layer: MQTT (libmosquitto, built by the project). This header has no libmosquitto
  * include: the client lives behind a private implementation.
  */
 namespace cam::transport {
@@ -46,8 +45,9 @@ namespace cam::transport {
 	/**
 	 * One MQTT connection per instance (one node): client id "cam-<namespace>-<node>", QoS 1, retained
 	 * presence of the environments, retained will of the node, no local delivery through the broker,
-	 * automatic reconnection with re-subscription. Publications of an attached endpoint reach the other
-	 * attached endpoints directly and the network once.
+	 * automatic reconnection with re-subscription, TCP_NODELAY on the socket. The transport owns the
+	 * network thread of the client. Publications of an attached endpoint reach the other attached
+	 * endpoints directly and the network once.
 	 **/
 	class MqttTransport final : public Transport {
 	private:
@@ -61,7 +61,6 @@ namespace cam::transport {
 		std::unique_ptr<Client> m_client;
 		EndpointRegistry m_registry;
 		PresenceCache m_presence;
-		Worker m_worker;  ///< Paho calls asked by Paho callbacks (re-subscription, node presence)
 		std::atomic<bool> m_open{false};
 		std::atomic<bool> m_connected_once{false};
 		std::atomic<std::uint64_t> m_oversized{0};
@@ -69,11 +68,16 @@ namespace cam::transport {
 		[[nodiscard]] std::string key_of(AddressKind p_kind, const std::string& p_target = {}) const;
 		[[nodiscard]] std::vector<std::string> endpoint_keys(const Endpoint& p_endpoint) const;
 		[[nodiscard]] Envelope node_presence(bool p_online) const;
+		[[nodiscard]] std::vector<std::string> shared_keys() const;
 		Result<void> subscribe(const std::vector<std::string>& p_keys);
+		Result<void> wait_subscribed(const std::vector<int>& p_mids);
 		Result<void> unsubscribe(const std::vector<std::string>& p_keys);
 		Result<void> publish_bytes(const std::string& p_key, const std::vector<std::uint8_t>& p_bytes, bool p_retained);
-		void on_connected(bool p_reconnected);
-		void on_connection_lost();
+		void shutdown();
+		void on_connected(int p_reason);
+		void on_disconnected(int p_reason);
+		void on_subscribed(int p_mid, int p_count, const int* p_granted);
+		void on_published(int p_mid);
 		void on_message(const std::string& p_key, const std::uint8_t* p_payload, std::size_t p_size);
 
 	public:

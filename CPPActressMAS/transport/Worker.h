@@ -30,9 +30,9 @@
 namespace cam::transport {
 
 	/**
-	 * One thread running jobs in order. The network transports use it for the calls into their client
-	 * library asked by that library's own callbacks: calling the client from inside one of its callbacks
-	 * while another thread uses it may deadlock (seen with Paho).
+	 * One thread running jobs in order. The Zenoh transport uses it for the calls into the client library
+	 * asked by that library's own callbacks (a presence request from a liveliness callback): calling the
+	 * client from inside one of its callbacks while another thread uses it may deadlock.
 	 **/
 	class Worker final {
 	private:
