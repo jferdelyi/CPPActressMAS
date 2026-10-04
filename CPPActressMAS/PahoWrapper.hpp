@@ -210,20 +210,20 @@ namespace cam {
 			const auto& l_topic = p_message->get_topic();
 			if (l_topic == m_topics.m_post_broadcast_message_topic || l_topic == m_topics.m_post_message_topic) {
 				const std::vector<uint8_t> l_message = l_data["message"];
-				m_environment.send(l_data["sender_id"], l_data["receiver_id"], l_message.data(), l_message.size(),
-								   l_data["binary_format"], true);
+				m_environment.deliver_local(l_data["sender_id"], l_data["receiver_id"], l_message.data(), l_message.size(),
+								   l_data["binary_format"]);
 
 			} else if (l_topic == m_topics.m_post_broadcast_message_by_name_topic ||
 					   l_topic == m_topics.m_post_message_by_name_topic) {
 				const std::vector<uint8_t> l_message = l_data["message"];
-				m_environment.send_by_name(l_data["sender_id"], l_data["receiver_name"], l_message.data(),
+				m_environment.deliver_by_name(l_data["sender_id"], l_data["receiver_name"], l_message.data(),
 										   l_message.size(), l_data["is_fragment"], l_data["first_only"],
-										   l_data["binary_format"], true);
+										   l_data["binary_format"]);
 
 			} else if (l_topic == m_topics.m_post_broadcast_message_broadcast_topic) {
 				const std::vector<uint8_t> l_message = l_data["message"];
-				m_environment.broadcast(l_data["sender_id"], l_message.data(), l_message.size(),
-										l_data["binary_format"], true);
+				m_environment.deliver_broadcast(l_data["sender_id"], l_message.data(), l_message.size(),
+										l_data["binary_format"]);
 
 			} else if (l_topic == m_topics.m_post_agent_topic) {
 				m_environment.on_new_agent(l_data);
@@ -502,7 +502,7 @@ namespace cam {
 			l_formated_message["unit"] = p_unit;
 			l_formated_message["timestamp"] = std::to_string(duration_cast<std::chrono::milliseconds>(
 					std::chrono::system_clock::now().time_since_epoch()).count());
-			l_formated_message["emitter"] = mqtt::async_client::get_client_id();
+			l_formated_message["emitter"] = m_environment.get_id();
 
 			return l_formated_message;
 		}
@@ -512,7 +512,8 @@ namespace cam {
 		 * @return ID
 		 */
 		[[nodiscard]] std::string get_id() {
-			return mqtt::async_client::get_client_id();
+			// The environment is identified by its own id (N3); the MQTT client id is a connection detail.
+			return m_environment.get_id();
 		}
 
 		/**

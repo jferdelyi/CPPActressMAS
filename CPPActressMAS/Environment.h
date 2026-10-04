@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <memory>
+#include <set>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -29,6 +31,7 @@ using json = nlohmann::json;
 #include "AgentCollection.h"
 #include "Message.h"
 #include "Agent.h"
+#include "transport/Endpoint.h"
 
 /**
  * CPPActressMAS
@@ -62,6 +65,11 @@ namespace cam {
 
 	private:
 		/**
+		 * Unique id of the environment (UUID), the same online and offline.
+		 **/
+		std::string m_id;
+
+		/**
 		 * The maximum number of turns of the simulation..
 		 **/
 		int m_no_turns;
@@ -91,6 +99,11 @@ namespace cam {
 		 **/
 		json m_environement_data;
 
+		/**
+		 * Side of this environment on its transport; null while offline.
+		 **/
+		std::unique_ptr<transport::Endpoint> m_endpoint;
+
 	public:
 
 		/**
@@ -112,7 +125,7 @@ namespace cam {
 							 int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
 
 		/**
-		 * Delete PahoWrapper
+		 * Disconnects from the transport, if connected, and deletes the PahoWrapper
 		 **/
 		virtual ~Environment();
 
@@ -169,20 +182,24 @@ namespace cam {
 		 * Sends a message from the outside of the multiagent system. Whenever
 		 * possible, the agents should use the Send method of their own class, not
 		 * the Send method of the environment. This method can also be used to
-		 * simulate a forwarding behavior.
+		 * simulate a forwarding behavior. A local receiver is served directly; a
+		 * receiver known from the directory of another environment is reached through
+		 * the transport at the end of the turn, whatever the scope.
 		 * @param p_sender_id The sender ID
-		 * @param p_receiver_id The receiver name
+		 * @param p_receiver_id The receiver ID
 		 * @param p_message The message to be sent
 		 * @param p_length The message length
 		 * @param p_binary_format The message binary format
-		 * @param p_from_remote If from remote, do not broadcast remotely
+		 * @param p_options Send options (scope and priority are not used by id)
+		 * @return Success, or UnknownDestination when no environment hosts the receiver
 		 **/
-		void send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
-				  const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
-				  bool p_from_remote = false) const;
+		transport::Result<void> send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
+									 const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
+									 const transport::SendOptions& p_options = {}) const;
 
 		/**
-		 * Sends a message by name.
+		 * Sends a message by name: to the local agents, then, with the network scope,
+		 * to every connected environment (first_only applies per environment).
 		 * @param p_sender_id The sender ID
 		 * @param p_receiver_name The receiver name
 		 * @param p_message The message to be sent
@@ -190,24 +207,27 @@ namespace cam {
 		 * @param p_is_fragment If true search all agent that the name contain "p_receiver_name"
 		 * @param p_first_only If true send to the first agent found
 		 * @param p_binary_format The message binary format
-		 * @param p_from_remote If from remote, do not broadcast remotely
+		 * @param p_options Send options (scope)
+		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		void send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message,
-						  const size_t& p_length, bool p_is_fragment, bool p_first_only,
-						  const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
-						  bool p_from_remote = false) const;
+		transport::Result<void> send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message,
+											 const size_t& p_length, bool p_is_fragment, bool p_first_only,
+											 const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
+											 const transport::SendOptions& p_options = {}) const;
 
 		/**
-		 * Send a new message to all agents.
+		 * Send a new message to all agents: the local ones except the sender, then,
+		 * with the network scope, every agent of the connected environments.
 		 * @param p_sender_id From
 		 * @param p_message The message
 		 * @param p_length The message length
 		 * @param p_binary_format The message binary format
-		 * @param p_from_remote If from remote, do not broadcast remotely
+		 * @param p_options Send options (scope)
+		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		void broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-					   const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
-					   bool p_from_remote = false) const;
+		transport::Result<void> broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
+										  const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
+										  const transport::SendOptions& p_options = {}) const;
 
 		/**
 		 * Starts the simulation.
@@ -252,10 +272,10 @@ namespace cam {
 		get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
 
 		/**
-		 * Get id
-		 * @return ID if remote if initialized, empty string otherwise
+		 * Get the id of the environment (UUID), online or offline.
+		 * @return The id
 		 **/
-		[[nodiscard]] std::string get_id() const;
+		[[nodiscard]] const std::string& get_id() const { return m_id; }
 
 		/**
 		 * Get data about the environement
@@ -295,6 +315,46 @@ namespace cam {
 		 * @return ID if remote if initialized, empty string otherwise
 		 **/
 		[[nodiscard]] const std::set<std::string>& get_containers() const { return m_containers; }
+
+		//###############################################################
+		//	Transport
+		//###############################################################
+
+		/**
+		 * Connect the environment to a transport: attach an endpoint, announce the
+		 * presence of the environment and learn the environments already there.
+		 * Called by the simulation thread, outside a turn (before start() or in
+		 * turn_finished()). An environment stays offline until this is called.
+		 * @param p_transport The transport (shared by the environments of the process)
+		 * @param p_config The endpoint configuration (name, capacities, delays)
+		 * @return Success, or an error (already connected, transport closed...)
+		 **/
+		transport::Result<void> connect(std::shared_ptr<transport::Transport> p_transport, transport::EndpointConfig p_config = {});
+
+		/**
+		 * Disconnect from the transport: flush the pending envelopes, announce the
+		 * departure and detach. Called by the simulation thread, outside a turn.
+		 * @return Success, or NotConnected
+		 **/
+		transport::Result<void> disconnect();
+
+		/**
+		 * True if connected to a transport.
+		 * @return True if connected
+		 **/
+		[[nodiscard]] bool is_connected() const { return m_endpoint != nullptr; }
+
+		/**
+		 * The other environments known through the transport (snapshot of values).
+		 * @return The environments, empty offline
+		 **/
+		[[nodiscard]] std::vector<transport::EnvironmentInfo> environments() const;
+
+		/**
+		 * Counters of the transport side of this environment.
+		 * @return The statistics, zero offline
+		 **/
+		[[nodiscard]] transport::Statistics statistics() const;
 
 		/**
 		 * A method that may be optionally overridden to perform additional
@@ -387,6 +447,28 @@ namespace cam {
 		void run_turn(int p_turn);
 
 		//###############################################################
+		//	Transport handlers (simulation thread, turn boundary)
+		//###############################################################
+
+		/**
+		 * Handler called when another environment appears on the transport.
+		 * @param p_environment The environment
+		 */
+		virtual void on_environment_joined(const transport::EnvironmentInfo&) {}
+
+		/**
+		 * Handler called when another environment leaves the transport.
+		 * @param p_environment The environment
+		 */
+		virtual void on_environment_left(const transport::EnvironmentInfo&) {}
+
+		/**
+		 * Handler called when an envelope could not be published at the end of a turn.
+		 * @param p_error The error
+		 */
+		virtual void on_delivery_failure(const transport::Error&) {}
+
+		//###############################################################
 		//	Remote handlers
 		//###############################################################
 
@@ -467,6 +549,65 @@ namespace cam {
 		 * @param p_rc the reason code, if something wrong happen. 0 = OK (see https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901031)
 		 */
 		virtual void on_connection_success(const std::string&, int) {}
+
+	private:
+
+		/**
+		 * Turn boundary: apply what the transport delivered, then add the new agents
+		 * and remove the dead ones (publishing the directory events).
+		 **/
+		void process_buffers();
+
+		/**
+		 * Apply one envelope received from the transport.
+		 * @param p_envelope The envelope
+		 **/
+		void apply_incoming(transport::Envelope&& p_envelope);
+
+		/**
+		 * Deliver a message to a local agent by id; nothing leaves the environment.
+		 * @return True if the agent exists here
+		 **/
+		bool deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
+						   const size_t& p_length, const MessageBinaryFormat& p_binary_format) const;
+
+		/**
+		 * Deliver a message to the local agents matching a name or a fragment.
+		 * @return True if at least one agent received it
+		 **/
+		bool deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message,
+							 const size_t& p_length, bool p_is_fragment, bool p_first_only,
+							 const MessageBinaryFormat& p_binary_format) const;
+
+		/**
+		 * Deliver a message to every local agent but the sender.
+		 **/
+		void deliver_broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
+							   const MessageBinaryFormat& p_binary_format) const;
+
+		/**
+		 * Queue the presence of this environment (online or offline) for the end of the turn.
+		 * @param p_online True if present
+		 **/
+		void announce_presence(bool p_online);
+
+		/**
+		 * Queue a directory event about a local agent for the end of the turn.
+		 **/
+		void announce_agent(transport::DirectoryEventKind p_event, const std::string& p_agent_id, const std::string& p_agent_name);
+
+		/**
+		 * Publish the queued envelopes and report the failures to on_delivery_failure().
+		 **/
+		void flush_outbox();
+
+		/**
+		 * Queue a message envelope.
+		 **/
+		transport::Result<void> enqueue_message(const transport::Address& p_address, transport::TargetKind p_target_kind,
+												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
+												const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
+												const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options) const;
 	};
 
 	// Environment pointer

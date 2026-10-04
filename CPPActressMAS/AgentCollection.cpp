@@ -107,13 +107,18 @@ void cam::AgentCollection::run_turn() {
 	}
 }
 
-void cam::AgentCollection::process_buffers() {
+cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const bool p_track_changes) {
+	BufferChanges l_changes;
+
 	// Remove dead agents
 	std::vector<std::string> l_ids;
 	l_ids.reserve(m_agents.size());
 	for (auto& [l_id, l_agent]: m_agents) {
 		if (l_agent->is_dead()) {
 			l_ids.push_back(l_id);
+			if (p_track_changes) {
+				l_changes.m_removed.emplace_back(l_id, l_agent->get_name());
+			}
 		}
 	}
 
@@ -126,8 +131,12 @@ void cam::AgentCollection::process_buffers() {
 		do {
 			m_agents.insert(std::make_pair(l_agent->get_id(), l_agent));
 			m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
+			if (p_track_changes) {
+				l_changes.m_added.emplace_back(l_agent->get_id(), l_agent->get_name());
+			}
 		} while (m_new_agents.dequeue(l_agent));
 	}
+	return l_changes;
 }
 
 cam::AgentPointer cam::AgentCollection::get(const std::string& p_id) const {

@@ -142,6 +142,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME unit.transport COMMAND cam_transport_tests)
 	set_tests_properties(unit.transport PROPERTIES LABELS unit TIMEOUT 300)
 
+	# Environments connected through the loopback transport, in memory and serializing.
+	add_executable(cam_loopback_tests integration/loopback.cpp)
+	target_link_libraries(cam_loopback_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME integration.loopback COMMAND cam_loopback_tests)
+	set_tests_properties(integration.loopback PROPERTIES LABELS integration TIMEOUT 300)
+	cam_apply_tsan_suppressions(integration.loopback)
+
 	add_executable(cam_known_defects characterization/known_defects.cpp)
 	target_link_libraries(cam_known_defects cam_doctest_main ${CAM_TEST_LIBRARY})
 	add_test(NAME characterization.known_defects COMMAND cam_known_defects)

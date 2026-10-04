@@ -25,6 +25,7 @@
 
 #include "MPSCQueue.hpp"
 #include "Message.h"
+#include "transport/Types.h"
 
 /**
  * CPPActressMAS
@@ -179,50 +180,65 @@ namespace cam {
 		void post(const MessagePointer& p_message);
 
 		/**
-		 * Send a new message by ID.
+		 * Send a new message by ID. A local receiver is served directly; a receiver hosted by
+		 * another environment is reached through the transport at the end of the turn.
 		 * @param p_receiver_id The id of the receiver
 		 * @param p_message The message
 		 * @param p_length The message size
+		 * @param p_options Send options (encoding tag of the bytes, priority)
+		 * @return Success, or UnknownDestination
 		 **/
-		void
-		send(const std::string& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
+		transport::Result<void>
+		send(const std::string& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0,
+			 const transport::SendOptions& p_options = {}) const;
 
-		void send(const std::string& p_receiver_id, const json& p_message) const;
+		transport::Result<void> send(const std::string& p_receiver_id, const json& p_message,
+									 const transport::SendOptions& p_options = {}) const;
 
 		/**
-		 * Send a new message by name.
+		 * Send a new message by name: local agents, and with the network scope every connected environment.
 		 * @param p_receiver_name The name of the receiver
 		 * @param p_message The message
 		 * @param p_length The message size
-		 * @param p_first_only If true, only the first agent found
+		 * @param p_first_only If true, only the first agent found (per environment)
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		void
+		transport::Result<void>
 		send_by_name(const std::string& p_receiver_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0,
-					 bool p_first_only = true) const;
+					 bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
 
-		void send_by_name(const std::string& p_receiver_name, const json& p_message, bool p_first_only = true) const;
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, const json& p_message, bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const;
 
 		/**
-		 * Send a new message by fragment name.
+		 * Send a new message by fragment name: local agents, and with the network scope every connected environment.
 		 * @param p_fragment_name The fragment of the receivers
 		 * @param p_message The message
 		 * @param p_length The message size
-		 * @param p_first_only If true, only the first agent found
+		 * @param p_first_only If true, only the first agent found (per environment)
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		void send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message = nullptr,
-								   const size_t& p_length = 0, bool p_first_only = true) const;
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message = nullptr,
+													  const size_t& p_length = 0, bool p_first_only = true,
+													  const transport::SendOptions& p_options = {}) const;
 
-		void send_by_fragment_name(const std::string& p_fragment_name, const json& p_message,
-								   bool p_first_only = true) const;
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const json& p_message,
+													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
 
 		/**
-		 * Send a new message to all agents.
+		 * Send a new message to all agents: local agents except this one, and with the network scope every
+		 * agent of the connected environments.
 		 * @param p_message The message
 		 * @param p_length The message size
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		void broadcast(const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
+		transport::Result<void> broadcast(const uint8_t* p_message = nullptr, const size_t& p_length = 0,
+										  const transport::SendOptions& p_options = {}) const;
 
-		void broadcast(const json& p_message) const;
+		transport::Result<void> broadcast(const json& p_message, const transport::SendOptions& p_options = {}) const;
 
 		/**
 		 * Move to another environment.

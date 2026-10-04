@@ -127,9 +127,19 @@ namespace cam {
 		void run_turn();
 
 		/**
-		 * Add new agents, remove dead ones
+		 * What a turn boundary changed: (id, name) of the agents inserted and removed.
 		 **/
-		void process_buffers();
+		struct BufferChanges {
+			std::vector<std::pair<std::string, std::string>> m_added;
+			std::vector<std::pair<std::string, std::string>> m_removed;
+		};
+
+		/**
+		 * Add new agents, remove dead ones
+		 * @param p_track_changes If true, report the inserted and removed agents (directory events)
+		 * @return The changes (empty unless tracked)
+		 **/
+		BufferChanges process_buffers(bool p_track_changes = false);
 
 		/**
 		 * Get all ids
