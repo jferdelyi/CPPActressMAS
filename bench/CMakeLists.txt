@@ -18,6 +18,12 @@ cam_add_bench(PingPong)
 cam_add_bench(Skynet)
 cam_add_bench(SkynetNumeric)
 
+# End-to-end transport benchmark: two environments, two nodes, round trips through the directory. Linked
+# to the facade (the transports compiled in: loopback always, mqtt and zenoh with their options).
+add_executable(bench_Transport ${CMAKE_CURRENT_LIST_DIR}/Transport.cpp)
+target_include_directories(bench_Transport PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(bench_Transport cam_transport)
+
 # Smoke tests (label perf): the benchmarks run once and their invariant is checked. Not a measurement.
 if (CAM_BUILD_TESTS)
 	add_test(NAME perf.smoke.Skynet COMMAND bench_Skynet)
@@ -26,4 +32,6 @@ if (CAM_BUILD_TESTS)
 	set_tests_properties(perf.smoke.SkynetNumeric PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Long Sum = 199990000" TIMEOUT 300)
 	add_test(NAME perf.smoke.PingPong COMMAND bench_PingPong --sequential --turns 100 --trials 1)
 	set_tests_properties(perf.smoke.PingPong PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "msg/ms" TIMEOUT 300)
+	add_test(NAME perf.smoke.Transport COMMAND bench_Transport --transport loopback --pings 50 --trials 1)
+	set_tests_properties(perf.smoke.Transport PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "msg/ms" TIMEOUT 300)
 endif()

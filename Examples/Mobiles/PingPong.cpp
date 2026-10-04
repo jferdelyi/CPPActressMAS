@@ -24,7 +24,8 @@
 
 // Port of ActressMAS E20 RemoteMessages: a ping agent asks a pong agent of another environment for
 // information, by name over the network; the pong agent answers twice by id. Two environments of this
-// process, each connected to the broker as its own node (MobilePingPong [host [port]], default 127.0.0.1 1883).
+// process, each its own node: MobilePingPong [url-pong [url-ping]]; by default Zenoh peers on 127.0.0.1
+// (pong listens on port 17448, ping connects), no router nor broker. An MQTT URL works too.
 
 class PingAgent : public cam::Agent {
 public:
@@ -64,14 +65,13 @@ public:
 };
 
 int main(int argc, char** argv) {
-	const std::string l_host = argc > 1 ? argv[1] : "127.0.0.1";
-	const std::string l_port = argc > 2 ? argv[2] : "1883";
-	const std::string l_url = "mqtt://" + l_host + ":" + l_port + "/pingpong";
+	const std::string l_url_pong = argc > 1 ? argv[1] : "zenoh://?listen=tcp/127.0.0.1:17448&ns=pingpong";
+	const std::string l_url_ping = argc > 2 ? argv[2] : (argc > 1 ? l_url_pong : "zenoh://127.0.0.1:17448/pingpong");
 
 	// A remote message reaches its agent at the turn after its reception: a few turns are needed.
 	cam::Environment l_environment_b(10, cam::EnvironmentMasMode::Parallel, 100);
 	cam::Environment l_environment_a(10, cam::EnvironmentMasMode::Parallel, 100);
-	for (cam::Environment* l_environment : {&l_environment_b, &l_environment_a}) {
+	for (const auto& [l_environment, l_url] : {std::pair{&l_environment_b, l_url_pong}, std::pair{&l_environment_a, l_url_ping}}) {
 		if (const auto l_result = cam::transport::connect(*l_environment, l_url); !l_result) {
 			std::cerr << "Cannot connect to " << l_url << ": " << l_result.error().m_message << std::endl;
 			return 1;

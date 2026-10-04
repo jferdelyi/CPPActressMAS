@@ -25,7 +25,8 @@
 
 // Port of ActressMAS E20 MasMobileConsole: a mobile agent visits every other environment, asks the
 // static agents there for information and reports once home. Three environments of this process, each
-// connected to the broker as its own node (Mobile [host [port]], default 127.0.0.1 1883).
+// its own node: Mobile [url-c [url-a-b]]; by default Zenoh peers on 127.0.0.1 (C listens on port 17447,
+// A and B connect to it), no router nor broker. An MQTT URL works too: Mobile mqtt://127.0.0.1:1883/mobile.
 
 class StaticAgent : public cam::Agent {
 public:
@@ -47,8 +48,8 @@ public:
 };
 
 class MobileAgent : public cam::Agent {
-private:
 	bool m_firstStart;
+	bool m_planning;
 	int m_turns_to_wait_for_info;
 	std::string m_log;
 	std::queue<std::string> m_moves;
@@ -57,8 +58,8 @@ public:
 	explicit MobileAgent(const std::string& p_name) :
 		Agent(p_name),
 		m_firstStart(true),
+		m_planning(false),
 		m_turns_to_wait_for_info(0),
-		m_log(),
 		m_moves() {}
 
 	void setup() override {
@@ -66,20 +67,13 @@ public:
 			std::cout << "Mobile agent starting at home" << std::endl;
 
 			m_firstStart = false;
+			m_planning = true;
 
 			m_log = "\nReporting:\n";
 
-			const auto& l_home_id = get_environment()->get_id();
-
-			for (const auto& l_container : get_environment()->environments()) {
-				if (l_container.m_online && l_container.m_id != l_home_id) {	// home
-					m_moves.push(l_container.m_id);
-					std::cout << l_container.m_id << std::endl;
-				}
-			}
-
-			m_moves.push(l_home_id); // return home, get local info and report
-			std::cout << l_home_id << std::endl;
+			// The other environments announce themselves over the network: give them a few turns before
+			// planning the trip (the C# reads the list the server already holds).
+			m_turns_to_wait_for_info = 5;
 
 		} else {
 			std::cout << "I have moved to " + get_environment()->get_id() << std::endl;
@@ -97,6 +91,19 @@ public:
 	void default_action() override {
 		if (m_turns_to_wait_for_info-- > 0) {
 			return;
+		}
+
+		if (m_planning) {
+			m_planning = false;
+			const auto& l_home_id = get_environment()->get_id();
+			for (const auto& l_container : get_environment()->environments()) {
+				if (l_container.m_online && l_container.m_id != l_home_id) {	// home
+					m_moves.push(l_container.m_id);
+					std::cout << l_container.m_id << std::endl;
+				}
+			}
+			m_moves.push(l_home_id); // return home, get local info and report
+			std::cout << l_home_id << std::endl;
 		}
 
 		if (!m_moves.empty()) {
@@ -140,14 +147,15 @@ public:
 };
 
 int main(int argc, char** argv) {
-	const std::string l_host = argc > 1 ? argv[1] : "127.0.0.1";
-	const std::string l_port = argc > 2 ? argv[2] : "1883";
-	const std::string l_url = "mqtt://" + l_host + ":" + l_port + "/mobile";
+	const std::string l_url_c = argc > 1 ? argv[1] : "zenoh://?listen=tcp/127.0.0.1:17447&ns=mobile";
+	const std::string l_url_ab = argc > 2 ? argv[2] : (argc > 1 ? l_url_c : "zenoh://127.0.0.1:17447/mobile");
 
-	cam::Environment l_environment_c;
-	cam::Environment l_environment_b;
-	cam::Environment l_environment_a;
-	for (cam::Environment* l_environment : {&l_environment_c, &l_environment_b, &l_environment_a}) {
+	// A turn every 100 ms: the peers have time to announce themselves and the trip stays readable.
+	cam::Environment l_environment_c(0, cam::EnvironmentMasMode::Parallel, 100);
+	cam::Environment l_environment_b(0, cam::EnvironmentMasMode::Parallel, 100);
+	cam::Environment l_environment_a(0, cam::EnvironmentMasMode::Parallel, 100);
+	for (const auto& [l_environment, l_url] : {std::pair{&l_environment_c, l_url_c}, std::pair{&l_environment_b, l_url_ab},
+												std::pair{&l_environment_a, l_url_ab}}) {
 		l_environment->register_agent_type<MobileAgent>("MobileAgent");
 		if (const auto l_result = cam::transport::connect(*l_environment, l_url); !l_result) {
 			std::cerr << "Cannot connect to " << l_url << ": " << l_result.error().m_message << std::endl;
