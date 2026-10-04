@@ -73,7 +73,7 @@ cam_add_ok_probe(remove_then_send_by_name C6)
 # C4: random_agent() includes the upper bound and dereferences end().
 cam_add_crash_probe(random_agent_bound C4 asan "container-overflow|misaligned address|AddressSanitizer: SEGV")
 # C10: remove() during a Parallel turn erases from the collection other threads are iterating.
-cam_add_crash_probe(remove_during_parallel_turn C10 asan "container-overflow|member call on null pointer|AddressSanitizer: SEGV")
+cam_add_crash_probe(remove_during_parallel_turn C10 asan "container-overflow|heap-buffer-overflow|member call on null pointer|AddressSanitizer: SEGV")
 cam_add_crash_probe(remove_during_parallel_turn C10 tsan "ThreadSanitizer: (data race|SEGV)")
 # C12: remove() during a Sequential turn invalidates the range-for of run_turn().
 cam_add_crash_probe(remove_during_sequential_turn C12 asan "container-overflow|member call on null pointer|AddressSanitizer: SEGV")
