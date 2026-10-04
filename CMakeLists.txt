@@ -22,6 +22,8 @@ file(GLOB SOURCES
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h**
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.hpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.cpp
 )
 
 option(BUILD_STATIC "Enable building static library" ON)

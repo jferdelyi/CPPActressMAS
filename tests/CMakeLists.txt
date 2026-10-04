@@ -133,6 +133,15 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.smoke PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.smoke)
 
+	# Transport layer without any environment: codec (round trips, binary vectors of
+	# tests/vectors/envelope/<codec>/v1, malformed input) and Endpoint (sequences, deduplication,
+	# reordering, overflows, counters). CAM_WRITE_VECTORS=1 in the environment regenerates the vectors.
+	add_executable(cam_transport_tests unit/envelope_codec.cpp unit/endpoint.cpp)
+	target_link_libraries(cam_transport_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	target_compile_definitions(cam_transport_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")
+	add_test(NAME unit.transport COMMAND cam_transport_tests)
+	set_tests_properties(unit.transport PROPERTIES LABELS unit TIMEOUT 300)
+
 	add_executable(cam_known_defects characterization/known_defects.cpp)
 	target_link_libraries(cam_known_defects cam_doctest_main ${CAM_TEST_LIBRARY})
 	add_test(NAME characterization.known_defects COMMAND cam_known_defects)
