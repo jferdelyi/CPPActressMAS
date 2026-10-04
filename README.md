@@ -44,6 +44,12 @@ if (const auto l_result = cam::transport::connect(l_environment, "zenoh://?liste
 // MQTT broker instead: cam::transport::connect(l_other, "mqtt://127.0.0.1:1883/my-simulation")
 ```
 Zenoh options: `mode=peer|client`, `listen=tcp/host:port` (several, comma separated), `connect=tcp/host:port`, `scouting=multicast` (discovery by UDP multicast; off by default, so an environment only talks to the endpoints it was given). Presence relies on Zenoh liveliness: the death of a process takes its environments offline for everyone.
+
+**Envelope codecs.** Every envelope on the wire starts with a 4-byte header (magic, codec id, version) and is encoded by the codec of the transport, chosen by the URL option `codec=` and the same for every environment of a namespace: `protobuf` (default) is the proto3 wire format of [`CPPActressMAS/transport/envelope.proto`](CPPActressMAS/transport/envelope.proto), written and read by the project itself without libprotobuf, so any proto3 implementation given that file can talk to it; `compact` is a fixed little-endian layout, the floor of the micro-benchmark; `json` is readable UTF-8 JSON (a text content travels in clear), for debugging and the simplest clients. The binary vectors of each codec are under `tests/vectors/envelope/<codec>/v1/`; the protobuf ones were checked against `protoc`.
+
+**Message content.** A message carries text, a JSON value or opaque bytes (`Message::kind()`, `as_text()`, `as_json()`, `as_bytes()`; `content()` still returns a JSON view). Locally nothing is encoded: a JSON value is shared by the receivers of a broadcast. On the wire a text travels as UTF-8, bytes as they are, and a JSON value in the binary encoding of the send options (MessagePack by default, or CBOR, BSON, UBJSON, BJData, JSON text). `send(receiver, "hello")` sends a text; `send(receiver, json{{"k", 1}})` a JSON value; `send(receiver, bytes, size)` raw bytes.
+
+The examples `Mobile` and `MobilePingPong` run on the in-process `loopback://` transport without argument (available in every build) and take the URLs of their environments in argument to go through the network.
 Messages by id reach a remote agent through the directory of the connected environments; `send_by_name`, `send_by_fragment_name` and `broadcast` stay local unless the last parameter asks for the network scope (a `cam::transport::SendOptions` with `m_scope = cam::transport::Scope::Network`). Everything received from the network is applied at the turn boundary. An agent moves to another environment with `move(environment_id)`: its state (`save_state()`, `load_state()`), its observables and its pending messages travel with it, and it runs `setup()` again on arrival. Several environments of one process can share one transport (`cam::transport::open(url)`, then `environment.connect(transport)`): they then form one node with one connection. Statistics of the transport side: `environment.statistics()`; the other environments: `environment.environments()`.
 
 ## Tests
@@ -57,7 +63,7 @@ cmake --preset asan && cmake --build --preset asan && ctest --preset asan -L cha
 
 ## Benchmarks
 
-`bench/` holds the measurement copies of the C# E30 benchmarks (PingPong, Skynet, SkynetNumeric): same workloads and measured scope as the C# programs, atomic counters, `steady_clock`, a deterministic variant (`--sequential`), linked to the static library and built without `-march=native` nor `-flto`:
+`bench/` holds the measurement copies of the C# E30 benchmarks (PingPong, Skynet, SkynetNumeric), the end-to-end transport benchmark (`bench_Transport`) and the envelope codec micro-benchmark (`bench_Envelope`): same workloads and measured scope as the C# programs, atomic counters, `steady_clock`, a deterministic variant (`--sequential`), linked to the static library and built without `-march=native` nor `-flto`:
 ``` bash
 cmake --preset bench && cmake --build --preset bench
 build/bench/bench/bench_Skynet
