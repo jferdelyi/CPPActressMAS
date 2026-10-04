@@ -89,17 +89,19 @@ namespace cam::transport {
 			case AddressKind::EnvIn:
 			case AddressKind::EnvAgent:
 			case AddressKind::EnvQuery:
-				if (Endpoint* l_target = m_registry.find(p_address.m_target); l_target && l_target != p_sender) {
-					std::vector<std::uint8_t> l_copy = l_bytes.value();
-					l_target->deliver(p_address, std::move(l_copy));
-				}
+				m_registry.with(p_address.m_target, [&](Endpoint& p_target) {
+					if (&p_target != p_sender) {
+						std::vector<std::uint8_t> l_copy = l_bytes.value();
+						p_target.deliver(p_address, std::move(l_copy));
+					}
+				});
 				break;
 			case AddressKind::AllIn:
 			case AddressKind::EnvPresence:
-				for (Endpoint* l_endpoint: m_registry.others(p_sender)) {
+				m_registry.for_each(p_sender, [&](Endpoint& p_endpoint) {
 					std::vector<std::uint8_t> l_copy = l_bytes.value();
-					l_endpoint->deliver(p_address, std::move(l_copy));
-				}
+					p_endpoint.deliver(p_address, std::move(l_copy));
+				});
 				break;
 			case AddressKind::NodePresence:
 			default:

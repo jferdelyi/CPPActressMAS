@@ -422,7 +422,7 @@ namespace cam::transport {
 	// ---------------------------------------------------------------- registry (Transport.h)
 
 	bool EndpointRegistry::add(Endpoint& p_endpoint) {
-		const std::lock_guard<std::mutex> l_lock(m_mutex);
+		const std::unique_lock<std::shared_mutex> l_lock(m_mutex);
 		if (std::find(m_endpoints.begin(), m_endpoints.end(), &p_endpoint) != m_endpoints.end()) {
 			return false;
 		}
@@ -431,7 +431,7 @@ namespace cam::transport {
 	}
 
 	bool EndpointRegistry::remove(Endpoint& p_endpoint) {
-		const std::lock_guard<std::mutex> l_lock(m_mutex);
+		const std::unique_lock<std::shared_mutex> l_lock(m_mutex);  // waits for the deliveries in flight
 		const auto l_it = std::find(m_endpoints.begin(), m_endpoints.end(), &p_endpoint);
 		if (l_it == m_endpoints.end()) {
 			return false;
@@ -440,8 +440,7 @@ namespace cam::transport {
 		return true;
 	}
 
-	Endpoint* EndpointRegistry::find(const std::string& p_environment_id) const {
-		const std::lock_guard<std::mutex> l_lock(m_mutex);
+	Endpoint* EndpointRegistry::find_unlocked(const std::string& p_environment_id) const {
 		for (Endpoint* l_endpoint: m_endpoints) {
 			if (l_endpoint->environment_id() == p_environment_id) {
 				return l_endpoint;
@@ -450,25 +449,20 @@ namespace cam::transport {
 		return nullptr;
 	}
 
-	std::vector<Endpoint*> EndpointRegistry::others(const Endpoint* p_except) const {
-		const std::lock_guard<std::mutex> l_lock(m_mutex);
-		std::vector<Endpoint*> l_result;
-		for (Endpoint* l_endpoint: m_endpoints) {
-			if (l_endpoint != p_except) {
-				l_result.push_back(l_endpoint);
-			}
-		}
-		return l_result;
+	bool EndpointRegistry::is_local(const std::string& p_environment_id) const {
+		const std::shared_lock<std::shared_mutex> l_lock(m_mutex);
+		return find_unlocked(p_environment_id) != nullptr;
 	}
 
 	EndpointRegistry::LocalDelivery EndpointRegistry::deliver_locally(const Endpoint* p_sender, const Address& p_address,
-																						  const Envelope& p_envelope) const {
+																	  const Envelope& p_envelope) const {
 		LocalDelivery l_delivery;
+		const std::shared_lock<std::shared_mutex> l_lock(m_mutex);
 		switch (p_address.m_kind) {
 			case AddressKind::EnvIn:
 			case AddressKind::EnvAgent:
 			case AddressKind::EnvQuery: {
-				if (Endpoint* l_target = find(p_address.m_target); l_target) {
+				if (Endpoint* l_target = find_unlocked(p_address.m_target); l_target) {
 					l_delivery.m_target_is_local = true;
 					if (l_target != p_sender) {
 						Envelope l_copy = p_envelope;
@@ -481,7 +475,10 @@ namespace cam::transport {
 			}
 			case AddressKind::AllIn:
 			case AddressKind::EnvPresence: {
-				for (Endpoint* l_endpoint: others(p_sender)) {
+				for (Endpoint* l_endpoint: m_endpoints) {
+					if (l_endpoint == p_sender) {
+						continue;
+					}
 					Envelope l_copy = p_envelope;
 					if (l_endpoint->deliver(p_address, std::move(l_copy))) {
 						l_delivery.m_delivered_locally = true;
@@ -499,3 +496,4 @@ namespace cam::transport {
 	}
 
 } // namespace cam::transport
+

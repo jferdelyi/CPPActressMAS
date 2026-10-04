@@ -35,6 +35,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
+#include <random>
 #include <string>
 #include <thread>
 
@@ -158,16 +159,19 @@ namespace {
 		void setup() override { g_recorder.record(get_name() + ":setup@" + get_environment()->get_id()); }
 
 		void default_action() override {
-			++m_counter;
+			// The counter follows the agent: one per successful move, one at the end (attempts do not count).
 			if (m_hops == 0) {
 				if (move(m_away_id)) {
 					m_hops = 1;
+					++m_counter;
 				}
 			} else if (m_hops == 1) {
 				if (move(m_home_id)) {
 					m_hops = 2;
+					++m_counter;
 				}
 			} else {
+				++m_counter;
 				g_recorder.record(get_name() + ":done@" + get_environment()->get_id() + " counter=" + std::to_string(m_counter));
 				stop();
 			}
@@ -203,11 +207,21 @@ namespace {
 		std::string m_label;
 	};
 
+	// The broker is shared: two test processes running at once (two machines, two presets) must not meet,
+	// so every namespace of this process carries a random suffix.
+	const std::string& process_suffix() {
+		static const std::string s_suffix = [] {
+			std::random_device l_device;
+			return std::to_string(l_device() % 1000000);
+		}();
+		return s_suffix;
+	}
+
 	// One node per environment, in the namespace of the test.
 	Result<void> connect(cam::Environment& p_environment, const std::string& p_name, const std::string& p_namespace) {
 		EndpointConfig l_config;
 		l_config.m_name = p_name;
-		return cam::transport::connect(p_environment, g_url + "/" + p_namespace, l_config);
+		return cam::transport::connect(p_environment, g_url + "/" + p_namespace + "-" + process_suffix(), l_config);
 	}
 
 	// Runs the environments in threads until the condition holds or the deadline passes.
@@ -331,6 +345,9 @@ TEST_SUITE("mqtt") {
 		CHECK(g_recorder.contains("watcher-one:seen:one-a"));
 		CHECK_FALSE(g_recorder.contains("watcher-two:seen:one-a"));
 		CHECK_FALSE(g_recorder.contains("watcher-two:seen:one-b"));
+		for (const auto& l_info: l_two.environments()) {
+			MESSAGE("two knows: id=" << l_info.m_id << " name=" << l_info.m_name << " node=" << l_info.m_node << " online=" << l_info.m_online);
+		}
 		CHECK(l_two.environments().empty());
 		REQUIRE(l_one_a.disconnect());
 		REQUIRE(l_one_b.disconnect());

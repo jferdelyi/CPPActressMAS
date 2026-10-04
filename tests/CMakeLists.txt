@@ -165,6 +165,14 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME mqtt.network COMMAND cam_network_tests)
 	set_tests_properties(mqtt.network PROPERTIES LABELS "mqtt;integration" SKIP_RETURN_CODE 77 TIMEOUT 120)
 	cam_apply_tsan_suppressions(mqtt.network)
+
+	# Two Zenoh peers of the process on 127.0.0.1 (explicit endpoints, no multicast); skips (77) without the
+	# Zenoh transport. Opens sockets: excluded with -LE zenoh when the network must stay silent.
+	add_executable(cam_zenoh_tests network/zenoh_tests.cpp)
+	target_link_libraries(cam_zenoh_tests cam_test_support cam_transport)
+	add_test(NAME zenoh.network COMMAND cam_zenoh_tests)
+	set_tests_properties(zenoh.network PROPERTIES LABELS "zenoh;integration" SKIP_RETURN_CODE 77 TIMEOUT 180)
+	cam_apply_tsan_suppressions(zenoh.network)
 else()
 	message(WARNING "${CAM_DOCTEST_HEADER} is missing: the unit, known-defect and network tests are not built")
 endif()

@@ -19,18 +19,13 @@
 #pragma once
 
 #include <atomic>
-#include <condition_variable>
-#include <deque>
-#include <functional>
-#include <map>
 #include <memory>
-#include <mutex>
-#include <optional>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "../Endpoint.h"
+#include "../PresenceCache.h"
+#include "../Worker.h"
 
 /**
  * CPPActressMAS transport layer: MQTT (Eclipse Paho, built by the project). This header has no Paho
@@ -58,15 +53,6 @@ namespace cam::transport {
 	private:
 		struct Client;
 
-		/**
-		 * Last presence of an environment, local or from the network, replayed to a newcomer.
-		 **/
-		struct Retained {
-			Address m_address;
-			std::vector<std::uint8_t> m_bytes;
-			std::optional<Envelope> m_envelope;
-		};
-
 		TransportConfig m_config;
 		MqttOptions m_options;
 		std::shared_ptr<const EnvelopeCodec> m_codec;
@@ -74,26 +60,11 @@ namespace cam::transport {
 		std::string m_client_id;
 		std::unique_ptr<Client> m_client;
 		EndpointRegistry m_registry;
+		PresenceCache m_presence;
+		Worker m_worker;  ///< Paho calls asked by Paho callbacks (re-subscription, node presence)
 		std::atomic<bool> m_open{false};
 		std::atomic<bool> m_connected_once{false};
 		std::atomic<std::uint64_t> m_oversized{0};
-
-		mutable std::mutex m_mutex;
-		std::map<std::string, Retained> m_retained;  ///< environment id -> last online presence
-
-		/**
-		 * Worker running the Paho calls asked by the Paho callbacks (re-subscription, node presence):
-		 * calling the client from inside one of its callbacks while another thread uses it deadlocks.
-		 **/
-		std::thread m_worker;
-		std::mutex m_work_mutex;
-		std::condition_variable m_work_condition;
-		std::deque<std::function<void()>> m_work;
-		bool m_stop_worker = false;
-
-		void post_work(std::function<void()> p_work);
-		void run_worker();
-		void stop_worker();
 
 		[[nodiscard]] std::string key_of(AddressKind p_kind, const std::string& p_target = {}) const;
 		[[nodiscard]] std::vector<std::string> endpoint_keys(const Endpoint& p_endpoint) const;
@@ -104,7 +75,6 @@ namespace cam::transport {
 		void on_connected(bool p_reconnected);
 		void on_connection_lost();
 		void on_message(const std::string& p_key, const std::uint8_t* p_payload, std::size_t p_size);
-		void remember_presence(const Address& p_address, const Envelope& p_envelope, const std::vector<std::uint8_t>* p_bytes);
 
 	public:
 		/**

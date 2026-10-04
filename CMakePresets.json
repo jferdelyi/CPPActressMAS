@@ -9,6 +9,7 @@
 			"cacheVariables": {
 				"BUILD_EXAMPLES": "ON",
 				"CAM_TRANSPORT_MQTT": "ON",
+				"CAM_TRANSPORT_ZENOH": "ON",
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
 			}
 		},
@@ -26,11 +27,12 @@
 		},
 		{
 			"name": "core",
-			"displayName": "Debug, core only (no network transport, no Paho, no OpenSSL)",
+			"displayName": "Debug, core only (no network transport, no Paho, no OpenSSL, no Zenoh)",
 			"inherits": "base",
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Debug",
-				"CAM_TRANSPORT_MQTT": "OFF"
+				"CAM_TRANSPORT_MQTT": "OFF",
+				"CAM_TRANSPORT_ZENOH": "OFF"
 			}
 		},
 		{
@@ -78,7 +80,8 @@
 				"CMAKE_BUILD_TYPE": "None",
 				"CMAKE_CXX_FLAGS": "-O3 -DNDEBUG",
 				"BUILD_BENCH": "ON",
-				"CAM_TRANSPORT_MQTT": "OFF"
+				"CAM_TRANSPORT_MQTT": "OFF",
+				"CAM_TRANSPORT_ZENOH": "OFF"
 			}
 		}
 	],

@@ -98,29 +98,6 @@ namespace cam::transport {
 		return l_envelope;
 	}
 
-	void MqttTransport::remember_presence(const Address& p_address, const Envelope& p_envelope, const std::vector<std::uint8_t>* p_bytes) {
-		if (p_address.m_kind != AddressKind::EnvPresence || p_envelope.m_kind != EnvelopeKind::Presence) {
-			return;
-		}
-		const auto* l_presence = std::get_if<Presence>(&p_envelope.m_payload);
-		if (!l_presence) {
-			return;
-		}
-		const std::lock_guard<std::mutex> l_lock(m_mutex);
-		if (!l_presence->m_online) {
-			m_retained.erase(p_address.m_target);
-			return;
-		}
-		Retained l_retained;
-		l_retained.m_address = p_address;
-		if (p_bytes) {
-			l_retained.m_bytes = *p_bytes;
-		} else {
-			l_retained.m_envelope = p_envelope;
-		}
-		m_retained[p_address.m_target] = std::move(l_retained);
-	}
-
 	// ---------------------------------------------------------------- Paho calls
 
 	Result<void> MqttTransport::subscribe(const std::vector<std::string>& p_keys) {
@@ -128,11 +105,19 @@ namespace cam::transport {
 			return {};  // subscribed on (re)connection
 		}
 		try {
+			// Wait for each acknowledgement: a publication made before the broker knows the subscription
+			// would never come back.
+			std::vector<mqtt::token_ptr> l_tokens;
 			for (const auto& l_key: p_keys) {
 				if (m_options.m_mqtt5) {
-					m_client->m_client.subscribe(l_key, QOS, mqtt::subscribe_options(true));
+					l_tokens.push_back(m_client->m_client.subscribe(l_key, QOS, mqtt::subscribe_options(true)));
 				} else {
-					m_client->m_client.subscribe(l_key, QOS);
+					l_tokens.push_back(m_client->m_client.subscribe(l_key, QOS));
+				}
+			}
+			for (const auto& l_token: l_tokens) {
+				if (!l_token->wait_for(m_config.m_connect_timeout)) {
+					return make_error(ErrorCategory::Transport, ErrorCode::Timeout, "subscription not acknowledged by the broker");
 				}
 			}
 		} catch (const mqtt::exception& p_exception) {
@@ -167,58 +152,31 @@ namespace cam::transport {
 		return {};
 	}
 
-	// ---------------------------------------------------------------- worker
-
-	void MqttTransport::post_work(std::function<void()> p_work) {
-		{
-			const std::lock_guard<std::mutex> l_lock(m_work_mutex);
-			m_work.push_back(std::move(p_work));
-		}
-		m_work_condition.notify_one();
-	}
-
-	void MqttTransport::run_worker() {
-		while (true) {
-			std::function<void()> l_work;
-			{
-				std::unique_lock<std::mutex> l_lock(m_work_mutex);
-				m_work_condition.wait(l_lock, [this] { return m_stop_worker || !m_work.empty(); });
-				if (m_stop_worker) {
-					return;
-				}
-				l_work = std::move(m_work.front());
-				m_work.pop_front();
-			}
-			l_work();
-		}
-	}
-
 	// ---------------------------------------------------------------- callbacks (Paho threads)
 
 	void MqttTransport::on_connected(const bool p_reconnected) {
 		// Paho calls happen on the worker, never inside this callback.
-		post_work([this, p_reconnected] {
+		m_worker.post([this, p_reconnected] {
 			std::vector<std::string> l_keys = {key_of(AddressKind::AllIn), "cam/v1/" + m_config.m_namespace + "/env/+/presence",
 											   "cam/v1/" + m_config.m_namespace + "/node/+/presence"};
-			for (const Endpoint* l_endpoint: m_registry.others(nullptr)) {
-				for (auto& l_key: endpoint_keys(*l_endpoint)) {
+			m_registry.for_each(nullptr, [&](const Endpoint& p_endpoint) {
+				for (auto& l_key: endpoint_keys(p_endpoint)) {
 					l_keys.push_back(std::move(l_key));
 				}
-			}
+			});
 			(void) subscribe(l_keys);
 			if (const auto l_bytes = m_codec->encode(node_presence(true)); l_bytes) {
 				(void) publish_bytes(key_of(AddressKind::NodePresence, m_node_id), l_bytes.value(), true);
 			}
-			for (Endpoint* l_endpoint: m_registry.others(nullptr)) {
-				l_endpoint->push_event(p_reconnected ? TransportEvent::Reconnected : TransportEvent::Connected);
+			// The first connection is reported by attach() to each endpoint; only the recoveries come from here.
+			if (p_reconnected) {
+				m_registry.for_each(nullptr, [](Endpoint& p_endpoint) { p_endpoint.push_event(TransportEvent::Reconnected); });
 			}
 		});
 	}
 
 	void MqttTransport::on_connection_lost() {
-		for (Endpoint* l_endpoint: m_registry.others(nullptr)) {
-			l_endpoint->push_event(TransportEvent::Disconnected);
-		}
+		m_registry.for_each(nullptr, [](Endpoint& p_endpoint) { p_endpoint.push_event(TransportEvent::Disconnected); });
 	}
 
 	void MqttTransport::on_message(const std::string& p_key, const std::uint8_t* p_payload, const std::size_t p_size) {
@@ -238,28 +196,21 @@ namespace cam::transport {
 			case AddressKind::EnvIn:
 			case AddressKind::EnvAgent:
 			case AddressKind::EnvQuery:
-				if (Endpoint* l_target = m_registry.find(l_address->m_target); l_target) {
-					l_target->deliver(*l_address, std::move(l_bytes));
-				}
+				m_registry.with(l_address->m_target, [&](Endpoint& p_target) { p_target.deliver(*l_address, std::move(l_bytes)); });
 				break;
-			case AddressKind::EnvPresence: {
+			case AddressKind::EnvPresence:
 				// Keep the last online presence of each environment for the endpoints attached later.
 				if (const auto l_decoded = m_codec->decode(l_bytes, m_config.m_max_envelope_bytes); l_decoded) {
-					remember_presence(*l_address, l_decoded.value(), &l_bytes);
+					m_presence.remember(*l_address, l_decoded.value());
 				}
-				for (Endpoint* l_endpoint: m_registry.others(nullptr)) {
-					std::vector<std::uint8_t> l_copy = l_bytes;
-					l_endpoint->deliver(*l_address, std::move(l_copy));
-				}
-				break;
-			}
+				[[fallthrough]];
 			case AddressKind::AllIn:
 			case AddressKind::NodePresence:
 			default:
-				for (Endpoint* l_endpoint: m_registry.others(nullptr)) {
+				m_registry.for_each(nullptr, [&](Endpoint& p_endpoint) {
 					std::vector<std::uint8_t> l_copy = l_bytes;
-					l_endpoint->deliver(*l_address, std::move(l_copy));
-				}
+					p_endpoint.deliver(*l_address, std::move(l_copy));
+				});
 				break;
 		}
 	}
@@ -276,12 +227,7 @@ namespace cam::transport {
 		if (m_config.m_endpoint.empty()) {
 			return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "no broker address");
 		}
-		{
-			const std::lock_guard<std::mutex> l_lock(m_work_mutex);
-			m_stop_worker = false;
-			m_work.clear();
-		}
-		m_worker = std::thread(&MqttTransport::run_worker, this);
+		m_worker.start();
 		try {
 			m_client = std::make_unique<Client>(m_config.m_endpoint, m_client_id, m_options.m_mqtt5 ? MQTTVERSION_5 : MQTTVERSION_3_1_1);
 			auto l_builder = m_options.m_mqtt5 ? mqtt::connect_options_builder::v5() : mqtt::connect_options_builder();
@@ -325,29 +271,27 @@ namespace cam::transport {
 			const auto l_token = m_client->m_client.connect(m_client->m_connect_options);
 			if (!l_token->wait_for(m_config.m_connect_timeout)) {
 				(void) m_client->m_client.disconnect()->wait_for(std::chrono::milliseconds(500));
-				stop_worker();
+				m_worker.stop();
 				m_client.reset();
 				return make_error(ErrorCategory::Transport, ErrorCode::Timeout, "no answer from the broker " + m_config.m_endpoint);
 			}
 		} catch (const mqtt::exception& p_exception) {
-			stop_worker();
+			m_worker.stop();
 			m_client.reset();
 			return transport_error(std::string("connection to ") + m_config.m_endpoint + " failed: " + p_exception.what(),
 								   p_exception.get_reason_code());
 		}
+		// The shared keys are subscribed here, before the first publication of any environment; the
+		// connected handler subscribes them again (idempotent) after a reconnection.
+		if (const auto l_result = subscribe({key_of(AddressKind::AllIn), "cam/v1/" + m_config.m_namespace + "/env/+/presence",
+											 "cam/v1/" + m_config.m_namespace + "/node/+/presence"}); !l_result) {
+			(void) m_client->m_client.disconnect()->wait_for(std::chrono::milliseconds(500));
+			m_worker.stop();
+			m_client.reset();
+			return l_result;
+		}
 		m_open.store(true);
 		return {};
-	}
-
-	void MqttTransport::stop_worker() {
-		{
-			const std::lock_guard<std::mutex> l_lock(m_work_mutex);
-			m_stop_worker = true;
-		}
-		m_work_condition.notify_all();
-		if (m_worker.joinable()) {
-			m_worker.join();
-		}
 	}
 
 	Result<void> MqttTransport::close(const std::chrono::milliseconds p_timeout) {
@@ -355,7 +299,7 @@ namespace cam::transport {
 			return make_error(ErrorCategory::State, ErrorCode::NotConnected, "mqtt transport not open");
 		}
 		m_open.store(false);
-		stop_worker();
+		m_worker.stop();
 		Result<void> l_result;
 		try {
 			if (m_client->m_client.is_connected()) {
@@ -386,22 +330,8 @@ namespace cam::transport {
 			m_registry.remove(p_endpoint);
 			return l_result;
 		}
-		std::vector<Retained> l_retained;
-		{
-			const std::lock_guard<std::mutex> l_lock(m_mutex);
-			for (const auto& [l_environment, l_presence]: m_retained) {
-				if (l_environment != p_endpoint.environment_id()) {
-					l_retained.push_back(l_presence);
-				}
-			}
-		}
-		for (auto& l_presence: l_retained) {
-			if (l_presence.m_envelope) {
-				p_endpoint.deliver(l_presence.m_address, std::move(*l_presence.m_envelope));
-			} else {
-				p_endpoint.deliver(l_presence.m_address, std::move(l_presence.m_bytes));
-			}
-		}
+		m_presence.replay(p_endpoint);
+		p_endpoint.push_event(TransportEvent::Connected);
 		return {};
 	}
 
@@ -409,10 +339,7 @@ namespace cam::transport {
 		if (!m_registry.remove(p_endpoint)) {
 			return make_error(ErrorCategory::State, ErrorCode::NotAttached, "endpoint not attached");
 		}
-		{
-			const std::lock_guard<std::mutex> l_lock(m_mutex);
-			m_retained.erase(p_endpoint.environment_id());
-		}
+		m_presence.forget(p_endpoint.environment_id());
 		return unsubscribe(endpoint_keys(p_endpoint));
 	}
 
@@ -423,7 +350,7 @@ namespace cam::transport {
 		if (p_address.m_namespace != m_config.m_namespace) {
 			return make_error(ErrorCategory::Routing, ErrorCode::InvalidTarget, "address outside the transport namespace");
 		}
-		remember_presence(p_address, p_envelope, nullptr);
+		m_presence.remember(p_address, p_envelope);
 		const auto l_delivery = m_registry.deliver_locally(&p_sender, p_address, p_envelope);
 		if (!l_delivery.m_needs_network) {
 			return {};

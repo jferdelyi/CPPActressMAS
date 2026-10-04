@@ -42,5 +42,11 @@ add_subdirectory(${paho_mqtt_cpp_SOURCE_DIR} ${paho_mqtt_cpp_BINARY_DIR} EXCLUDE
 set_target_properties(paho-mqttpp3-static PROPERTIES CXX_STANDARD ${CMAKE_CXX_STANDARD} CXX_STANDARD_REQUIRED ON)
 
 add_library(cam_transport_mqtt STATIC ${CMAKE_CURRENT_LIST_DIR}/MqttTransport.cpp ${CMAKE_CURRENT_LIST_DIR}/MqttTransport.h)
-target_include_directories(cam_transport_mqtt PUBLIC ${paho_mqtt_cpp_SOURCE_DIR}/include)
+# Paho headers are a dependency: system headers, their warnings are not the project's (D36).
+target_include_directories(cam_transport_mqtt SYSTEM PUBLIC ${paho_mqtt_cpp_SOURCE_DIR}/include)
 target_link_libraries(cam_transport_mqtt PUBLIC ${CAM_CORE_TARGET} paho-mqttpp3-static)
+# Apple clang searches /usr/local/include before the -isystem directories: a Paho installed there shadows the
+# fetched headers (B20). Say so at configure time rather than compile against another copy silently.
+if (APPLE AND EXISTS /usr/local/include/mqtt/async_client.h)
+	message(WARNING "A Paho MQTT C++ installation in /usr/local/include/mqtt shadows the headers fetched by the project with Apple clang (B20): remove it, or expect its version and its warnings")
+endif()

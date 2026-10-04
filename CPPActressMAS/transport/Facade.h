@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "../Environment.h"
@@ -28,30 +29,40 @@
 /**
  * CPPActressMAS transport layer: the one-line entry point. The transports compiled in are chosen by the
  * scheme of a URL:
- *   loopback://[namespace]                       in-process transport
- *   mqtt://host[:port][/namespace][?options]     MQTT broker (CAM_TRANSPORT_MQTT)
- *   mqtts://host[:port][/namespace][?options]    MQTT over TLS
- * Options: mqtt=3.1.1, user=, password=, ca=, cert=, key=, verify=0, codec=compact.
- * Without connect(), an environment stays offline (D4).
+ *   loopback://[namespace]                               in-process transport
+ *   mqtt://host[:port][/namespace][?options]             MQTT broker (CAM_TRANSPORT_MQTT)
+ *   mqtts://host[:port][/namespace][?options]            MQTT over TLS
+ *   zenoh://[host:port][/namespace][?options]            Zenoh peer or router at host:port (CAM_TRANSPORT_ZENOH)
+ * Common options: ns=, codec=compact. MQTT: mqtt=3.1.1, user=, password=, ca=, cert=, key=, verify=0.
+ * Zenoh: mode=peer|client, listen=tcp/host:port (repeatable, comma separated), scouting=multicast.
+ * Without connect(), an environment stays offline (D4); a Zenoh URL needs a host, a listen option or
+ * multicast scouting.
  */
 namespace cam::transport {
 
 	/**
 	 * Schemes of the transports compiled in this build.
-	 * @return The schemes ("loopback", "mqtt", "mqtts"...)
+	 * @return The schemes ("loopback", "mqtt", "mqtts", "zenoh"...)
 	 **/
 	[[nodiscard]] std::vector<std::string> schemes();
+
+	/**
+	 * A transport URL taken apart: scheme, configuration, and the scheme-specific options of the query.
+	 **/
+	struct ParsedUrl {
+		std::string m_scheme;
+		std::string m_host;
+		std::string m_port;
+		TransportConfig m_config;
+		std::vector<std::pair<std::string, std::string>> m_options;  ///< query pairs the scheme interprets
+	};
 
 	/**
 	 * Parse a transport URL into a configuration.
 	 * @param p_url The URL
 	 * @param p_config Defaults to complete (namespace when the URL has none, timeouts...)
-	 * @return The scheme and the configuration, or an error
+	 * @return The parsed URL, or an error (unknown scheme, unknown option, invalid namespace)
 	 **/
-	struct ParsedUrl {
-		std::string m_scheme;
-		TransportConfig m_config;
-	};
 	[[nodiscard]] Result<ParsedUrl> parse_url(const std::string& p_url, TransportConfig p_config = {});
 
 	/**

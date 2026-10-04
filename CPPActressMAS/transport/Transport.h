@@ -20,7 +20,7 @@
 
 #include <chrono>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <vector>
 
@@ -116,12 +116,16 @@ namespace cam::transport {
 
 	/**
 	 * Registry of the endpoints attached to a transport, with the local fan-out shared by every
-	 * transport. Thread-safe: transports call it from their network threads.
+	 * transport. Thread-safe: transports call it from their network threads. Deliveries run under a
+	 * shared lock and never hand a pointer out; remove() takes the exclusive lock, so once it returns
+	 * no delivery to that endpoint is in flight and the endpoint may be destroyed.
 	 **/
 	class EndpointRegistry final {
 	private:
-		mutable std::mutex m_mutex;
+		mutable std::shared_mutex m_mutex;
 		std::vector<Endpoint*> m_endpoints;
+
+		[[nodiscard]] Endpoint* find_unlocked(const std::string& p_environment_id) const;
 
 	public:
 		/**
@@ -132,32 +136,49 @@ namespace cam::transport {
 		bool add(Endpoint& p_endpoint);
 
 		/**
-		 * Unregister an endpoint.
+		 * Unregister an endpoint, once the deliveries in flight are done.
 		 * @param p_endpoint The endpoint
 		 * @return False if it was not registered
 		 **/
 		bool remove(Endpoint& p_endpoint);
 
 		/**
-		 * Find the endpoint of an environment.
-		 * @param p_environment_id The environment id
-		 * @return The endpoint, or null
-		 **/
-		[[nodiscard]] Endpoint* find(const std::string& p_environment_id) const;
-
-		/**
-		 * Snapshot of the registered endpoints, except one.
-		 * @param p_except Endpoint to leave out (may be null)
-		 * @return The endpoints
-		 **/
-		[[nodiscard]] std::vector<Endpoint*> others(const Endpoint* p_except) const;
-
-		/**
 		 * True if an environment is attached here.
 		 * @param p_environment_id The environment id
 		 * @return True if local
 		 **/
-		[[nodiscard]] bool is_local(const std::string& p_environment_id) const { return find(p_environment_id) != nullptr; }
+		[[nodiscard]] bool is_local(const std::string& p_environment_id) const;
+
+		/**
+		 * Run an action on the endpoint of an environment, under the shared lock.
+		 * @param p_environment_id The environment id
+		 * @param p_action Callable taking Endpoint&
+		 * @return False if the environment is not attached here
+		 **/
+		template<typename Action>
+		bool with(const std::string& p_environment_id, Action&& p_action) const {
+			const std::shared_lock<std::shared_mutex> l_lock(m_mutex);
+			if (Endpoint* l_endpoint = find_unlocked(p_environment_id); l_endpoint) {
+				p_action(*l_endpoint);
+				return true;
+			}
+			return false;
+		}
+
+		/**
+		 * Run an action on every registered endpoint but one, under the shared lock.
+		 * @param p_except Endpoint to leave out (may be null)
+		 * @param p_action Callable taking Endpoint&
+		 **/
+		template<typename Action>
+		void for_each(const Endpoint* p_except, Action&& p_action) const {
+			const std::shared_lock<std::shared_mutex> l_lock(m_mutex);
+			for (Endpoint* l_endpoint: m_endpoints) {
+				if (l_endpoint != p_except) {
+					p_action(*l_endpoint);
+				}
+			}
+		}
 
 		/**
 		 * Result of a local fan-out.

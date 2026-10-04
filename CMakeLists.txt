@@ -26,6 +26,7 @@ option(BUILD_EXAMPLES "Enable building examples" OFF)
 option(BUILD_BENCH "Enable building benchmarks (bench/, performance protocol)" OFF)
 option(CAM_BUILD_TESTS "Enable building tests (tests/, CTest)" ${PROJECT_IS_TOP_LEVEL})
 option(CAM_TRANSPORT_MQTT "Build the MQTT transport (Eclipse Paho fetched and built by the project, needs OpenSSL)" OFF)
+option(CAM_TRANSPORT_ZENOH "Build the Zenoh transport (zenoh-c and zenoh-cpp 1.7.1 from the system)" OFF)
 
 if (BUILD_STATIC)
 	add_library(CPPActressMASStatic STATIC ${SOURCES})
@@ -62,9 +63,12 @@ endif()
 if (CAM_TRANSPORT_MQTT)
 	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/mqtt)
 endif()
+if (CAM_TRANSPORT_ZENOH)
+	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/zenoh)
+endif()
 
 # Facade: cam::transport::open(url) and cam::transport::connect(environment, url) over the transports
-# compiled in (loopback always, mqtt and mqtts with CAM_TRANSPORT_MQTT).
+# compiled in (loopback always, mqtt and mqtts with CAM_TRANSPORT_MQTT, zenoh with CAM_TRANSPORT_ZENOH).
 add_library(cam_transport STATIC
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.cpp
@@ -73,6 +77,10 @@ target_link_libraries(cam_transport PUBLIC ${CAM_CORE_TARGET})
 if (CAM_TRANSPORT_MQTT)
 	target_compile_definitions(cam_transport PRIVATE CAM_TRANSPORT_MQTT=1)
 	target_link_libraries(cam_transport PUBLIC cam_transport_mqtt)
+endif()
+if (CAM_TRANSPORT_ZENOH)
+	target_compile_definitions(cam_transport PRIVATE CAM_TRANSPORT_ZENOH=1)
+	target_link_libraries(cam_transport PUBLIC cam_transport_zenoh)
 endif()
 
 if (BUILD_EXAMPLES)
