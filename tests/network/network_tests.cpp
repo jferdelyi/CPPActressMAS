@@ -218,10 +218,12 @@ namespace {
 	}
 
 	// One node per environment, in the namespace of the test.
-	Result<void> connect(cam::Environment& p_environment, const std::string& p_name, const std::string& p_namespace) {
+	Result<void> connect(cam::Environment& p_environment, const std::string& p_name, const std::string& p_namespace,
+						 const std::string& p_query = {}) {
 		EndpointConfig l_config;
 		l_config.m_name = p_name;
-		return cam::transport::connect(p_environment, g_url + "/" + p_namespace + "-" + process_suffix(), l_config);
+		return cam::transport::connect(p_environment, g_url + "/" + p_namespace + "-" + process_suffix() + (p_query.empty() ? "" : "?" + p_query),
+									   l_config);
 	}
 
 	// Runs the environments in threads until the condition holds or the deadline passes.
@@ -286,6 +288,26 @@ TEST_SUITE("mqtt") {
 		// Nothing listens on port 1: the connection is refused at once, no broker involved.
 		const auto l_refused = cam::transport::open("mqtt://127.0.0.1:1/cam-test-open");
 		CHECK_FALSE(l_refused);
+	}
+
+	TEST_CASE("the envelope codec is chosen by the URL, per namespace") {
+		for (const std::string l_codec: {"compact", "json"}) {
+			CAPTURE(l_codec);
+			g_recorder.clear();
+			TestEnvironment l_env_a("A");
+			TestEnvironment l_env_b("B");
+			REQUIRE(connect(l_env_a, "A", "cam-test-codec-" + l_codec, "codec=" + l_codec));
+			REQUIRE(connect(l_env_b, "B", "cam-test-codec-" + l_codec, "codec=" + l_codec));
+			const std::string l_receiver = l_env_b.add<Receiver>("receiver");
+			l_env_b.add<Keeper>("keeper-b");
+			l_env_a.add<RemoteSender>("sender", l_receiver);
+			l_env_a.add<Keeper>("keeper-a");
+			const bool l_delivered = run_until({&l_env_b, &l_env_a}, [] { return g_recorder.contains("receiver:\"hello from afar\""); }, 15s);
+			CHECK(l_delivered);
+			CHECK(l_env_b.statistics().m_rejected == 0);
+			REQUIRE(l_env_a.disconnect());
+			REQUIRE(l_env_b.disconnect());
+		}
 	}
 
 	TEST_CASE("an environment discovers the other environments connected to the broker") {

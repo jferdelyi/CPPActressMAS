@@ -27,7 +27,7 @@
 #include <zenoh.hxx>
 #include <uuid/UUID.hpp>
 
-#include "../CompactCodec.h"
+#include "../ProtobufCodec.h"
 
 #if defined(__SANITIZE_THREAD__)
 #define CAM_THREAD_SANITIZER 1
@@ -132,7 +132,7 @@ namespace cam::transport {
 	ZenohTransport::ZenohTransport(TransportConfig p_config, ZenohOptions p_options, std::shared_ptr<const EnvelopeCodec> p_codec) :
 			m_config(std::move(p_config)),
 			m_options(std::move(p_options)),
-			m_codec(p_codec ? std::move(p_codec) : std::make_shared<CompactCodec>()),
+			m_codec(p_codec ? std::move(p_codec) : std::make_shared<ProtobufCodec>()),
 			m_node_id(UUID::generate_uuid()) {
 	}
 

@@ -60,13 +60,14 @@ class Agent1 final : public cam::Agent {
 			for (int i = 0; i < 10; i++) {
 				std::cout << "[" + get_name() + "]: setup " << std::to_string(i + 1) << std::endl;
 				ContentInfo l_content(i + 1, "setup from a1*");
-				send_by_name("a2", l_content.serialize_to_stream().str());
+				const std::string l_bytes = l_content.serialize_to_stream().str();
+				send_by_name("a2", reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::stringstream l_stream = std::stringstream(p_message->content().get<std::string>());
+			std::stringstream l_stream = std::stringstream(std::string(p_message->as_bytes().begin(), p_message->as_bytes().end()));
 			const ContentInfo l_content(l_stream);
 			std::cout << "[" + get_name() + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -81,13 +82,14 @@ class Agent2 final : public cam::Agent {
 			for (int i = 0; i < 3; i++) {
 				std::cout << "[" + get_name() + "]: setup " << std::to_string(i + 1) << std::endl;
 				ContentInfo l_content(i + 1, "setup from a2");
-				send(get_first_agent_by_name("a1*").value(), l_content.serialize_to_stream().str());
+				const std::string l_bytes = l_content.serialize_to_stream().str();
+				send(get_first_agent_by_name("a1*").value(), reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::stringstream l_stream = std::stringstream(p_message->content().get<std::string>());
+			std::stringstream l_stream = std::stringstream(std::string(p_message->as_bytes().begin(), p_message->as_bytes().end()));
 			const ContentInfo l_content(l_stream);
 			std::cout << "[" + get_name() + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));

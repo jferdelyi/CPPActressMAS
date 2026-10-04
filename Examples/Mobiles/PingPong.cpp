@@ -65,8 +65,12 @@ public:
 };
 
 int main(int argc, char** argv) {
-	const std::string l_url_pong = argc > 1 ? argv[1] : "zenoh://?listen=tcp/127.0.0.1:17448&ns=pingpong";
-	const std::string l_url_ping = argc > 2 ? argv[2] : (argc > 1 ? l_url_pong : "zenoh://127.0.0.1:17448/pingpong");
+	// Without argument the two environments share the in-process loopback, available in every build.
+	// With a URL they go through the network, for example:
+	//   MobilePingPong "zenoh://?listen=tcp/127.0.0.1:17448&ns=pingpong" "zenoh://127.0.0.1:17448/pingpong"
+	//   MobilePingPong "mqtt://127.0.0.1:1883/pingpong"
+	const std::string l_url_pong = argc > 1 ? argv[1] : "loopback://pingpong";
+	const std::string l_url_ping = argc > 2 ? argv[2] : l_url_pong;
 
 	// A remote message reaches its agent at the turn after its reception: a few turns are needed.
 	cam::Environment l_environment_b(10, cam::EnvironmentMasMode::Parallel, 100);

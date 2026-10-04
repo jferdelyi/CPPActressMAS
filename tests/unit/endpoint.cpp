@@ -22,6 +22,7 @@
 #include <doctest/doctest.h>
 
 #include <transport/CompactCodec.h>
+#include <transport/ProtobufCodec.h>
 #include <transport/LoopbackTransport.h>
 
 namespace {
@@ -242,7 +243,7 @@ TEST_SUITE("endpoint") {
 	}
 
 	TEST_CASE("receiving: bytes are decoded with the transport codec at the turn boundary") {
-		const CompactCodec l_codec;
+		const ProtobufCodec l_codec;  // the default codec of a transport (D30)
 		Endpoint l_endpoint(ME, EndpointConfig{});
 		auto l_encoded = l_codec.encode(message(1, 1));
 		REQUIRE(l_encoded);
@@ -327,7 +328,7 @@ TEST_SUITE("endpoint") {
 			CHECK(l_result.error().m_code == ErrorCode::InvalidTarget);
 			CHECK(l_transport->capabilities().m_pubsub);
 			CHECK(l_transport->capabilities().m_retained_presence);
-			CHECK(l_transport->codec()->name() == std::string("compact"));
+			CHECK(l_transport->codec()->name() == std::string("protobuf"));
 			CHECK(is_canonical_uuid(l_transport->node_id()));
 			REQUIRE(l_endpoint.detach());
 		}

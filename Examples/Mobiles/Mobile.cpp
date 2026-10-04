@@ -147,8 +147,12 @@ public:
 };
 
 int main(int argc, char** argv) {
-	const std::string l_url_c = argc > 1 ? argv[1] : "zenoh://?listen=tcp/127.0.0.1:17447&ns=mobile";
-	const std::string l_url_ab = argc > 2 ? argv[2] : (argc > 1 ? l_url_c : "zenoh://127.0.0.1:17447/mobile");
+	// Without argument the three environments share the in-process loopback, available in every build.
+	// With a URL they go through the network, for example:
+	//   Mobile "zenoh://?listen=tcp/127.0.0.1:17447&ns=mobile" "zenoh://127.0.0.1:17447/mobile"
+	//   Mobile "mqtt://127.0.0.1:1883/mobile"
+	const std::string l_url_c = argc > 1 ? argv[1] : "loopback://mobile";
+	const std::string l_url_ab = argc > 2 ? argv[2] : l_url_c;
 
 	// A turn every 100 ms: the peers have time to announce themselves and the trip stays readable.
 	cam::Environment l_environment_c(0, cam::EnvironmentMasMode::Parallel, 100);

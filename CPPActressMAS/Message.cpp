@@ -18,86 +18,94 @@
 
 #include "Message.h"
 
-cam::Message::Message(std::string p_sender, std::string p_receiver, const json& p_message,
-					  const MessageBinaryFormat& p_binary_format) :
+namespace {
+
+	const std::string s_no_text;
+	const json s_no_json;
+	const std::vector<std::uint8_t> s_no_bytes;
+
+} // namespace
+
+cam::Message::Message(std::string p_sender, std::string p_receiver, const json& p_message) :
 		m_sender(std::move(p_sender)),
 		m_receiver(std::move(p_receiver)),
-		m_binary_format(p_binary_format),
-		m_binary_message(cam::Message::to_binary(p_message, m_binary_format)) {
+		m_content(std::make_shared<const json>(p_message)) {
 }
 
-cam::Message::Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length,
-					  const MessageBinaryFormat& p_binary_format) :
+cam::Message::Message(std::string p_sender, std::string p_receiver, std::shared_ptr<const json> p_message) :
 		m_sender(std::move(p_sender)),
 		m_receiver(std::move(p_receiver)),
-		m_binary_format(p_binary_format) {
-	if (p_message) {
-		m_binary_message = std::vector(p_message, p_message + p_length);
-	}
+		m_content(p_message ? MessageContent(std::move(p_message)) : MessageContent()) {
+}
+
+cam::Message::Message(std::string p_sender, std::string p_receiver, std::string p_text) :
+		m_sender(std::move(p_sender)),
+		m_receiver(std::move(p_receiver)),
+		m_content(std::move(p_text)) {
+}
+
+cam::Message::Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length) :
+		m_sender(std::move(p_sender)),
+		m_receiver(std::move(p_receiver)),
+		m_content(p_message ? std::vector(p_message, p_message + p_length) : std::vector<std::uint8_t>()) {
+}
+
+cam::Message::Message(std::string p_sender, std::string p_receiver, MessageContent p_content) :
+		m_sender(std::move(p_sender)),
+		m_receiver(std::move(p_receiver)),
+		m_content(std::move(p_content)) {
 }
 
 cam::Message::Message() :
 		m_sender(),
 		m_receiver(),
-		m_binary_format(MessageBinaryFormat::MessagePack),
-		m_binary_message() {
+		m_content() {
+}
+
+cam::ContentKind cam::Message::kind() const {
+	switch (m_content.index()) {
+		case 1: return ContentKind::Text;
+		case 2: return ContentKind::Json;
+		case 3: return ContentKind::Bytes;
+		default: return ContentKind::None;
+	}
+}
+
+const std::string& cam::Message::as_text() const {
+	const auto* l_text = std::get_if<std::string>(&m_content);
+	return l_text ? *l_text : s_no_text;
+}
+
+const json& cam::Message::as_json() const {
+	const auto* l_json = std::get_if<std::shared_ptr<const json>>(&m_content);
+	return l_json && *l_json ? **l_json : s_no_json;
+}
+
+const std::vector<std::uint8_t>& cam::Message::as_bytes() const {
+	const auto* l_bytes = std::get_if<std::vector<std::uint8_t>>(&m_content);
+	return l_bytes ? *l_bytes : s_no_bytes;
 }
 
 json cam::Message::content() const {
-	return cam::Message::to_json(m_binary_message, m_binary_format);
+	switch (kind()) {
+		case ContentKind::Text: return as_text();
+		case ContentKind::Json: return as_json();
+		case ContentKind::Bytes: return std::string(as_bytes().begin(), as_bytes().end());
+		case ContentKind::None:
+		default: return nullptr;
+	}
 }
 
 std::string cam::Message::to_string() const {
-	if (m_binary_format == MessageBinaryFormat::RAW) {
-		return content();
+	switch (kind()) {
+		case ContentKind::Text: return as_text();
+		case ContentKind::Json: return as_json().dump();
+		case ContentKind::Bytes: return std::string(as_bytes().begin(), as_bytes().end());
+		case ContentKind::None:
+		default: return {};
 	}
-	return content().dump();
 }
 
 std::string cam::Message::format() const {
 	return "[" + m_sender + " -> " + m_receiver + "]: " + to_string();
-}
-
-json
-cam::Message::to_json(const std::vector<std::uint8_t>& p_binary_message, const MessageBinaryFormat& p_binary_format) {
-	switch (p_binary_format) {
-		case MessageBinaryFormat::BJData:
-			return json::from_bjdata(p_binary_message);
-
-		case MessageBinaryFormat::BSON:
-			return json::from_bson(p_binary_message);
-
-		case MessageBinaryFormat::CBOR:
-			return json::from_cbor(p_binary_message);
-
-		case MessageBinaryFormat::UBJSON:
-			return json::from_ubjson(p_binary_message);
-
-		case MessageBinaryFormat::RAW:
-			return std::string(p_binary_message.begin(), p_binary_message.end());
-
-		case MessageBinaryFormat::MessagePack:
-		default:
-			return json::from_msgpack(p_binary_message);
-	}
-}
-
-std::vector<std::uint8_t> cam::Message::to_binary(const json& p_message, const MessageBinaryFormat& p_binary_format) {
-	switch (p_binary_format) {
-		case MessageBinaryFormat::BJData:
-			return json::to_bjdata(p_message);
-
-		case MessageBinaryFormat::BSON:
-			return json::to_bson(p_message);
-
-		case MessageBinaryFormat::CBOR:
-			return json::to_cbor(p_message);
-
-		case MessageBinaryFormat::UBJSON:
-			return json::to_ubjson(p_message);
-
-		case MessageBinaryFormat::MessagePack:
-		default:
-			return json::to_msgpack(p_message);
-	}
 }

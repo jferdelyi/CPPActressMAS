@@ -1,0 +1,143 @@
+// CPPActressMAS envelope, version 1: the contract of the "protobuf" envelope codec (codec id 2).
+//
+// On the wire an encoded envelope is the 4-byte header of every CPPActressMAS codec (magic 0xCA, codec id,
+// codec major version, reserved) followed by one Envelope message in the proto3 wire format. The project
+// does not compile this file: its codec writes and reads the wire format directly (no libprotobuf), and
+// this file is what another implementation (prost, nanopb, protoc) uses to speak to it. The binary
+// vectors of tests/vectors/envelope/protobuf/v1/ were checked against protoc.
+//
+// Field numbers never change; new fields take new numbers; unknown fields are ignored.
+
+syntax = "proto3";
+
+package cam.transport.v1;
+
+option optimize_for = LITE_RUNTIME;
+
+enum EnvelopeKind {
+  MESSAGE = 0;
+  AGENT_OFFER = 1;
+  AGENT_ACCEPT = 2;
+  AGENT_REJECT = 3;
+  AGENT_COMMIT = 4;
+  AGENT_ABORT = 5;
+  PRESENCE = 6;
+  DIRECTORY = 7;
+  QUERY = 8;
+  REPLY = 9;
+}
+
+enum StreamKind {
+  IN = 0;
+  AGENT = 1;
+  STREAM_QUERY = 2;
+  STREAM_PRESENCE = 3;
+  ALL = 4;
+}
+
+enum TargetKind {
+  ID = 0;
+  NAME = 1;
+  FRAGMENT = 2;
+  BROADCAST = 3;
+  ENVIRONMENT = 4;
+}
+
+enum Scope {
+  LOCAL = 0;
+  NETWORK = 1;
+}
+
+// Encoding of the content bytes (cam::MessageBinaryFormat).
+enum ContentEncoding {
+  RAW = 0;
+  BJDATA = 1;
+  BSON = 2;
+  CBOR = 3;
+  MESSAGEPACK = 4;
+  UBJSON = 5;
+  TEXT = 6;
+  JSON = 7;
+}
+
+enum DirectoryEventKind {
+  AGENT_ADDED = 0;
+  AGENT_REMOVED = 1;
+  AGENT_MOVED = 2;
+}
+
+message AgentEntry {
+  string id = 1;
+  string name = 2;
+}
+
+// Payload of an AGENT_OFFER: the agent on the move, its state and the messages it had not consumed.
+message AgentTransfer {
+  string transfer_id = 1;
+  string type_name = 2;
+  string agent_id = 3;
+  string agent_name = 4;
+  ContentEncoding state_encoding = 5;
+  bytes state = 6;
+  repeated Envelope queue = 7;
+  bool uses_observables = 8;
+  bytes observables = 9;
+}
+
+// Payload of AGENT_ACCEPT, AGENT_REJECT, AGENT_COMMIT and AGENT_ABORT.
+message AgentControl {
+  string transfer_id = 1;
+  string agent_id = 2;
+  bool accepted = 3;
+  string reason = 4;
+}
+
+// Payload of a PRESENCE: an environment (or a node, whose environment_id is its node_id) announces itself.
+message Presence {
+  string node_id = 1;
+  string environment_id = 2;
+  string environment_name = 3;
+  string namespace = 4;
+  bool online = 5;
+  bool has_turn = 6;
+  uint64 turn = 7;
+  uint64 timestamp_ms = 8;
+  repeated AgentEntry agents = 9;
+}
+
+// Payload of a DIRECTORY event.
+message DirectoryEvent {
+  DirectoryEventKind event = 1;
+  string agent_id = 2;
+  string agent_name = 3;
+  string environment_id = 4;
+  string previous_environment_id = 5;
+}
+
+message Envelope {
+  uint32 version_major = 1;
+  uint32 version_minor = 2;
+  EnvelopeKind kind = 3;
+  string sender_environment = 4;
+  string origin_environment = 5;
+  uint32 epoch = 6;
+  StreamKind stream_kind = 7;
+  string stream_target = 8;
+  uint64 sequence = 9;
+  string conversation_id = 10;
+  string sender_agent = 11;
+  TargetKind target_kind = 12;
+  string target_id = 13;
+  string target_name = 14;
+  bool first_only = 15;
+  Scope scope = 16;
+  ContentEncoding content_encoding = 17;
+  bytes content = 18;
+  uint32 priority = 19;
+  oneof payload {
+    AgentTransfer transfer = 20;
+    AgentControl control = 21;
+    Presence presence = 22;
+    DirectoryEvent directory = 23;
+  }
+}

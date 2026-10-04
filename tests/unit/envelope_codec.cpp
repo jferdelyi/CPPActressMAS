@@ -27,6 +27,9 @@
 #include <iterator>
 
 #include <transport/CompactCodec.h>
+#include <transport/EnvelopeCodec.h>
+#include <transport/JsonCodec.h>
+#include <transport/ProtobufCodec.h>
 
 namespace {
 
@@ -234,6 +237,14 @@ namespace {
 		return l_envelope;
 	}
 
+	Envelope text_message() {
+		Envelope l_envelope = message_by_id();
+		l_envelope.m_sequence = 43;
+		l_envelope.m_content_encoding = cam::MessageBinaryFormat::Text;
+		l_envelope.m_content = bytes("hello in clear");
+		return l_envelope;
+	}
+
 	Envelope empty_message() {
 		Envelope l_envelope = message_by_id();
 		l_envelope.m_content_encoding = cam::MessageBinaryFormat::RAW;
@@ -338,6 +349,7 @@ namespace {
 			{"message_by_id", message_by_id},
 			{"message_by_name_first_only", message_by_name_first_only},
 			{"broadcast_forwarded", broadcast_forwarded},
+			{"text_message", text_message},
 			{"empty_message", empty_message},
 			{"presence_online", presence_online},
 			{"presence_offline", presence_offline},
@@ -356,7 +368,7 @@ namespace {
 		l_out.write(reinterpret_cast<const char*>(p_bytes.data()), static_cast<std::streamsize>(p_bytes.size()));
 	}
 
-	std::vector<std::uint8_t> encode(const CompactCodec& p_codec, const Envelope& p_envelope) {
+	std::vector<std::uint8_t> encode(const EnvelopeCodec& p_codec, const Envelope& p_envelope) {
 		auto l_result = p_codec.encode(p_envelope);
 		REQUIRE(l_result);
 		return l_result.value();
@@ -382,24 +394,50 @@ TEST_SUITE("envelope_codec") {
 		CHECK_FALSE(EnvelopeCodec::read_header(std::vector<std::uint8_t>{0x00, 1, 1, 0}));
 	}
 
-	TEST_CASE("compact: every sample round-trips") {
-		const CompactCodec l_codec;
-		for (const Sample& l_sample: SAMPLES) {
-			CAPTURE(l_sample.m_name);
-			const Envelope l_original = l_sample.m_make();
-			REQUIRE(validate_envelope(l_original, MAX_BYTES));
-			const auto l_bytes = encode(l_codec, l_original);
-			const auto l_decoded = l_codec.decode(l_bytes, MAX_BYTES);
-			REQUIRE_MESSAGE(l_decoded.has_value(), (l_decoded ? std::string() : l_decoded.error().m_message));
-			CHECK(to_json(l_decoded.value()) == to_json(l_original));
+	TEST_CASE("codecs: names, identifiers, default") {
+		const auto l_names = codec_names();
+		REQUIRE(l_names.size() == 3);
+		CHECK(l_names[0] == "protobuf");
+		CHECK(make_codec("protobuf")->id() == ProtobufCodec::ID);
+		CHECK(make_codec("compact")->id() == CompactCodec::ID);
+		CHECK(make_codec("json")->id() == JsonCodec::ID);
+		CHECK(make_codec("cbor") == nullptr);
+		CHECK(TransportConfig{}.m_codec == "protobuf");
+		for (const auto& l_name: l_names) {
+			const auto l_codec = make_codec(l_name);
+			REQUIRE(l_codec);
+			CHECK(l_codec->name() == l_name);
+			CHECK(l_codec->version_major() == 1);
 		}
 	}
 
-	TEST_CASE("compact: binary vectors v1") {
-		const CompactCodec l_codec;
-		const std::string l_directory = std::string(CAM_VECTORS_DIR) + "/envelope/compact/v1/";
+	TEST_CASE("every sample round-trips through every codec") {
+		for (const auto& l_name: codec_names()) {
+			const auto l_codec = make_codec(l_name);
+			for (const Sample& l_sample: SAMPLES) {
+				CAPTURE(l_name);
+				CAPTURE(l_sample.m_name);
+				const Envelope l_original = l_sample.m_make();
+				REQUIRE(validate_envelope(l_original, MAX_BYTES));
+				const auto l_bytes = encode(*l_codec, l_original);
+				REQUIRE(l_bytes.size() > ENVELOPE_HEADER_SIZE);
+				CHECK(l_bytes[0] == ENVELOPE_MAGIC);
+				CHECK(l_bytes[1] == l_codec->id());
+				const auto l_decoded = l_codec->decode(l_bytes, MAX_BYTES);
+				REQUIRE_MESSAGE(l_decoded.has_value(), (l_decoded ? std::string() : l_decoded.error().m_message));
+				CHECK(to_json(l_decoded.value()) == to_json(l_original));
+			}
+		}
+	}
+
+	TEST_CASE("binary vectors v1 of every codec") {
 		const bool l_write = std::getenv("CAM_WRITE_VECTORS") != nullptr;
+		for (const auto& l_name: codec_names()) {
+		const auto l_codec_pointer = make_codec(l_name);
+		const EnvelopeCodec& l_codec = *l_codec_pointer;
+		const std::string l_directory = std::string(CAM_VECTORS_DIR) + "/envelope/" + l_name + "/v1/";
 		for (const Sample& l_sample: SAMPLES) {
+			CAPTURE(l_name);
 			CAPTURE(l_sample.m_name);
 			const std::string l_bin_path = l_directory + l_sample.m_name + ".bin";
 			const std::string l_json_path = l_directory + l_sample.m_name + ".json";
@@ -425,14 +463,159 @@ TEST_SUITE("envelope_codec") {
 			// The in-code sample still matches its vector (a change of either is deliberate).
 			CHECK(to_json(l_original) == l_description);
 		}
+		}
 	}
 
-	TEST_CASE("compact: size of a bare message stays close to the micro-benchmark") {
-		const CompactCodec l_codec;
-		Envelope l_envelope = empty_message();
-		const auto l_bytes = encode(l_codec, l_envelope);
-		// 4 header + fixed scalars + four UUID strings: around 220 bytes, no padding, no schema.
-		CHECK(l_bytes.size() < 260);
+	TEST_CASE("size of a bare message stays close to the micro-benchmark") {
+		const Envelope l_envelope = empty_message();
+		// compact: 4 header + fixed scalars + four UUID strings, around 220 bytes; protobuf omits the
+		// defaults and prefixes with varints: smaller still; json spells the names out.
+		CHECK(encode(CompactCodec(), l_envelope).size() < 260);
+		CHECK(encode(ProtobufCodec(), l_envelope).size() < 200);
+		CHECK(encode(JsonCodec(), l_envelope).size() < 700);
+	}
+
+	TEST_CASE("protobuf: proto3 wire format details") {
+		const ProtobufCodec l_codec;
+		const Envelope l_original = message_by_id();
+		const auto l_good = encode(l_codec, l_original);
+
+		SUBCASE("an unknown field is skipped") {
+			auto l_bytes = l_good;
+			// field 99, varint: tag = (99 << 3) | 0 = 792 → varint 0x98 0x06, value 1
+			l_bytes.push_back(0x98); l_bytes.push_back(0x06); l_bytes.push_back(0x01);
+			// field 100, length-delimited: tag (100 << 3) | 2 = 802 → varint 0xA2 0x06, length 3, three bytes
+			l_bytes.push_back(0xA2); l_bytes.push_back(0x06); l_bytes.push_back(3); l_bytes.push_back('a'); l_bytes.push_back('b'); l_bytes.push_back('c');
+			const auto l_decoded = l_codec.decode(l_bytes, MAX_BYTES);
+			REQUIRE_MESSAGE(l_decoded.has_value(), (l_decoded ? std::string() : l_decoded.error().m_message));
+			CHECK(to_json(l_decoded.value()) == to_json(l_original));
+		}
+		SUBCASE("a wrong wire type is refused") {
+			auto l_bytes = l_good;
+			l_bytes.push_back((4 << 3) | 0);  // sender_environment as a varint
+			l_bytes.push_back(1);
+			CHECK_FALSE(l_codec.decode(l_bytes, MAX_BYTES));
+		}
+		SUBCASE("a group is refused") {
+			auto l_bytes = l_good;
+			l_bytes.push_back((30 << 3) | 3);  // an unknown field as a start-group
+			CHECK_FALSE(l_codec.decode(l_bytes, MAX_BYTES));
+		}
+		SUBCASE("an enum out of range is refused by the validation") {
+			auto l_bytes = l_good;
+			l_bytes.push_back((3 << 3) | 0);  // kind, last occurrence wins
+			l_bytes.push_back(200); l_bytes.push_back(1);
+			const auto l_result = l_codec.decode(l_bytes, MAX_BYTES);
+			REQUIRE_FALSE(l_result);
+			CHECK(l_result.error().m_code == ErrorCode::InvalidEnvelope);
+		}
+		SUBCASE("a missing version is refused") {
+			// Everything but field 1: rebuild from the sample with version 0, which proto3 omits.
+			Envelope l_unversioned = l_original;
+			l_unversioned.m_version_major = 0;
+			const auto l_bytes = l_codec.encode(l_unversioned);
+			REQUIRE(l_bytes);
+			const auto l_result = l_codec.decode(l_bytes.value(), MAX_BYTES);
+			REQUIRE_FALSE(l_result);
+			CHECK(l_result.error().m_code == ErrorCode::UnsupportedVersion);
+		}
+		SUBCASE("defaults are omitted") {
+			// A RAW empty content writes neither the encoding (0) nor the content (empty): the bare message
+			// is just the header, the version, the kind and the four identifiers with their tags.
+			const auto l_empty = encode(l_codec, empty_message());
+			CHECK(l_empty.size() < l_good.size());
+			CHECK(l_empty.size() <= ENVELOPE_HEADER_SIZE + 2 + 2 + 4 * (2 + 36) + 2 + 6);  // version, kind, four identifiers, epoch, sequence: nothing else
+		}
+	}
+
+	TEST_CASE("json: readable envelope") {
+		const JsonCodec l_codec;
+		const auto l_bytes = encode(l_codec, text_message());
+		const std::string l_text(l_bytes.begin() + ENVELOPE_HEADER_SIZE, l_bytes.end());
+		CHECK(l_text.find("\"content_text\":\"hello in clear\"") != std::string::npos);
+		CHECK(l_text.find("\"kind\":\"message\"") != std::string::npos);
+		CHECK(l_text.find("\"content_encoding\":\"text\"") != std::string::npos);
+
+		SUBCASE("invalid JSON is refused") {
+			auto l_cut = l_bytes;
+			l_cut.resize(l_cut.size() - 1);
+			CHECK_FALSE(l_codec.decode(l_cut, MAX_BYTES));
+		}
+		SUBCASE("an unknown enum name is refused") {
+			std::string l_bad = l_text;
+			l_bad.replace(l_bad.find("\"kind\":\"message\""), 16, "\"kind\":\"rumour\"");
+			std::vector<std::uint8_t> l_frame(l_bytes.begin(), l_bytes.begin() + ENVELOPE_HEADER_SIZE);
+			l_frame.insert(l_frame.end(), l_bad.begin(), l_bad.end());
+			CHECK_FALSE(l_codec.decode(l_frame, MAX_BYTES));
+		}
+		SUBCASE("unknown members are ignored and absent members take their default") {
+			const std::string l_minimal = "{\"version_major\":1,\"kind\":\"message\",\"sender_environment\":\"" + ENV_A + "\",\"stream_target\":\"" + ENV_B +
+										  "\",\"sender_agent\":\"" + AGENT_1 + "\",\"target_id\":\"" + AGENT_2 + "\",\"future_member\":{\"x\":1}}";
+			std::vector<std::uint8_t> l_frame(l_bytes.begin(), l_bytes.begin() + ENVELOPE_HEADER_SIZE);
+			l_frame.insert(l_frame.end(), l_minimal.begin(), l_minimal.end());
+			const auto l_decoded = l_codec.decode(l_frame, MAX_BYTES);
+			REQUIRE_MESSAGE(l_decoded.has_value(), (l_decoded ? std::string() : l_decoded.error().m_message));
+			CHECK(l_decoded.value().m_sequence == 0);
+			CHECK(l_decoded.value().m_content.empty());
+		}
+		SUBCASE("bad base64 is refused") {
+			const std::string l_bad = "{\"version_major\":1,\"kind\":\"message\",\"sender_environment\":\"" + ENV_A + "\",\"stream_target\":\"" + ENV_B +
+									  "\",\"sender_agent\":\"" + AGENT_1 + "\",\"target_id\":\"" + AGENT_2 + "\",\"content\":\"not*base64\"}";
+			std::vector<std::uint8_t> l_frame(l_bytes.begin(), l_bytes.begin() + ENVELOPE_HEADER_SIZE);
+			l_frame.insert(l_frame.end(), l_bad.begin(), l_bad.end());
+			CHECK_FALSE(l_codec.decode(l_frame, MAX_BYTES));
+		}
+	}
+
+	TEST_CASE("every codec refuses a bad header, a foreign codec id, a wrong version and garbage") {
+		for (const auto& l_name: codec_names()) {
+			CAPTURE(l_name);
+			const auto l_codec = make_codec(l_name);
+			const auto l_good = encode(*l_codec, message_by_id());
+			auto l_magic = l_good;
+			l_magic[0] = 0xCB;
+			CHECK_FALSE(l_codec->decode(l_magic, MAX_BYTES));
+			auto l_other = l_good;
+			l_other[1] = static_cast<std::uint8_t>(l_codec->id() + 1);
+			const auto l_other_result = l_codec->decode(l_other, MAX_BYTES);
+			REQUIRE_FALSE(l_other_result);
+			CHECK(l_other_result.error().m_code == ErrorCode::UnsupportedCodec);
+			auto l_version = l_good;
+			l_version[2] = 2;
+			const auto l_version_result = l_codec->decode(l_version, MAX_BYTES);
+			REQUIRE_FALSE(l_version_result);
+			CHECK(l_version_result.error().m_code == ErrorCode::UnsupportedVersion);
+			const auto l_large = l_codec->decode(l_good, l_good.size() - 1);
+			REQUIRE_FALSE(l_large);
+			CHECK(l_large.error().m_code == ErrorCode::TooLarge);
+			// A cut inside the first string field never decodes; compact, with its fixed layout, refuses any
+			// cut, while a proto3 or JSON prefix ending on a field boundary may still be a valid envelope.
+			const std::vector<std::uint8_t> l_inside(l_good.begin(), l_good.begin() + ENVELOPE_HEADER_SIZE + 8);
+			CHECK_FALSE(l_codec->decode(l_inside, MAX_BYTES));
+			for (std::size_t l_size = 0; l_size < l_good.size(); l_size += 7) {
+				const std::vector<std::uint8_t> l_cut(l_good.begin(), l_good.begin() + static_cast<std::ptrdiff_t>(l_size));
+				const auto l_result = l_codec->decode(l_cut, MAX_BYTES);
+				if (l_name == "compact") {
+					CHECK_FALSE(l_result);
+				} else if (l_result) {
+					CHECK(validate_envelope(l_result.value(), MAX_BYTES));
+				}
+			}
+			std::uint32_t l_seed = 12345;
+			for (int i = 0; i < 1000; i++) {
+				std::vector<std::uint8_t> l_bytes(static_cast<std::size_t>(i % 300));
+				for (auto& l_byte: l_bytes) {
+					l_seed = l_seed * 1103515245u + 12345u;
+					l_byte = static_cast<std::uint8_t>(l_seed >> 16);
+				}
+				if (l_bytes.size() >= 3) {
+					l_bytes[0] = ENVELOPE_MAGIC;
+					l_bytes[1] = l_codec->id();
+					l_bytes[2] = l_codec->version_major();
+				}
+				(void) l_codec->decode(l_bytes, MAX_BYTES);
+			}
+		}
 	}
 
 	TEST_CASE("compact: malformed input is refused with a validation error") {

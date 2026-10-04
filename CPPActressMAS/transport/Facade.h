@@ -29,11 +29,12 @@
 /**
  * CPPActressMAS transport layer: the one-line entry point. The transports compiled in are chosen by the
  * scheme of a URL:
- *   loopback://[namespace]                               in-process transport
+ *   loopback://[namespace]                               in-process transport, shared by the environments of the process that name it
  *   mqtt://host[:port][/namespace][?options]             MQTT broker (CAM_TRANSPORT_MQTT)
  *   mqtts://host[:port][/namespace][?options]            MQTT over TLS
  *   zenoh://[host:port][/namespace][?options]            Zenoh peer or router at host:port (CAM_TRANSPORT_ZENOH)
- * Common options: ns=, codec=compact. MQTT: mqtt=3.1.1, user=, password=, ca=, cert=, key=, verify=0.
+ * Common options: ns=, codec=protobuf|compact|json (protobuf by default). MQTT: mqtt=3.1.1, user=, password=, ca=,
+ * cert=, key=, verify=0.
  * Zenoh: mode=peer|client, listen=tcp/host:port (repeatable, comma separated), scouting=multicast.
  * Without connect(), an environment stays offline (D4); a Zenoh URL needs a host, a listen option or
  * multicast scouting.

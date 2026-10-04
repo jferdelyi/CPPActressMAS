@@ -94,73 +94,106 @@ void cam::Agent::post(const MessagePointer& p_message) {
 
 namespace {
 
-	// Structured content travels in the encoding of the options, MessagePack by default.
-	cam::MessageBinaryFormat json_encoding(const cam::transport::SendOptions& p_options) {
-		const auto l_encoding = p_options.m_encoding.value_or(cam::MessageBinaryFormat::MessagePack);
-		return l_encoding == cam::MessageBinaryFormat::RAW ? cam::MessageBinaryFormat::MessagePack : l_encoding;
+	cam::MessageContent bytes_content(const uint8_t* p_message, const size_t& p_length) {
+		return p_message ? std::vector<std::uint8_t>(p_message, p_message + p_length) : std::vector<std::uint8_t>();
 	}
 
-	// Raw bytes carry the tag of the options, RAW by default.
-	cam::MessageBinaryFormat raw_encoding(const cam::transport::SendOptions& p_options) {
-		return p_options.m_encoding.value_or(cam::MessageBinaryFormat::RAW);
+	cam::MessageContent json_content(const json& p_message) {
+		return std::make_shared<const json>(p_message);
+	}
+
+	cam::MessageContent text_content(const char* p_text) {
+		return std::string(p_text ? p_text : "");
 	}
 
 } // namespace
 
 cam::transport::Result<void>
 cam::Agent::send(const std::string& p_receiver_id, const json& p_message, const transport::SendOptions& p_options) const {
-	const auto l_encoding = json_encoding(p_options);
-	const auto& l_binary_data = Message::to_binary(p_message, l_encoding);
-	return get_environment()->send(m_id, p_receiver_id, l_binary_data.data(), l_binary_data.size(), l_encoding, p_options);
+	return get_environment()->send_content(m_id, p_receiver_id, json_content(p_message), p_options);
+}
+
+cam::transport::Result<void>
+cam::Agent::send(const std::string& p_receiver_id, std::string p_text, const transport::SendOptions& p_options) const {
+	return get_environment()->send_content(m_id, p_receiver_id, MessageContent(std::move(p_text)), p_options);
+}
+
+cam::transport::Result<void>
+cam::Agent::send(const std::string& p_receiver_id, const char* p_text, const transport::SendOptions& p_options) const {
+	return get_environment()->send_content(m_id, p_receiver_id, text_content(p_text), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send(const std::string& p_receiver_id, const uint8_t* p_message, const size_t& p_length,
 				 const transport::SendOptions& p_options) const {
-	return get_environment()->send(m_id, p_receiver_id, p_message, p_length, raw_encoding(p_options), p_options);
+	return get_environment()->send_content(m_id, p_receiver_id, bytes_content(p_message, p_length), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_name(const std::string& p_receiver_name, const json& p_message, const bool p_first_only,
 						 const transport::SendOptions& p_options) const {
-	const auto l_encoding = json_encoding(p_options);
-	const auto& l_binary_data = Message::to_binary(p_message, l_encoding);
-	return get_environment()->send_by_name(m_id, p_receiver_name, l_binary_data.data(), l_binary_data.size(), false,
-										   p_first_only, l_encoding, p_options);
+	return get_environment()->send_content_by_name(m_id, p_receiver_name, json_content(p_message), false, p_first_only, p_options);
+}
+
+cam::transport::Result<void>
+cam::Agent::send_by_name(const std::string& p_receiver_name, std::string p_text, const bool p_first_only,
+						 const transport::SendOptions& p_options) const {
+	return get_environment()->send_content_by_name(m_id, p_receiver_name, MessageContent(std::move(p_text)), false, p_first_only, p_options);
+}
+
+cam::transport::Result<void>
+cam::Agent::send_by_name(const std::string& p_receiver_name, const char* p_text, const bool p_first_only,
+						 const transport::SendOptions& p_options) const {
+	return get_environment()->send_content_by_name(m_id, p_receiver_name, text_content(p_text), false, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_name(const std::string& p_receiver_name, const uint8_t* p_message, const size_t& p_length,
 						 const bool p_first_only, const transport::SendOptions& p_options) const {
-	return get_environment()->send_by_name(m_id, p_receiver_name, p_message, p_length, false, p_first_only,
-										   raw_encoding(p_options), p_options);
+	return get_environment()->send_content_by_name(m_id, p_receiver_name, bytes_content(p_message, p_length), false, p_first_only,
+												   p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_fragment_name(const std::string& p_fragment_name, const json& p_message, const bool p_first_only,
 								  const transport::SendOptions& p_options) const {
-	const auto l_encoding = json_encoding(p_options);
-	const auto& l_binary_data = Message::to_binary(p_message, l_encoding);
-	return get_environment()->send_by_name(m_id, p_fragment_name, l_binary_data.data(), l_binary_data.size(), true,
-										   p_first_only, l_encoding, p_options);
+	return get_environment()->send_content_by_name(m_id, p_fragment_name, json_content(p_message), true, p_first_only, p_options);
+}
+
+cam::transport::Result<void>
+cam::Agent::send_by_fragment_name(const std::string& p_fragment_name, std::string p_text, const bool p_first_only,
+								  const transport::SendOptions& p_options) const {
+	return get_environment()->send_content_by_name(m_id, p_fragment_name, MessageContent(std::move(p_text)), true, p_first_only, p_options);
+}
+
+cam::transport::Result<void>
+cam::Agent::send_by_fragment_name(const std::string& p_fragment_name, const char* p_text, const bool p_first_only,
+								  const transport::SendOptions& p_options) const {
+	return get_environment()->send_content_by_name(m_id, p_fragment_name, text_content(p_text), true, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message, const size_t& p_length,
 								  const bool p_first_only, const transport::SendOptions& p_options) const {
-	return get_environment()->send_by_name(m_id, p_fragment_name, p_message, p_length, true, p_first_only,
-										   raw_encoding(p_options), p_options);
+	return get_environment()->send_content_by_name(m_id, p_fragment_name, bytes_content(p_message, p_length), true, p_first_only,
+												   p_options);
 }
 
 cam::transport::Result<void> cam::Agent::broadcast(const json& p_message, const transport::SendOptions& p_options) const {
-	const auto l_encoding = json_encoding(p_options);
-	const auto& l_binary_data = Message::to_binary(p_message, l_encoding);
-	return get_environment()->broadcast(m_id, l_binary_data.data(), l_binary_data.size(), l_encoding, p_options);
+	return get_environment()->broadcast_content(m_id, json_content(p_message), p_options);
+}
+
+cam::transport::Result<void> cam::Agent::broadcast(std::string p_text, const transport::SendOptions& p_options) const {
+	return get_environment()->broadcast_content(m_id, MessageContent(std::move(p_text)), p_options);
+}
+
+cam::transport::Result<void> cam::Agent::broadcast(const char* p_text, const transport::SendOptions& p_options) const {
+	return get_environment()->broadcast_content(m_id, text_content(p_text), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::broadcast(const uint8_t* p_message, const size_t& p_length, const transport::SendOptions& p_options) const {
-	return get_environment()->broadcast(m_id, p_message, p_length, raw_encoding(p_options), p_options);
+	return get_environment()->broadcast_content(m_id, bytes_content(p_message, p_length), p_options);
 }
 
 void cam::Agent::reset() {

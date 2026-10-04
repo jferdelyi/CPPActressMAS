@@ -18,6 +18,10 @@
 
 #include "Facade.h"
 
+#include <map>
+#include <mutex>
+
+#include "EnvelopeCodec.h"
 #include "LoopbackTransport.h"
 #if CAM_TRANSPORT_MQTT
 #include "mqtt/MqttTransport.h"
@@ -165,7 +169,7 @@ namespace cam::transport {
 		if (!is_valid_namespace(p_config.m_namespace)) {
 			return invalid_url("invalid namespace: " + p_config.m_namespace);
 		}
-		if (p_config.m_codec != "compact") {
+		if (!make_codec(p_config.m_codec)) {
 			return make_error(ErrorCategory::State, ErrorCode::UnsupportedCodec, "unknown envelope codec: " + p_config.m_codec);
 		}
 		l_parsed.m_config = std::move(p_config);
@@ -178,16 +182,34 @@ namespace cam::transport {
 			return l_parsed.error();
 		}
 		ParsedUrl& l_url = l_parsed.value();
+		const auto l_codec = make_codec(l_url.m_config.m_codec);  // one codec per transport, so per namespace (D31)
 		std::shared_ptr<Transport> l_transport;
 		if (l_url.m_scheme == "loopback") {
-			l_transport = std::make_shared<LoopbackTransport>(std::move(l_url.m_config));
+			// The environments of one process that name the same loopback namespace share one transport:
+			// that is what lets them see each other (D46). A reused one is already open.
+			static std::mutex s_mutex;
+			static std::map<std::string, std::weak_ptr<LoopbackTransport>> s_loopbacks;
+			const std::lock_guard<std::mutex> l_lock(s_mutex);
+			if (auto l_shared = s_loopbacks[l_url.m_config.m_namespace].lock()) {
+				if (l_shared->config().m_codec != l_url.m_config.m_codec) {
+					return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration,
+									  "loopback namespace " + l_url.m_config.m_namespace + " already uses the codec " + l_shared->config().m_codec);
+				}
+				return std::shared_ptr<Transport>(l_shared);
+			}
+			auto l_loopback = std::make_shared<LoopbackTransport>(std::move(l_url.m_config), LoopbackOptions{}, l_codec);
+			if (const auto l_result = l_loopback->open(); !l_result) {
+				return l_result.error();
+			}
+			s_loopbacks[l_loopback->config().m_namespace] = l_loopback;
+			return std::shared_ptr<Transport>(l_loopback);
 		} else if (is_mqtt(l_url.m_scheme)) {
 #if CAM_TRANSPORT_MQTT
 			MqttOptions l_options;
 			for (const auto& [l_key, l_value]: l_url.m_options) {
 				if (l_key == "mqtt") l_options.m_mqtt5 = l_value != "3.1.1";
 			}
-			l_transport = std::make_shared<MqttTransport>(std::move(l_url.m_config), l_options);
+			l_transport = std::make_shared<MqttTransport>(std::move(l_url.m_config), l_options, l_codec);
 #else
 			return make_error(ErrorCategory::State, ErrorCode::NotSupported, "this build has no MQTT transport (CAM_TRANSPORT_MQTT)");
 #endif
@@ -203,7 +225,7 @@ namespace cam::transport {
 				else if (l_key == "listen") for (auto& l_endpoint: split_list(l_value)) l_options.m_listen.push_back(std::move(l_endpoint));
 				else if (l_key == "connect") for (auto& l_endpoint: split_list(l_value)) l_options.m_connect.push_back(std::move(l_endpoint));
 			}
-			l_transport = std::make_shared<ZenohTransport>(std::move(l_url.m_config), std::move(l_options));
+			l_transport = std::make_shared<ZenohTransport>(std::move(l_url.m_config), std::move(l_options), l_codec);
 #else
 			return make_error(ErrorCategory::State, ErrorCode::NotSupported, "this build has no Zenoh transport (CAM_TRANSPORT_ZENOH)");
 #endif

@@ -19,7 +19,10 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <span>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include "Envelope.h"
@@ -33,6 +36,8 @@ namespace cam::transport {
 
 	constexpr std::uint8_t ENVELOPE_MAGIC = 0xCA;
 	constexpr std::size_t ENVELOPE_HEADER_SIZE = 4;
+	constexpr std::size_t ENVELOPE_MAX_STRING_BYTES = 65535;  ///< longest string a codec accepts
+	constexpr std::size_t ENVELOPE_MAX_LIST_ITEMS = 65535;    ///< longest list a codec accepts
 
 	/**
 	 * Header found in front of every encoded envelope.
@@ -50,7 +55,7 @@ namespace cam::transport {
 		virtual ~EnvelopeCodec() = default;
 
 		/**
-		 * Identifier written in the header (1 = compact).
+		 * Identifier written in the header (1 = compact, 2 = protobuf, 3 = json).
 		 * @return The identifier
 		 **/
 		[[nodiscard]] virtual std::uint8_t id() const = 0;
@@ -106,5 +111,18 @@ namespace cam::transport {
 	 * @return Success, or a validation error
 	 **/
 	[[nodiscard]] Result<void> validate_envelope(const Envelope& p_envelope, std::size_t p_max_content_bytes);
+
+	/**
+	 * The codec of a configuration name: "protobuf" (default), "compact" or "json".
+	 * @param p_name The name
+	 * @return The codec, or null for an unknown name
+	 **/
+	[[nodiscard]] std::shared_ptr<const EnvelopeCodec> make_codec(std::string_view p_name);
+
+	/**
+	 * Names accepted by make_codec, default first.
+	 * @return The names
+	 **/
+	[[nodiscard]] std::vector<std::string> codec_names();
 
 } // namespace cam::transport

@@ -24,6 +24,7 @@
 #include <doctest/doctest.h>
 
 #include <Environment.h>
+#include <transport/EnvelopeCodec.h>
 #include <transport/LoopbackTransport.h>
 
 #include "Recorder.hpp"
@@ -58,6 +59,33 @@ namespace {
 				g_recorder.record(get_name() + ":sent");
 			} else {
 				g_recorder.record(get_name() + ":" + to_string(l_result.error().m_code));
+			}
+		}
+	private:
+		std::string m_target_id;
+		std::string m_text;
+		bool m_sent = false;
+	};
+
+	// Records every message as "<name>:<kind>:<content>".
+	struct TypedReceiver final : cam::Agent {
+		explicit TypedReceiver(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			const char* l_kind = p_message->kind() == cam::ContentKind::Text ? "text"
+								 : p_message->kind() == cam::ContentKind::Json ? "json"
+								 : p_message->kind() == cam::ContentKind::Bytes ? "bytes" : "none";
+			g_recorder.record(get_name() + ":" + l_kind + ":" + p_message->to_string());
+		}
+	};
+
+	// From its second turn on, sends one text by id until the send is accepted.
+	struct TextSender final : cam::Agent {
+		TextSender(const std::string& p_name, std::string p_target_id, std::string p_text) :
+				Agent(p_name), m_target_id(std::move(p_target_id)), m_text(std::move(p_text)) {}
+		void default_action() override {
+			if (m_sent) return;
+			if (send(m_target_id, m_text)) {
+				m_sent = true;
 			}
 		}
 	private:
@@ -127,8 +155,8 @@ namespace {
 		std::string m_label;
 	};
 
-	std::shared_ptr<LoopbackTransport> open_loopback(LoopbackOptions p_options = {}) {
-		auto l_transport = std::make_shared<LoopbackTransport>(TransportConfig{}, std::move(p_options));
+	std::shared_ptr<LoopbackTransport> open_loopback(LoopbackOptions p_options = {}, std::shared_ptr<const EnvelopeCodec> p_codec = nullptr) {
+		auto l_transport = std::make_shared<LoopbackTransport>(TransportConfig{}, std::move(p_options), std::move(p_codec));
 		REQUIRE(l_transport->open());
 		return l_transport;
 	}
@@ -219,8 +247,33 @@ TEST_SUITE("loopback") {
 		unicast_scenario(open_loopback());
 	}
 
-	TEST_CASE("unicast by id across two environments, serializing") {
-		unicast_scenario(open_loopback(LoopbackOptions{.m_serialize = true}));
+	TEST_CASE("unicast by id across two environments, serializing with every codec") {
+		for (const auto& l_name: codec_names()) {
+			CAPTURE(l_name);
+			g_recorder.clear();
+			unicast_scenario(open_loopback(LoopbackOptions{.m_serialize = true}, make_codec(l_name)));
+		}
+	}
+
+	TEST_CASE("a text content arrives as text through every codec") {
+		for (const auto& l_name: codec_names()) {
+			CAPTURE(l_name);
+			g_recorder.clear();
+			auto l_transport = open_loopback(LoopbackOptions{.m_serialize = true}, make_codec(l_name));
+			TestEnvironment l_a("A");
+			TestEnvironment l_b("B");
+			const std::string l_receiver = l_b.add<TypedReceiver>("r");
+			REQUIRE(l_b.connect(l_transport, named("B")));
+			REQUIRE(l_a.connect(l_transport, named("A")));
+			l_a.add<TextSender>("s", l_receiver, "hello in clear");
+			l_b.start();
+			l_a.start();
+			l_a.start();
+			l_b.start();
+			CHECK(g_recorder.contains("r:text:hello in clear"));
+			REQUIRE(l_a.disconnect());
+			REQUIRE(l_b.disconnect());
+		}
 	}
 
 	TEST_CASE("unknown destination") {
@@ -250,12 +303,11 @@ TEST_SUITE("loopback") {
 		g_recorder.clear();
 		cam::Environment l_env(1, Mode::Sequential);
 		l_env.add<Receiver>("r");
-		const auto l_result = l_env.broadcast("ext", raw("x"), 1, cam::MessageBinaryFormat::RAW, SendOptions{.m_scope = Scope::Network});
+		const auto l_result = l_env.broadcast("ext", raw("x"), 1, SendOptions{.m_scope = Scope::Network});
 		REQUIRE_FALSE(l_result);
 		CHECK(l_result.error().m_code == ErrorCode::NotConnected);
 		l_env.start();
-		const auto l_by_name = l_env.send_by_name("ext", "r", raw("y"), 1, false, true, cam::MessageBinaryFormat::RAW,
-												  SendOptions{.m_scope = Scope::Network});
+		const auto l_by_name = l_env.send_by_name("ext", "r", raw("y"), 1, false, true, SendOptions{.m_scope = Scope::Network});
 		REQUIRE_FALSE(l_by_name);
 		CHECK(l_by_name.error().m_code == ErrorCode::NotConnected);
 		l_env.start();

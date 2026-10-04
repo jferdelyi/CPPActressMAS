@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -32,16 +33,31 @@ using json = nlohmann::json;
 namespace cam {
 
 	/**
-	 * Message binary format
+	 * Encoding of a message content on the wire: RAW for opaque bytes, Text for UTF-8 text, JSON for
+	 * JSON text, the others for the binary encodings of a JSON value. A local message is never encoded.
 	 */
 	enum class MessageBinaryFormat {
-		RAW, BJData, BSON, CBOR, MessagePack, UBJSON
+		RAW, BJData, BSON, CBOR, MessagePack, UBJSON, Text, JSON
 	};
+
+	/**
+	 * What a message carries.
+	 */
+	enum class ContentKind {
+		None, Text, Json, Bytes
+	};
+
+	/**
+	 * Content of a message: nothing, UTF-8 text, an immutable JSON value shared between the receivers of
+	 * a broadcast, or opaque bytes.
+	 **/
+	using MessageContent = std::variant<std::monostate, std::string, std::shared_ptr<const json>, std::vector<std::uint8_t>>;
 
 	/**
 	 * A message that the agents use to communicate. In an agent-based system, the
 	 * communication between the agents is exclusively performed by exchanging
-	 * messages.
+	 * messages. The content stays typed as long as the message is local; the
+	 * transport encodes it once when it crosses the network.
 	 **/
 	class Environment;
 
@@ -66,28 +82,51 @@ namespace cam {
 		std::string m_receiver;
 
 		/**
-		 * Binary format.
+		 * Content.
 		 **/
-		MessageBinaryFormat m_binary_format;
-
-		/**
-		 * Raw message.
-		 **/
-		std::vector<std::uint8_t> m_binary_message;
+		MessageContent m_content;
 
 	public:
 		/**
-		 * Message.
+		 * Message carrying a JSON value.
 		 * @param p_sender Sender.
 		 * @param p_receiver Receiver.
-		 * @param p_message Message.
-		 * @param p_binary_format Binary format used.
+		 * @param p_message JSON value.
 		 **/
-		Message(std::string p_sender, std::string p_receiver, const json& p_message,
-				const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::MessagePack);
+		Message(std::string p_sender, std::string p_receiver, const json& p_message);
 
-		Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length,
-				const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW);
+		/**
+		 * Message carrying a JSON value already shared.
+		 * @param p_sender Sender.
+		 * @param p_receiver Receiver.
+		 * @param p_message Shared JSON value.
+		 **/
+		Message(std::string p_sender, std::string p_receiver, std::shared_ptr<const json> p_message);
+
+		/**
+		 * Message carrying text.
+		 * @param p_sender Sender.
+		 * @param p_receiver Receiver.
+		 * @param p_text UTF-8 text.
+		 **/
+		Message(std::string p_sender, std::string p_receiver, std::string p_text);
+
+		/**
+		 * Message carrying opaque bytes.
+		 * @param p_sender Sender.
+		 * @param p_receiver Receiver.
+		 * @param p_message Bytes (may be null when the length is 0).
+		 * @param p_length Number of bytes.
+		 **/
+		Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length);
+
+		/**
+		 * Message carrying any content.
+		 * @param p_sender Sender.
+		 * @param p_receiver Receiver.
+		 * @param p_content Content.
+		 **/
+		Message(std::string p_sender, std::string p_receiver, MessageContent p_content);
 
 		Message();
 
@@ -116,26 +155,45 @@ namespace cam {
 		[[nodiscard]] const std::string& get_sender_environment() const { return m_sender_environment; }
 
 		/**
-		 * Get binary message.
-		 * @return binary message JSON
+		 * Kind of content carried.
+		 * @return The kind
 		 **/
-		[[nodiscard]] const std::vector<std::uint8_t>& get_binary_message() const { return m_binary_message; }
+		[[nodiscard]] ContentKind kind() const;
 
 		/**
-		 * Get binary message.
-		 * @return binary message JSON
+		 * The content as it was given.
+		 * @return The content
 		 **/
-		[[nodiscard]] const MessageBinaryFormat& get_binary_format() const { return m_binary_format; }
+		[[nodiscard]] const MessageContent& get_content() const { return m_content; }
 
 		/**
-		 * Get message.
+		 * Text content; empty when the message carries something else (see kind()).
+		 * @return The text
+		 **/
+		[[nodiscard]] const std::string& as_text() const;
+
+		/**
+		 * JSON content; null when the message carries something else (see kind()).
+		 * @return The JSON value
+		 **/
+		[[nodiscard]] const json& as_json() const;
+
+		/**
+		 * Bytes content; empty when the message carries something else (see kind()).
+		 * @return The bytes
+		 **/
+		[[nodiscard]] const std::vector<std::uint8_t>& as_bytes() const;
+
+		/**
+		 * Get the content as a JSON value: the value itself, a JSON string for text and for bytes, null
+		 * for an empty message.
 		 * @return message JSON
 		 **/
 		[[nodiscard]] json content() const;
 
 		/**
-		 * Format message to string.
-		 * @return string message from JSON
+		 * Format message to string: the text itself, the JSON dump, the bytes as characters.
+		 * @return string message
 		 **/
 		[[nodiscard]] std::string to_string() const;
 
@@ -144,18 +202,6 @@ namespace cam {
 		 * @return string formated message
 		 **/
 		[[nodiscard]] /*virtual*/ std::string format() const;
-
-		/**
-		 * From/to json/binary.
-		 * @param p_message json/binary message
-		 * @param p_binary_format binary format
-		 * @return json/binary
-		 **/
-		static std::vector<std::uint8_t>
-		to_binary(const json& p_message, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::MessagePack);
-
-		static json to_json(const std::vector<std::uint8_t>& p_message,
-							const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::MessagePack);
 
 		// Delete copy constructor
 		Message(const Message&) = delete;

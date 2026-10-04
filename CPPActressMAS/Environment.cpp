@@ -23,6 +23,16 @@
 #include <uuid/UUID.hpp>
 
 #include "Agent.h"
+#include "transport/ContentCodec.h"
+
+namespace {
+
+	// Bytes given by pointer and length become a bytes content (empty when the pointer is null).
+	cam::MessageContent make_content(const uint8_t* p_message, const size_t& p_length) {
+		return p_message ? std::vector<std::uint8_t>(p_message, p_message + p_length) : std::vector<std::uint8_t>();
+	}
+
+} // namespace
 
 namespace {
 
@@ -95,10 +105,9 @@ void cam::Environment::remove(const std::string& p_agent_id) {
 }
 
 cam::transport::Result<void>
-cam::Environment::send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
-					   const size_t& p_length, const MessageBinaryFormat& p_binary_format,
-					   const transport::SendOptions& p_options) const {
-	if (deliver_local(p_sender_id, p_receiver_id, p_message, p_length, p_binary_format)) {
+cam::Environment::send_content(const std::string& p_sender_id, const std::string& p_receiver_id, const MessageContent& p_content,
+							   const transport::SendOptions& p_options) const {
+	if (deliver_local(p_sender_id, p_receiver_id, p_content)) {
 		return {};
 	}
 	if (!m_endpoint) {
@@ -109,44 +118,46 @@ cam::Environment::send(const std::string& p_sender_id, const std::string& p_rece
 		m_endpoint->count_unknown_destination();
 		return make_error(ErrorCategory::Routing, ErrorCode::UnknownDestination, "no environment hosts agent " + p_receiver_id);
 	}
-	return enqueue_message(m_endpoint->address(transport::AddressKind::EnvIn, *l_host), transport::TargetKind::Id,
-						   p_receiver_id, {}, false, p_sender_id, p_message, p_length, p_binary_format, p_options);
+	return enqueue_content(m_endpoint->address(transport::AddressKind::EnvIn, *l_host), transport::TargetKind::Id,
+						   p_receiver_id, {}, false, p_sender_id, p_content, p_options);
+}
+
+cam::transport::Result<void>
+cam::Environment::send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
+					   const size_t& p_length, const transport::SendOptions& p_options) const {
+	return send_content(p_sender_id, p_receiver_id, make_content(p_message, p_length), p_options);
 }
 
 cam::MessagePointer cam::Environment::make_message(const std::string& p_sender_id, const std::string& p_receiver_id,
-												   const uint8_t* p_message, const size_t& p_length,
-												   const MessageBinaryFormat& p_binary_format,
-												   const std::string& p_sender_environment) {
-	auto l_message = std::make_shared<Message>(p_sender_id, p_receiver_id, p_message, p_length, p_binary_format);
+												   MessageContent p_content, const std::string& p_sender_environment) {
+	auto l_message = std::make_shared<Message>(p_sender_id, p_receiver_id, std::move(p_content));
 	l_message->m_sender_environment = p_sender_environment;
 	return l_message;
 }
 
 bool cam::Environment::deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id,
-									 const uint8_t* p_message, const size_t& p_length,
-									 const MessageBinaryFormat& p_binary_format, const std::string& p_sender_environment) const {
+									 const MessageContent& p_content, const std::string& p_sender_environment) const {
 	const AgentPointer l_agent = m_agent_collection.get(p_receiver_id);
 	if (!l_agent) {
 		return false;
 	}
 	if (!l_agent->is_dead()) {
-		l_agent->post(make_message(p_sender_id, p_receiver_id, p_message, p_length, p_binary_format, p_sender_environment));
+		l_agent->post(make_message(p_sender_id, p_receiver_id, p_content, p_sender_environment));
 	}
 	return true;
 }
 
-void cam::Environment::deliver_broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-										 const MessageBinaryFormat& p_binary_format, const std::string& p_sender_environment) const {
+void cam::Environment::deliver_broadcast(const std::string& p_sender_id, const MessageContent& p_content,
+										 const std::string& p_sender_environment) const {
 	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
 		if (l_id != p_sender_id && !l_agent->is_dead()) {
-			l_agent->post(make_message(p_sender_id, l_id, p_message, p_length, p_binary_format, p_sender_environment));
+			l_agent->post(make_message(p_sender_id, l_id, p_content, p_sender_environment));
 		}
 	}
 }
 
 bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
-									   const uint8_t* p_message, const size_t& p_length, const bool p_is_fragment,
-									   const bool p_first_only, const MessageBinaryFormat& p_binary_format,
+									   const MessageContent& p_content, const bool p_is_fragment, const bool p_first_only,
 									   const std::string& p_sender_environment) const {
 	bool l_delivered = false;
 	auto l_filtered_elements =
@@ -164,7 +175,7 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 			continue;
 		}
 
-		l_agent->post(make_message(p_sender_id, l_id, p_message, p_length, p_binary_format, p_sender_environment));
+		l_agent->post(make_message(p_sender_id, l_id, p_content, p_sender_environment));
 		l_delivered = true;
 		if (p_first_only) {
 			break;
@@ -174,41 +185,53 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 }
 
 cam::transport::Result<void>
-cam::Environment::send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
-							   const uint8_t* p_message, const size_t& p_length, const bool p_is_fragment,
-							   const bool p_first_only, const MessageBinaryFormat& p_binary_format,
-							   const transport::SendOptions& p_options) const {
-	deliver_by_name(p_sender_id, p_receiver_name, p_message, p_length, p_is_fragment, p_first_only, p_binary_format);
+cam::Environment::send_content_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
+									   const MessageContent& p_content, const bool p_is_fragment, const bool p_first_only,
+									   const transport::SendOptions& p_options) const {
+	deliver_by_name(p_sender_id, p_receiver_name, p_content, p_is_fragment, p_first_only);
 	if (p_options.m_scope != transport::Scope::Network) {
 		return {};
 	}
 	if (!m_endpoint) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "network scope asked while offline");
 	}
-	return enqueue_message(m_endpoint->address(transport::AddressKind::AllIn),
+	return enqueue_content(m_endpoint->address(transport::AddressKind::AllIn),
 						   p_is_fragment ? transport::TargetKind::Fragment : transport::TargetKind::Name,
-						   {}, p_receiver_name, p_first_only, p_sender_id, p_message, p_length, p_binary_format, p_options);
+						   {}, p_receiver_name, p_first_only, p_sender_id, p_content, p_options);
+}
+
+cam::transport::Result<void>
+cam::Environment::send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
+							   const uint8_t* p_message, const size_t& p_length, const bool p_is_fragment,
+							   const bool p_first_only, const transport::SendOptions& p_options) const {
+	return send_content_by_name(p_sender_id, p_receiver_name, make_content(p_message, p_length), p_is_fragment, p_first_only, p_options);
+}
+
+cam::transport::Result<void>
+cam::Environment::broadcast_content(const std::string& p_sender_id, const MessageContent& p_content,
+									const transport::SendOptions& p_options) const {
+	deliver_broadcast(p_sender_id, p_content);
+	if (p_options.m_scope != transport::Scope::Network) {
+		return {};
+	}
+	if (!m_endpoint) {
+		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "network scope asked while offline");
+	}
+	return enqueue_content(m_endpoint->address(transport::AddressKind::AllIn), transport::TargetKind::Broadcast,
+						   {}, {}, false, p_sender_id, p_content, p_options);
 }
 
 cam::transport::Result<void>
 cam::Environment::broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-							const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options) const {
-	deliver_broadcast(p_sender_id, p_message, p_length, p_binary_format);
-	if (p_options.m_scope != transport::Scope::Network) {
-		return {};
-	}
-	if (!m_endpoint) {
-		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "network scope asked while offline");
-	}
-	return enqueue_message(m_endpoint->address(transport::AddressKind::AllIn), transport::TargetKind::Broadcast,
-						   {}, {}, false, p_sender_id, p_message, p_length, p_binary_format, p_options);
+							const transport::SendOptions& p_options) const {
+	return broadcast_content(p_sender_id, make_content(p_message, p_length), p_options);
 }
 
 cam::transport::Result<void>
 cam::Environment::enqueue_message(const transport::Address& p_address, const transport::TargetKind p_target_kind,
 								  const std::string& p_target_id, const std::string& p_target_name, const bool p_first_only,
-								  const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-								  const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options,
+								  const std::string& p_sender_id, std::vector<std::uint8_t> p_content,
+								  const MessageBinaryFormat p_content_encoding, const transport::SendOptions& p_options,
 								  const std::string& p_origin_environment) const {
 	transport::Envelope l_envelope = m_endpoint->make_envelope(transport::EnvelopeKind::Message);
 	l_envelope.m_origin_environment = p_origin_environment == m_id ? std::string() : p_origin_environment;
@@ -219,11 +242,27 @@ cam::Environment::enqueue_message(const transport::Address& p_address, const tra
 	l_envelope.m_first_only = p_first_only;
 	l_envelope.m_scope = p_options.m_scope;
 	l_envelope.m_priority = p_options.m_priority;
-	l_envelope.m_content_encoding = p_binary_format;
-	if (p_message && p_length > 0) {
-		l_envelope.m_content.assign(p_message, p_message + p_length);
-	}
+	l_envelope.m_content_encoding = p_content_encoding;
+	l_envelope.m_content = std::move(p_content);
 	return m_endpoint->enqueue(p_address, std::move(l_envelope));
+}
+
+cam::transport::Result<void>
+cam::Environment::enqueue_content(const transport::Address& p_address, const transport::TargetKind p_target_kind,
+								  const std::string& p_target_id, const std::string& p_target_name, const bool p_first_only,
+								  const std::string& p_sender_id, const MessageContent& p_content,
+								  const transport::SendOptions& p_options, const std::string& p_origin_environment) const {
+	// The content is encoded once here, when it leaves the node.
+	const auto l_encoding = transport::wire_encoding(p_content, p_options);
+	if (!l_encoding) {
+		return l_encoding.error();
+	}
+	auto l_bytes = transport::encode_content(p_content, l_encoding.value());
+	if (!l_bytes) {
+		return l_bytes.error();
+	}
+	return enqueue_message(p_address, p_target_kind, p_target_id, p_target_name, p_first_only, p_sender_id,
+						   std::move(l_bytes.value()), l_encoding.value(), p_options, p_origin_environment);
 }
 
 void cam::Environment::start() {
@@ -472,37 +511,41 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 
 	switch (p_envelope.m_kind) {
 		case EnvelopeKind::Message: {
-			const uint8_t* l_bytes = p_envelope.m_content.empty() ? nullptr : p_envelope.m_content.data();
-			const size_t l_length = p_envelope.m_content.size();
 			const std::string& l_origin = p_envelope.effective_sender_environment();
-			switch (p_envelope.m_target_kind) {
-				case TargetKind::Id: {
-					if (deliver_local(p_envelope.m_sender_agent, p_envelope.m_target_id, l_bytes, l_length,
-									  p_envelope.m_content_encoding, l_origin)) {
-						break;
+			if (p_envelope.m_target_kind == TargetKind::Id && !m_agent_collection.contains(p_envelope.m_target_id)) {
+				if (const auto l_moved = m_moved_agents.find(p_envelope.m_target_id); l_moved != m_moved_agents.end()) {
+					// The agent left recently and the sender's directory lags behind: forward the bytes as they
+					// came to its new host.
+					transport::SendOptions l_options;
+					l_options.m_priority = p_envelope.m_priority;
+					if (enqueue_message(m_endpoint->address(transport::AddressKind::EnvIn, l_moved->second.m_host), TargetKind::Id,
+										p_envelope.m_target_id, {}, false, p_envelope.m_sender_agent, std::move(p_envelope.m_content),
+										p_envelope.m_content_encoding, l_options, l_origin)) {
+						m_endpoint->count_forwarded();
 					}
-					if (const auto l_moved = m_moved_agents.find(p_envelope.m_target_id); l_moved != m_moved_agents.end()) {
-						// The agent left recently and the sender's directory lags behind: forward to its new host.
-						transport::SendOptions l_options;
-						l_options.m_priority = p_envelope.m_priority;
-						if (enqueue_message(m_endpoint->address(transport::AddressKind::EnvIn, l_moved->second.m_host), TargetKind::Id,
-											p_envelope.m_target_id, {}, false, p_envelope.m_sender_agent, l_bytes, l_length,
-											p_envelope.m_content_encoding, l_options, l_origin)) {
-							m_endpoint->count_forwarded();
-						}
-					} else {
-						m_endpoint->count_unknown_destination();
-					}
-					break;
+				} else {
+					m_endpoint->count_unknown_destination();
 				}
+				break;
+			}
+			// The content is decoded once here, at the turn boundary, for every local receiver.
+			auto l_content = transport::decode_content(p_envelope.m_content, p_envelope.m_content_encoding);
+			if (!l_content) {
+				m_endpoint->count_rejected();
+				on_delivery_failure(l_content.error());
+				break;
+			}
+			switch (p_envelope.m_target_kind) {
+				case TargetKind::Id:
+					deliver_local(p_envelope.m_sender_agent, p_envelope.m_target_id, l_content.value(), l_origin);
+					break;
 				case TargetKind::Name:
 				case TargetKind::Fragment:
-					deliver_by_name(p_envelope.m_sender_agent, p_envelope.m_target_name, l_bytes, l_length,
-									p_envelope.m_target_kind == TargetKind::Fragment, p_envelope.m_first_only,
-									p_envelope.m_content_encoding, l_origin);
+					deliver_by_name(p_envelope.m_sender_agent, p_envelope.m_target_name, l_content.value(),
+									p_envelope.m_target_kind == TargetKind::Fragment, p_envelope.m_first_only, l_origin);
 					break;
 				case TargetKind::Broadcast:
-					deliver_broadcast(p_envelope.m_sender_agent, l_bytes, l_length, p_envelope.m_content_encoding, l_origin);
+					deliver_broadcast(p_envelope.m_sender_agent, l_content.value(), l_origin);
 					break;
 				case TargetKind::Environment:
 				default:
@@ -642,6 +685,13 @@ void cam::Environment::process_move_requests() {
 		}
 		l_transfer.m_observables = json::to_msgpack(l_observables);
 		for (const auto& l_message: l_transit.m_carried) {
+			const auto l_encoding = transport::wire_encoding(l_message->get_content(), {});
+			auto l_bytes = l_encoding ? transport::encode_content(l_message->get_content(), l_encoding.value())
+									  : transport::Result<std::vector<std::uint8_t>>(l_encoding.error());
+			if (!l_bytes) {
+				on_delivery_failure(l_bytes.error());
+				continue;
+			}
 			transport::Envelope l_queued;
 			l_queued.m_kind = transport::EnvelopeKind::Message;
 			l_queued.m_sender_environment = m_id;
@@ -652,8 +702,8 @@ void cam::Environment::process_move_requests() {
 			l_queued.m_sender_agent = l_message->get_sender();
 			l_queued.m_target_kind = transport::TargetKind::Id;
 			l_queued.m_target_id = l_agent->get_id();
-			l_queued.m_content_encoding = l_message->get_binary_format();
-			l_queued.m_content = l_message->get_binary_message();
+			l_queued.m_content_encoding = l_encoding.value();
+			l_queued.m_content = std::move(l_bytes.value());
 			l_transfer.m_queue.push_back(std::move(l_queued));
 		}
 		const std::string l_transfer_id = l_transfer.m_transfer_id;
@@ -707,10 +757,8 @@ void cam::Environment::restore_agent(const Transit& p_transit, const transport::
 void cam::Environment::forward_messages(const std::string& p_agent_id, const std::string& p_host,
 										const std::vector<MessagePointer>& p_messages) {
 	for (const auto& l_message: p_messages) {
-		const auto& l_bytes = l_message->get_binary_message();
-		if (enqueue_message(m_endpoint->address(transport::AddressKind::EnvIn, p_host), transport::TargetKind::Id, p_agent_id, {},
-							false, l_message->get_sender(), l_bytes.empty() ? nullptr : l_bytes.data(), l_bytes.size(),
-							l_message->get_binary_format(), {}, l_message->get_sender_environment())) {
+		if (enqueue_content(m_endpoint->address(transport::AddressKind::EnvIn, p_host), transport::TargetKind::Id, p_agent_id, {},
+							false, l_message->get_sender(), l_message->get_content(), {}, l_message->get_sender_environment())) {
 			m_endpoint->count_forwarded();
 		}
 	}
@@ -782,7 +830,12 @@ void cam::Environment::apply_agent_offer(const transport::Envelope& p_envelope) 
 			}
 		}
 		if (!l_transfer->m_state.empty()) {
-			l_agent->load_state(Message::to_json(l_transfer->m_state, l_transfer->m_state_encoding));
+			const auto l_state = transport::decode_content(l_transfer->m_state, l_transfer->m_state_encoding);
+			const auto* l_json = l_state ? std::get_if<std::shared_ptr<const json>>(&l_state.value()) : nullptr;
+			if (!l_json || !*l_json) {
+				throw std::runtime_error(l_state ? "agent state is not a JSON value" : l_state.error().m_message);
+			}
+			l_agent->load_state(**l_json);
 		}
 	} catch (const std::exception& p_exception) {
 		send_control(transport::EnvelopeKind::AgentReject, l_origin, l_transfer->m_transfer_id, l_transfer->m_agent_id, false,
@@ -791,9 +844,13 @@ void cam::Environment::apply_agent_offer(const transport::Envelope& p_envelope) 
 		return;
 	}
 	for (const auto& l_queued: l_transfer->m_queue) {
-		l_agent->post(make_message(l_queued.m_sender_agent, l_transfer->m_agent_id,
-								   l_queued.m_content.empty() ? nullptr : l_queued.m_content.data(), l_queued.m_content.size(),
-								   l_queued.m_content_encoding, l_queued.effective_sender_environment()));
+		auto l_content = transport::decode_content(l_queued.m_content, l_queued.m_content_encoding);
+		if (!l_content) {
+			m_endpoint->count_rejected();
+			continue;
+		}
+		l_agent->post(make_message(l_queued.m_sender_agent, l_transfer->m_agent_id, std::move(l_content.value()),
+								   l_queued.effective_sender_environment()));
 	}
 	PendingArrival l_arrival;
 	l_arrival.m_agent = l_agent;

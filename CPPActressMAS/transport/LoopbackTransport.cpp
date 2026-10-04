@@ -20,14 +20,14 @@
 
 #include <uuid/UUID.hpp>
 
-#include "CompactCodec.h"
+#include "ProtobufCodec.h"
 
 namespace cam::transport {
 
 	LoopbackTransport::LoopbackTransport(TransportConfig p_config, LoopbackOptions p_options, std::shared_ptr<const EnvelopeCodec> p_codec) :
 			m_config(std::move(p_config)),
 			m_options(std::move(p_options)),
-			m_codec(p_codec ? std::move(p_codec) : std::make_shared<CompactCodec>()),
+			m_codec(p_codec ? std::move(p_codec) : std::make_shared<ProtobufCodec>()),
 			m_node_id(UUID::generate_uuid()) {
 	}
 

@@ -197,7 +197,7 @@ public:
 	}
 
 	void action(const cam::MessagePointer& p_message) override {
-		const std::string& l_content = p_message->content();
+		const std::string l_content(p_message->as_bytes().begin(), p_message->as_bytes().end());
 		std::stringstream l_stream(l_content);
 		const auto& l_message = Message(l_stream);
 		std::cout << "[" << get_name() << "] " << l_message << std::endl;
@@ -231,7 +231,8 @@ public:
 private:
 	void handle_position(const std::string& p_sender, const Position& p_position) {
 		m_explorer_positions.insert(std::make_pair(p_sender, p_position));
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		const std::string l_bytes = Message(MessageAction::Move).serialize_to_stream().str();
+		send(p_sender, reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 	}
 
 	void handle_change(const std::string& p_sender, const Position& p_position) {
@@ -242,35 +243,41 @@ private:
 				continue;
 			}
 			if (l_key_value.second == p_position) {
-				send(p_sender, Message(MessageAction::Block).serialize_to_stream().str());
+				const std::string l_bytes = Message(MessageAction::Block).serialize_to_stream().str();
+				send(p_sender, reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 				return;
 			}
 		}
 
 		for (const auto& l_key_value: m_resource_positions) {
 			if (l_key_value.second == p_position) {
-				send(p_sender, Message(MessageAction::Rock, l_key_value.second, l_key_value.first).serialize_to_stream().str());
+				const std::string l_bytes = Message(MessageAction::Rock, l_key_value.second, l_key_value.first).serialize_to_stream().str();
+				send(p_sender, reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 				return;
 			}
 		}
 
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		const std::string l_bytes = Message(MessageAction::Move).serialize_to_stream().str();
+		send(p_sender, reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 	}
 
 	void handle_pick_up(const std::string& p_sender, const int p_resource_id) {
 		m_resource_positions[p_resource_id] = m_explorer_positions[p_sender];
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		const std::string l_bytes = Message(MessageAction::Move).serialize_to_stream().str();
+		send(p_sender, reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 	}
 
 	void handle_carry(const std::string& p_sender, const int p_resource_id, const Position& p_position) {
 		m_explorer_positions[p_sender] = p_position;
 		m_resource_positions[p_resource_id] = m_explorer_positions[p_sender];
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		const std::string l_bytes = Message(MessageAction::Move).serialize_to_stream().str();
+		send(p_sender, reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 	}
 
 	void handle_unload(const std::string& p_sender, const int p_resource_id) {
 		m_resource_positions.erase(p_resource_id);
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		const std::string l_bytes = Message(MessageAction::Move).serialize_to_stream().str();
+		send(p_sender, reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 	}
 };
 
@@ -301,7 +308,8 @@ public:
 			m_position = Position(Random::next(m_size), Random::next(m_size));
 		}
 
-		send_by_name("planet", Message(MessageAction::Position, m_position).serialize_to_stream().str());
+		const std::string l_bytes = Message(MessageAction::Position, m_position).serialize_to_stream().str();
+		send_by_name("planet", reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 	}
 
 	bool is_at_base() const {
@@ -309,7 +317,7 @@ public:
 	}
 
 	void action(const cam::MessagePointer& p_message) override {
-		const std::string& l_content = p_message->content();
+		const std::string l_content(p_message->as_bytes().begin(), p_message->as_bytes().end());
 		std::stringstream l_stream(l_content);
 		const auto& l_message = Message(l_stream);
 		std::cout << "[" << get_name() << "] " << l_message << std::endl;
@@ -317,24 +325,28 @@ public:
 		if (l_message.m_action == MessageAction::Move && m_state == State::Carrying && is_at_base()) {
 			// R2. If carrying samples and at the base, then unload samples
 			m_state = State::Free;
-			send_by_name("planet", Message(MessageAction::Unload, m_position, m_resource_carried).serialize_to_stream().str());
+			const std::string l_bytes = Message(MessageAction::Unload, m_position, m_resource_carried).serialize_to_stream().str();
+			send_by_name("planet", reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 
 		} else if (l_message.m_action == MessageAction::Move && m_state == State::Carrying && !is_at_base()) {
 			// R3. If carrying samples and not at the base, then travel up gradient
 			move_to_base();
-			send_by_name("planet", Message(MessageAction::Carry, m_position, m_resource_carried).serialize_to_stream().str());
+			const std::string l_bytes = Message(MessageAction::Carry, m_position, m_resource_carried).serialize_to_stream().str();
+			send_by_name("planet", reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 
 		} else if (l_message.m_action == MessageAction::Rock) {
 			// R4. If you detect a sample, then pick sample up
 			m_state = State::Carrying;
 			m_resource_carried = l_message.m_resource_id;
-			send_by_name("planet", Message(MessageAction::PickUp, m_position, m_resource_carried).serialize_to_stream().str());
+			const std::string l_bytes = Message(MessageAction::PickUp, m_position, m_resource_carried).serialize_to_stream().str();
+			send_by_name("planet", reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 
 		} else if (l_message.m_action == MessageAction::Block || l_message.m_action == MessageAction::Move) {
 			// R1. If you detect an obstacle, then change direction
 			// R5. If (true), then move randomly
 			move_randomly();
-			send_by_name("planet", Message(MessageAction::Change, m_position).serialize_to_stream().str());
+			const std::string l_bytes = Message(MessageAction::Change, m_position).serialize_to_stream().str();
+			send_by_name("planet", reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
 
 		}
 	}

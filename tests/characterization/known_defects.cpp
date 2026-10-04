@@ -26,6 +26,7 @@
 #include <doctest/doctest.h>
 
 #include <Environment.h>
+#include <transport/ContentCodec.h>
 #include <transport/LoopbackTransport.h>
 
 #include <map>
@@ -324,11 +325,17 @@ TEST_SUITE("characterization") {
 	// C15 (default-constructed agents without identifier) left with the protected constructor
 	// Agent() in 1C: every agent now has a UUID from construction.
 
-	// ---------------------------------------------------------------- C19
-	TEST_CASE("C19: a message built from a JSON string with the RAW format holds the bytes of the string" * doctest::should_fail()) {
-		const cam::Message l_message("s", "r", json("hello"), cam::MessageBinaryFormat::RAW);
-		CHECK(l_message.get_binary_message().size() == 5);  // 6 today: MessagePack bytes tagged RAW
-		CHECK(l_message.to_string() == "hello");
+	// ---------------------------------------------------------------- C19 (fixed in 2B)
+	TEST_CASE("C19: a message keeps its typed content locally and a JSON value refuses the RAW wire encoding") {
+		const cam::Message l_message("s", "r", json("hello"));
+		CHECK(l_message.kind() == cam::ContentKind::Json);
+		CHECK(l_message.to_string() == "\"hello\"");
+		const cam::Message l_text("s", "r", std::string("hello"));
+		CHECK(l_text.kind() == cam::ContentKind::Text);
+		CHECK(l_text.to_string() == "hello");
+		const auto l_refused = cam::transport::wire_encoding(l_message.get_content(),
+															cam::transport::SendOptions{.m_encoding = cam::MessageBinaryFormat::RAW});
+		CHECK_FALSE(l_refused);  // used to be silently encoded in MessagePack and tagged RAW
 	}
 
 	// ---------------------------------------------------------------- C20 (fixed in 1C)

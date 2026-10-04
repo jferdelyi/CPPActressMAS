@@ -231,46 +231,75 @@ namespace cam {
 		 * the transport at the end of the turn, whatever the scope.
 		 * @param p_sender_id The sender ID
 		 * @param p_receiver_id The receiver ID
-		 * @param p_message The message to be sent
-		 * @param p_length The message length
-		 * @param p_binary_format The message binary format
-		 * @param p_options Send options (scope and priority are not used by id)
+		 * @param p_content The content (text, JSON value or bytes)
+		 * @param p_options Send options (encoding of a JSON value on the wire; scope and priority are not used by id)
+		 * @return Success, or UnknownDestination when no environment hosts the receiver
+		 **/
+		transport::Result<void> send_content(const std::string& p_sender_id, const std::string& p_receiver_id,
+											 const MessageContent& p_content, const transport::SendOptions& p_options = {}) const;
+
+		/**
+		 * Sends bytes by id (see send_content).
+		 * @param p_sender_id The sender ID
+		 * @param p_receiver_id The receiver ID
+		 * @param p_message The bytes
+		 * @param p_length The number of bytes
+		 * @param p_options Send options
 		 * @return Success, or UnknownDestination when no environment hosts the receiver
 		 **/
 		transport::Result<void> send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
-									 const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
-									 const transport::SendOptions& p_options = {}) const;
+									 const size_t& p_length, const transport::SendOptions& p_options = {}) const;
 
 		/**
 		 * Sends a message by name: to the local agents, then, with the network scope,
 		 * to every connected environment (first_only applies per environment).
 		 * @param p_sender_id The sender ID
 		 * @param p_receiver_name The receiver name
-		 * @param p_message The message to be sent
-		 * @param p_length The message length
+		 * @param p_content The content (text, JSON value or bytes)
 		 * @param p_is_fragment If true search all agent that the name contain "p_receiver_name"
 		 * @param p_first_only If true send to the first agent found
-		 * @param p_binary_format The message binary format
+		 * @param p_options Send options (scope, encoding of a JSON value on the wire)
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
+		transport::Result<void> send_content_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
+													 const MessageContent& p_content, bool p_is_fragment, bool p_first_only,
+													 const transport::SendOptions& p_options = {}) const;
+
+		/**
+		 * Sends bytes by name (see send_content_by_name).
+		 * @param p_sender_id The sender ID
+		 * @param p_receiver_name The receiver name
+		 * @param p_message The bytes
+		 * @param p_length The number of bytes
+		 * @param p_is_fragment If true search all agent that the name contain "p_receiver_name"
+		 * @param p_first_only If true send to the first agent found
 		 * @param p_options Send options (scope)
 		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
 		transport::Result<void> send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message,
 											 const size_t& p_length, bool p_is_fragment, bool p_first_only,
-											 const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
 											 const transport::SendOptions& p_options = {}) const;
 
 		/**
 		 * Send a new message to all agents: the local ones except the sender, then,
 		 * with the network scope, every agent of the connected environments.
 		 * @param p_sender_id From
-		 * @param p_message The message
-		 * @param p_length The message length
-		 * @param p_binary_format The message binary format
+		 * @param p_content The content (text, JSON value or bytes)
+		 * @param p_options Send options (scope, encoding of a JSON value on the wire)
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
+		transport::Result<void> broadcast_content(const std::string& p_sender_id, const MessageContent& p_content,
+												  const transport::SendOptions& p_options = {}) const;
+
+		/**
+		 * Broadcast bytes (see broadcast_content).
+		 * @param p_sender_id From
+		 * @param p_message The bytes
+		 * @param p_length The number of bytes
 		 * @param p_options Send options (scope)
 		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
 		transport::Result<void> broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-										  const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW,
 										  const transport::SendOptions& p_options = {}) const;
 
 		/**
@@ -511,29 +540,26 @@ namespace cam {
 		 * @param p_sender_environment Origin environment of a message received through the transport
 		 * @return True if the agent exists here
 		 **/
-		bool deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
-						   const size_t& p_length, const MessageBinaryFormat& p_binary_format,
+		bool deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id, const MessageContent& p_content,
 						   const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to the local agents matching a name or a fragment.
 		 * @return True if at least one agent received it
 		 **/
-		bool deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message,
-							 const size_t& p_length, bool p_is_fragment, bool p_first_only,
-							 const MessageBinaryFormat& p_binary_format, const std::string& p_sender_environment = {}) const;
+		bool deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const MessageContent& p_content,
+							 bool p_is_fragment, bool p_first_only, const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to every local agent but the sender.
 		 **/
-		void deliver_broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-							   const MessageBinaryFormat& p_binary_format, const std::string& p_sender_environment = {}) const;
+		void deliver_broadcast(const std::string& p_sender_id, const MessageContent& p_content,
+							   const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Build a message for a local queue.
 		 **/
-		static MessagePointer make_message(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
-										   const size_t& p_length, const MessageBinaryFormat& p_binary_format,
+		static MessagePointer make_message(const std::string& p_sender_id, const std::string& p_receiver_id, MessageContent p_content,
 										   const std::string& p_sender_environment);
 
 		//###############################################################
@@ -593,13 +619,21 @@ namespace cam {
 		void flush_outbox();
 
 		/**
-		 * Queue a message envelope.
+		 * Queue a message envelope carrying already encoded bytes.
 		 **/
 		transport::Result<void> enqueue_message(const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
-												const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
-												const MessageBinaryFormat& p_binary_format, const transport::SendOptions& p_options,
+												const std::string& p_sender_id, std::vector<std::uint8_t> p_content,
+												MessageBinaryFormat p_content_encoding, const transport::SendOptions& p_options,
 												const std::string& p_origin_environment = {}) const;
+
+		/**
+		 * Encode a content for the wire and queue its envelope.
+		 **/
+		transport::Result<void> enqueue_content(const transport::Address& p_address, transport::TargetKind p_target_kind,
+												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
+												const std::string& p_sender_id, const MessageContent& p_content,
+												const transport::SendOptions& p_options, const std::string& p_origin_environment = {}) const;
 	};
 
 	// Environment pointer

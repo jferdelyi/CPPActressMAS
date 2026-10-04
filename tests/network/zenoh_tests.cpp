@@ -247,6 +247,34 @@ namespace {
 
 TEST_SUITE("zenoh") {
 
+	TEST_CASE("the envelope codec is chosen by the URL, per namespace") {
+		int l_port = 17452;
+		for (const std::string l_codec: {"compact", "json"}) {
+			CAPTURE(l_codec);
+			g_recorder.clear();
+			TestEnvironment l_env_a("A");
+			TestEnvironment l_env_b("B");
+			const std::string l_namespace = "cam-test-codec-" + l_codec;
+			REQUIRE(connect(l_env_a, "A", listen_url(l_port, l_namespace) + "&codec=" + l_codec));
+			REQUIRE(connect(l_env_b, "B", connect_url(l_port, l_namespace) + "?codec=" + l_codec));
+			const std::string l_receiver = l_env_b.add<Receiver>("receiver");
+			l_env_b.add<Keeper>("keeper-b");
+			l_env_a.add<RemoteSender>("sender", l_receiver);
+			l_env_a.add<Keeper>("keeper-a");
+			const bool l_delivered = run_until({&l_env_b, &l_env_a}, [] { return g_recorder.contains("receiver:\"hello from afar\""); }, 15s);
+			CHECK(l_delivered);
+			CHECK(l_env_b.statistics().m_rejected == 0);
+			REQUIRE(l_env_a.disconnect());
+			REQUIRE(l_env_b.disconnect());
+			l_port++;
+		}
+		// An unknown codec is refused before anything opens.
+		TestEnvironment l_env_c("C");
+		const auto l_unknown = connect(l_env_c, "C", listen_url(17454, "cam-test-codec") + "&codec=cbor");
+		REQUIRE_FALSE(l_unknown);
+		CHECK(l_unknown.error().m_code == ErrorCode::UnsupportedCodec);
+	}
+
 	TEST_CASE("a message sent by id to an agent of another peer is delivered") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");

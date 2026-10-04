@@ -131,7 +131,7 @@ namespace cam::transport {
 		std::string m_endpoint;
 		std::chrono::milliseconds m_connect_timeout{5000};
 		std::chrono::seconds m_session_expiry{300};
-		std::string m_codec = "compact";
+		std::string m_codec = "protobuf";  ///< envelope codec: "protobuf" (default), "compact" or "json"
 		std::size_t m_max_envelope_bytes = 1u << 20;
 		bool m_tls = false;
 		std::string m_ca_file;

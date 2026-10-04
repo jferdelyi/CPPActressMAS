@@ -31,7 +31,7 @@
 #include <mqtt_protocol.h>
 #include <uuid/UUID.hpp>
 
-#include "../CompactCodec.h"
+#include "../ProtobufCodec.h"
 
 namespace cam::transport {
 
@@ -148,7 +148,7 @@ namespace cam::transport {
 	MqttTransport::MqttTransport(TransportConfig p_config, MqttOptions p_options, std::shared_ptr<const EnvelopeCodec> p_codec) :
 			m_config(std::move(p_config)),
 			m_options(p_options),
-			m_codec(p_codec ? std::move(p_codec) : std::make_shared<CompactCodec>()),
+			m_codec(p_codec ? std::move(p_codec) : std::make_shared<ProtobufCodec>()),
 			m_node_id(UUID::generate_uuid()),
 			m_client_id("cam-" + m_config.m_namespace + "-" + m_node_id) {
 	}

@@ -56,7 +56,8 @@ namespace {
 	public:
 		explicit Pong(const std::string& p_name) : Agent(p_name) {}
 		void action(const cam::MessagePointer& p_message) override {
-			(void) send(p_message->get_sender(), p_message->get_binary_message().data(), p_message->get_binary_message().size());
+			const auto& l_bytes = p_message->as_bytes();
+			(void) send(p_message->get_sender(), l_bytes.data(), l_bytes.size());
 		}
 		void default_action() override {
 			if (g_done.load()) stop();

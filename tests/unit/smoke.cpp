@@ -23,6 +23,7 @@
 #include <doctest/doctest.h>
 
 #include <Environment.h>
+#include <transport/ContentCodec.h>
 
 #include "Recorder.hpp"
 
@@ -31,6 +32,10 @@ namespace {
 	using Mode = cam::EnvironmentMasMode;
 
 	cam::test::Recorder g_recorder;
+
+	std::vector<std::uint8_t> raw_bytes(const std::string& p_text) {
+		return {p_text.begin(), p_text.end()};
+	}
 
 	const std::uint8_t* raw(const std::string& p_text) {
 		return reinterpret_cast<const std::uint8_t*>(p_text.data());
@@ -218,23 +223,52 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count_of("receiver:\"hello\"") == 8);
 	}
 
-	TEST_CASE("message contents round-trip through the binary formats") {
+	TEST_CASE("message contents stay typed locally and round-trip through the wire encodings") {
 		const json l_content = {{"key", "value"}, {"n", 3}};
 		const cam::Message l_message("sender", "receiver", l_content);
-		CHECK(l_message.get_binary_format() == cam::MessageBinaryFormat::MessagePack);
+		CHECK(l_message.kind() == cam::ContentKind::Json);
+		CHECK(l_message.as_json() == l_content);
 		CHECK(l_message.content() == l_content);
 		CHECK(l_message.get_sender() == "sender");
 		CHECK(l_message.get_receiver() == "receiver");
 		CHECK(l_message.format() == "[sender -> receiver]: " + l_content.dump());
 
 		const std::string l_text = "plain text";
-		const cam::Message l_raw("s", "r", raw(l_text), l_text.size());
-		CHECK(l_raw.get_binary_format() == cam::MessageBinaryFormat::RAW);
-		CHECK(l_raw.to_string() == l_text);
+		const cam::Message l_textual("s", "r", l_text);
+		CHECK(l_textual.kind() == cam::ContentKind::Text);
+		CHECK(l_textual.as_text() == l_text);
+		CHECK(l_textual.content() == json(l_text));
+		CHECK(l_textual.to_string() == l_text);
 
-		for (const auto l_format: {cam::MessageBinaryFormat::CBOR, cam::MessageBinaryFormat::BSON,
-								   cam::MessageBinaryFormat::UBJSON, cam::MessageBinaryFormat::BJData}) {
-			CHECK(cam::Message::to_json(cam::Message::to_binary(l_content, l_format), l_format) == l_content);
+		const cam::Message l_raw("s", "r", raw(l_text), l_text.size());
+		CHECK(l_raw.kind() == cam::ContentKind::Bytes);
+		CHECK(l_raw.as_bytes().size() == l_text.size());
+		CHECK(l_raw.to_string() == l_text);
+		CHECK(l_raw.as_text().empty());
+
+		// On the wire: text as is, bytes as is, a JSON value in the encoding of the options.
+		using cam::transport::decode_content;
+		using cam::transport::encode_content;
+		using cam::transport::wire_encoding;
+		CHECK(wire_encoding(l_textual.get_content(), {}).value() == cam::MessageBinaryFormat::Text);
+		CHECK(wire_encoding(l_raw.get_content(), {}).value() == cam::MessageBinaryFormat::RAW);
+		CHECK(wire_encoding(l_message.get_content(), {}).value() == cam::MessageBinaryFormat::MessagePack);
+		const auto l_refused = wire_encoding(l_message.get_content(), cam::transport::SendOptions{.m_encoding = cam::MessageBinaryFormat::RAW});
+		REQUIRE_FALSE(l_refused);
+		CHECK(l_refused.error().m_code == cam::transport::ErrorCode::InvalidEnvelope);
+		for (const auto l_format: {cam::MessageBinaryFormat::MessagePack, cam::MessageBinaryFormat::CBOR, cam::MessageBinaryFormat::BSON,
+								   cam::MessageBinaryFormat::UBJSON, cam::MessageBinaryFormat::BJData, cam::MessageBinaryFormat::JSON}) {
+			const auto l_bytes = encode_content(l_message.get_content(), l_format);
+			REQUIRE(l_bytes);
+			const auto l_back = decode_content(l_bytes.value(), l_format);
+			REQUIRE(l_back);
+			CHECK(*std::get<std::shared_ptr<const json>>(l_back.value()) == l_content);
 		}
+		const auto l_text_back = decode_content(encode_content(l_textual.get_content(), cam::MessageBinaryFormat::Text).value(),
+												cam::MessageBinaryFormat::Text);
+		REQUIRE(l_text_back);
+		CHECK(std::get<std::string>(l_text_back.value()) == l_text);
+		const auto l_garbage = decode_content(raw_bytes("not msgpack"), cam::MessageBinaryFormat::MessagePack);
+		CHECK_FALSE(l_garbage);
 	}
 }

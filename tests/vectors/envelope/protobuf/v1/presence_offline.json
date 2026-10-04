@@ -1,0 +1,31 @@
+{
+  "content": "",
+  "content_encoding": 0,
+  "conversation_id": "",
+  "epoch": 9,
+  "first_only": false,
+  "kind": 6,
+  "origin_environment": "",
+  "payload": {
+    "agents": [],
+    "environment_id": "0f3c9d6e-1a2b-4c3d-8e9f-a0b1c2d3e4f5",
+    "environment_name": "Environment A",
+    "namespace": "lab-1",
+    "node_id": "abcdefab-cdef-4abc-8def-abcdefabcdef",
+    "online": false,
+    "timestamp_ms": 1759564800000,
+    "type": "presence"
+  },
+  "priority": 0,
+  "scope": 0,
+  "sender_agent": "",
+  "sender_environment": "0f3c9d6e-1a2b-4c3d-8e9f-a0b1c2d3e4f5",
+  "sequence": 2,
+  "stream_kind": 3,
+  "stream_target": "0f3c9d6e-1a2b-4c3d-8e9f-a0b1c2d3e4f5",
+  "target_id": "",
+  "target_kind": 0,
+  "target_name": "",
+  "version_major": 1,
+  "version_minor": 0
+}

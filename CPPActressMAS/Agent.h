@@ -194,9 +194,10 @@ namespace cam {
 
 		/**
 		 * Send a new message by ID. A local receiver is served directly; a receiver hosted by
-		 * another environment is reached through the transport at the end of the turn.
+		 * another environment is reached through the transport at the end of the turn. The
+		 * content stays typed locally (text, JSON value or bytes) and is encoded once on the wire.
 		 * @param p_receiver_id The id of the receiver
-		 * @param p_message The message
+		 * @param p_message The message (bytes)
 		 * @param p_length The message size
 		 * @param p_options Send options (encoding tag of the bytes, priority)
 		 * @return Success, or UnknownDestination
@@ -208,10 +209,16 @@ namespace cam {
 		transport::Result<void> send(const std::string& p_receiver_id, const json& p_message,
 									 const transport::SendOptions& p_options = {}) const;
 
+		transport::Result<void> send(const std::string& p_receiver_id, std::string p_text,
+									 const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send(const std::string& p_receiver_id, const char* p_text,
+									 const transport::SendOptions& p_options = {}) const;
+
 		/**
 		 * Send a new message by name: local agents, and with the network scope every connected environment.
 		 * @param p_receiver_name The name of the receiver
-		 * @param p_message The message
+		 * @param p_message The message (bytes)
 		 * @param p_length The message size
 		 * @param p_first_only If true, only the first agent found (per environment)
 		 * @param p_options Send options (scope, encoding, priority)
@@ -224,10 +231,16 @@ namespace cam {
 		transport::Result<void> send_by_name(const std::string& p_receiver_name, const json& p_message, bool p_first_only = true,
 											 const transport::SendOptions& p_options = {}) const;
 
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, std::string p_text, bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, const char* p_text, bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const;
+
 		/**
 		 * Send a new message by fragment name: local agents, and with the network scope every connected environment.
 		 * @param p_fragment_name The fragment of the receivers
-		 * @param p_message The message
+		 * @param p_message The message (bytes)
 		 * @param p_length The message size
 		 * @param p_first_only If true, only the first agent found (per environment)
 		 * @param p_options Send options (scope, encoding, priority)
@@ -240,10 +253,16 @@ namespace cam {
 		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const json& p_message,
 													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
 
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, std::string p_text,
+													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const char* p_text,
+													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
+
 		/**
 		 * Send a new message to all agents: local agents except this one, and with the network scope every
 		 * agent of the connected environments.
-		 * @param p_message The message
+		 * @param p_message The message (bytes)
 		 * @param p_length The message size
 		 * @param p_options Send options (scope, encoding, priority)
 		 * @return Success, or NotConnected when the network scope is asked offline
@@ -252,6 +271,10 @@ namespace cam {
 										  const transport::SendOptions& p_options = {}) const;
 
 		transport::Result<void> broadcast(const json& p_message, const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> broadcast(std::string p_text, const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> broadcast(const char* p_text, const transport::SendOptions& p_options = {}) const;
 
 		/**
 		 * Move to another environment through the transport (three-step migration). The agent type must
