@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Generic template: compiles, unchanged, the original E00 example whose folder name = this project file's name
+       (Properties/AssemblyInfo.cs is skipped: the glob is not recursive). Copy as E00/<Name>/<Name>.csproj. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(AmasEx)E00 Simple Examples/$(MSBuildProjectName)/*.cs" />
+    <ProjectReference Include="../../ActressMas.Ref/ActressMas.Ref.csproj" />
+  </ItemGroup>
+</Project>

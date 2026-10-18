@@ -1,0 +1,23 @@
+# runtime: .NET 10.0.12 (Environment.Version 10.0.12), Ubuntu 24.04.5 LTS, Arm64; ActressMas Version 3.1
+S1 sequential, randomOrder=true, rand=new Random(1), noTurns=3, agents added A,B,C,D,E:
+  turn 0: D(setup) C(setup) E(setup) A(setup) B(setup)   | keys after turn: A B C D E
+  turn 1: A C E B D   | keys after turn: A B C D E
+  turn 2: B D E C A   | keys after turn: A B C D E
+S1-predicted (independent Fisher-Yates replay with new Random(1), key order A B C D E):
+  turn 0: D C E A B   | draws: Next(5)=1 Next(4)=0 Next(3)=1 Next(2)=1
+  turn 1: A C E B D   | draws: Next(5)=3 Next(4)=1 Next(3)=1 Next(2)=1
+  turn 2: B D E C A   | draws: Next(5)=0 Next(4)=2 Next(3)=0 Next(2)=0
+S2 sequential, randomOrder=false, noTurns=3, agents added A,B,C,D,E:
+  turn 0: A(setup) B(setup) C(setup) D(setup) E(setup)   | keys after turn: A B C D E
+  turn 1: A B C D E   | keys after turn: A B C D E
+  turn 2: A B C D E   | keys after turn: A B C D E
+S3 sequential, randomOrder=false, noTurns=4; turn 1: B.Stop() then E adds F (Dictionary slot reuse):
+  turn 0: A(setup) B(setup) C(setup) D(setup) E(setup)   | keys after turn: A B C D E
+  turn 1: A B C D E   | keys after turn: A F C D E
+  turn 2: A F(setup) C D E   | keys after turn: A F C D E
+  turn 3: A F C D E   | keys after turn: A F C D E
+S4 sequential, randomOrder=true, rand=new Random(1), noTurns=4; same B.Stop()/F spawn as S3:
+  turn 0: D(setup) C(setup) E(setup) A(setup) B(setup)   | keys after turn: A B C D E
+  turn 1: A C E B D   | keys after turn: A C D E F
+  turn 2: C E F(setup) D A   | keys after turn: A C D E F
+  turn 3: A F D E C   | keys after turn: A C D E F

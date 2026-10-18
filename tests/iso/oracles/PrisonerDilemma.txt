@@ -1,0 +1,59 @@
+#cam oracle PrisonerDilemma
+#cam csharp ActressMas eb0bb73, Examples/E10 Iterated Prisoner Dilemma/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command dotnet Oracles/PrisonerDilemma/bin/Release/net10.0/PrisonerDilemma.dll
+#cam seed 0
+Round 1
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 2
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 3
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 4
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 5
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 6
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 7
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 8
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 9
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+Round 10
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-TitForTatPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[env -> p1-TitForTatPrisonerAgent]: end
+[p1-TitForTatPrisonerAgent]: I have -10 points
+	[police -> p2-TitForTatPrisonerAgent]: outcome -1
+	[env -> p2-TitForTatPrisonerAgent]: end
+[p2-TitForTatPrisonerAgent]: I have -10 points

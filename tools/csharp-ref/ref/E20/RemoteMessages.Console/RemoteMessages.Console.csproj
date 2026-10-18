@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- E20 RemoteMessages without WinForms: same agents, same setup per container, console output (D51). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+    <NoWarn>$(NoWarn);SYSLIB0011</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <ProjectReference Include="../ActressMas.Wire/ActressMas.Wire.csproj" />
+  </ItemGroup>
+</Project>

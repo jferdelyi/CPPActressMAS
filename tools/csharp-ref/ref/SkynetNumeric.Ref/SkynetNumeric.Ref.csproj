@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Original example source compiled unchanged against ActressMas.Ref -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>SkynetNumeric</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(AmasEx)E30 Benchmarks/SkynetNumeric/Program.cs" />
+    <ProjectReference Include="../ActressMas.Ref/ActressMas.Ref.csproj" />
+  </ItemGroup>
+</Project>

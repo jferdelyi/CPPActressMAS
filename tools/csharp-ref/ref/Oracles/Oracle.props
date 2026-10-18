@@ -1,0 +1,21 @@
+<Project>
+  <!--
+    Common part of the oracle projects (D82): the ORIGINAL sources of one example ($(OracleSources), set by the project
+    before importing this file) compiled unchanged, together with the ORIGINAL framework sources and the seed shim, in
+    one assembly, so that the alias of Shim/GlobalUsings.cs also seeds the Random of EnvironmentMas.
+    The framework is compiled with the "full" profile of ActressMas.Ref (Container and ClientServer are needed to build).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Same NoWarn as ActressMas.Ref: original csproj (1591, 1572) and BinaryFormatter (SYSLIB0011, never called here) -->
+    <NoWarn>$(NoWarn);1591;1572;SYSLIB0011</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(OracleSources)*.cs" />
+    <Compile Include="$(AmasFw)Agents/*.cs" />
+    <Compile Include="$(AmasFw)Info.cs" />
+    <Compile Include="$(AmasFw)ContainerServer/*.cs" />
+    <Compile Include="$(AmasFw)ClientServer/**/*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shim/*.cs" />
+  </ItemGroup>
+</Project>

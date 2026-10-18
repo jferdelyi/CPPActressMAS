@@ -1,0 +1,7 @@
+# Build outputs and work files of the C# reference harness (the harness is built in a copy, see README.md)
+bin/
+obj/
+logs/
+ActressMas/
+*.sln
+__pycache__/

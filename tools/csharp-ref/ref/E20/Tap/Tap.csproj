@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- TCP relay between ActressMAS containers and the Server that logs every frame (hex + decoded ContainerMessage). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+    <NoWarn>$(NoWarn);SYSLIB0011</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <ProjectReference Include="../ActressMas.Wire/ActressMas.Wire.csproj" />
+  </ItemGroup>
+</Project>
