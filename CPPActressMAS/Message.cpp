@@ -56,6 +56,14 @@ cam::Message::Message(std::string p_sender, std::string p_receiver, MessageConte
 		m_content(std::move(p_content)) {
 }
 
+cam::Message::Message(Key, const std::string& p_sender, const std::string& p_receiver, MessageContent&& p_content,
+					  const std::string& p_sender_environment) :
+		m_sender(p_sender),
+		m_sender_environment(p_sender_environment),
+		m_receiver(p_receiver),
+		m_content(std::move(p_content)) {
+}
+
 cam::Message::Message() :
 		m_sender(),
 		m_receiver(),

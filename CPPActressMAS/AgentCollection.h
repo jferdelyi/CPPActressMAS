@@ -144,6 +144,13 @@ namespace cam {
 		AgentPointer get(const std::string& p_id) const;
 
 		/**
+		 * Agent by id, without sharing its ownership: valid until the next turn boundary, where agents are removed (P8)
+		 * @param p_id The agent id
+		 * @return The agent, or nullptr
+		 **/
+		[[nodiscard]] Agent* find(const std::string& p_id) const;
+
+		/**
 		 * Run one turn
 		 **/
 		void run_turn();

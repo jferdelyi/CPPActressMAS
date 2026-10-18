@@ -22,6 +22,8 @@
 
 #include <doctest/doctest.h>
 
+#include <type_traits>
+
 #include <Environment.h>
 #include <transport/codec/ContentCodec.h>
 
@@ -102,6 +104,28 @@ namespace {
 		}
 	};
 
+	// Records "<sender>|<receiver>|<origin>|<content>" for every message it receives.
+	struct OriginReceiver final : cam::Agent {
+		explicit OriginReceiver(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			g_recorder.record(p_message->get_sender() + "|" + p_message->get_receiver() + "|" +
+							  p_message->get_sender_environment() + "|" + p_message->to_string());
+		}
+	};
+
+	// Sends bytes, a text and a JSON value at setup, by id, to a given agent.
+	struct IdSpeaker final : cam::Agent {
+		IdSpeaker(const std::string& p_name, std::string p_target_id) : Agent(p_name), m_target_id(std::move(p_target_id)) {}
+		void setup() override {
+			const std::string l_bytes = "id bytes";
+			send(m_target_id, raw(l_bytes), l_bytes.size());
+			send(m_target_id, std::string("id text"));
+			send(m_target_id, json("id json"));
+		}
+	private:
+		std::string m_target_id;
+	};
+
 	// Records "<its turn>:<name>" at each action; at its first action it may stop, or add an agent named "<name>+".
 	struct OrderedAgent final : cam::Agent {
 		OrderedAgent(const std::string& p_name, const bool p_stop_first, const bool p_spawn_first) :
@@ -157,6 +181,23 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count_of("turn:2") == 1);
 		CHECK(g_recorder.count_of("finished") == 1);
 		CHECK(l_env.agents_count() == 2);
+	}
+
+	TEST_CASE("a local message carries its sender, receiver and content, no origin, whatever the content (P8)") {
+		// Only the environment can build a message in place
+		static_assert(!std::is_default_constructible_v<cam::Message::Key>);
+
+		g_recorder.clear();
+		cam::Environment l_env(2, Mode::Sequential);
+		const std::string l_receiver = l_env.add<OriginReceiver>("receiver");
+		const std::string l_sender = l_env.add<IdSpeaker>("speaker", l_receiver);
+		l_env.start();
+
+		const std::string l_prefix = l_sender + "|" + l_receiver + "||";
+		CHECK(g_recorder.count_of(l_prefix + "id bytes") == 1);
+		CHECK(g_recorder.count_of(l_prefix + "id text") == 1);
+		CHECK(g_recorder.count_of(l_prefix + "\"id json\"") == 1);
+		CHECK(g_recorder.count() == 3);
 	}
 
 	TEST_CASE("send_by_name reaches every agent of that name, or the first one only") {

@@ -154,6 +154,11 @@ cam::AgentPointer cam::AgentCollection::get(const std::string& p_id) const {
 	return l_it == m_agents.end() ? nullptr : l_it->second;
 }
 
+cam::Agent* cam::AgentCollection::find(const std::string& p_id) const {
+	const auto& l_it = m_agents.find(p_id);
+	return l_it == m_agents.end() ? nullptr : l_it->second.get();
+}
+
 std::vector<std::string> cam::AgentCollection::get_ids(const bool p_alive_only) {
 	std::vector<std::string> l_result;
 	l_result.reserve(m_agents.size());

@@ -108,7 +108,7 @@ cam::transport::Result<void>
 cam::Environment::send_content(const std::string& p_sender_id, const std::string& p_receiver_id, MessageContent p_content,
 							   const transport::SendOptions& p_options) const {
 	// A local receiver takes the content without a copy; the transport needs it otherwise
-	if (const AgentPointer l_agent = m_agent_collection.get(p_receiver_id)) {
+	if (Agent* const l_agent = m_agent_collection.find(p_receiver_id)) {
 		if (!l_agent->is_dead()) {
 			l_agent->receive(make_message(p_sender_id, p_receiver_id, std::move(p_content), {}));
 		}
@@ -129,10 +129,10 @@ cam::Environment::send_content(const std::string& p_sender_id, const std::string
 cam::transport::Result<void>
 cam::Environment::send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
 					   const size_t& p_length, const transport::SendOptions& p_options) const {
-	// A local receiver gets a message built in place from the bytes: no intermediate content to move (P12)
-	if (const AgentPointer l_agent = m_agent_collection.get(p_receiver_id)) {
+	// A local receiver gets a message whose content is built once from the bytes (P8, P12)
+	if (Agent* const l_agent = m_agent_collection.find(p_receiver_id)) {
 		if (!l_agent->is_dead()) {
-			l_agent->receive(std::make_shared<Message>(p_sender_id, p_receiver_id, p_message, p_length));
+			l_agent->receive(make_message(p_sender_id, p_receiver_id, make_content(p_message, p_length), {}));
 		}
 		return {};
 	}
@@ -141,14 +141,12 @@ cam::Environment::send(const std::string& p_sender_id, const std::string& p_rece
 
 cam::MessagePointer cam::Environment::make_message(const std::string& p_sender_id, const std::string& p_receiver_id,
 												   MessageContent&& p_content, const std::string& p_sender_environment) {
-	auto l_message = std::make_shared<Message>(p_sender_id, p_receiver_id, std::move(p_content));
-	l_message->m_sender_environment = p_sender_environment;
-	return l_message;
+	return std::make_shared<Message>(Message::Key(), p_sender_id, p_receiver_id, std::move(p_content), p_sender_environment);
 }
 
 bool cam::Environment::deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id,
 									 MessageContent p_content, const std::string& p_sender_environment) const {
-	const AgentPointer l_agent = m_agent_collection.get(p_receiver_id);
+	Agent* const l_agent = m_agent_collection.find(p_receiver_id);
 	if (!l_agent) {
 		return false;
 	}
@@ -182,10 +180,10 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 									   const std::string& p_sender_environment) const {
 	// Each receiver is served once the next one is known: the last one takes the content without a copy
 	const std::string* l_last_id = nullptr;
-	AgentPointer l_last_agent;
+	Agent* l_last_agent = nullptr;
 	// Visit a matching agent; false once the search is over (first_only)
 	const auto l_visit = [&](const std::string& p_id) {
-		AgentPointer l_agent = m_agent_collection.get(p_id);
+		Agent* const l_agent = m_agent_collection.find(p_id);
 		if (l_agent->is_dead()) {
 			return true;
 		}
@@ -193,7 +191,7 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 			l_last_agent->receive(make_message(p_sender_id, *l_last_id, MessageContent(p_content), p_sender_environment));
 		}
 		l_last_id = &p_id;
-		l_last_agent = std::move(l_agent);
+		l_last_agent = l_agent;
 		return !p_first_only;
 	};
 	if (p_is_fragment) {

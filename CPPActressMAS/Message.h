@@ -88,6 +88,26 @@ namespace cam {
 
 	public:
 		/**
+		 * Key of the constructor kept for the environment: only the environment can make one.
+		 **/
+		class Key final {
+			friend Environment;
+
+			Key() = default;
+		};
+
+		/**
+		 * Message built by the environment: identifiers copied once, content moved in (P8).
+		 * @param p_key Key of the environment.
+		 * @param p_sender Sender.
+		 * @param p_receiver Receiver.
+		 * @param p_content Content.
+		 * @param p_sender_environment Environment of the sender when the message came through the transport, else empty.
+		 **/
+		Message(Key p_key, const std::string& p_sender, const std::string& p_receiver, MessageContent&& p_content,
+				const std::string& p_sender_environment);
+
+		/**
 		 * Message carrying a JSON value.
 		 * @param p_sender Sender.
 		 * @param p_receiver Receiver.
