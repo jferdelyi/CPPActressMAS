@@ -119,10 +119,11 @@ namespace cam {
 
 	/**
 	 * Allocator whose single objects come from FreeBlocks: for objects made and dropped at a high rate, such as the
-	 * messages through std::allocate_shared (P8). Arrays go to std::allocator.
+	 * messages through std::allocate_shared (P8). Arrays go to std::allocator. Not final: the standard containers of
+	 * libstdc++ derive from their allocator.
 	 **/
 	template<typename T>
-	class RecyclingAllocator final {
+	class RecyclingAllocator {
 	public:
 		using value_type = T;
 
