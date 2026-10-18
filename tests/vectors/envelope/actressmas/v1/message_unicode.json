@@ -1,0 +1,12 @@
+{
+  "class": "ActressMas.Message",
+  "assembly": "ActressMas, Version=3.1.0.0, Culture=neutral, PublicKeyToken=null",
+  "fields": {
+    "Content": "héllo → 世界",
+    "ContentObj": null,
+    "ConversationId": null,
+    "Receiver": "b@C2",
+    "Sender": "a@C1"
+  },
+  "layer": "nrbf"
+}

@@ -134,7 +134,8 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	# Transport layer without any environment: codec (round trips, binary vectors of
 	# tests/vectors/envelope/<codec>/v1, malformed input) and Endpoint (sequences, deduplication,
 	# reordering, overflows, counters). CAM_WRITE_VECTORS=1 in the environment regenerates the vectors.
-	add_executable(cam_transport_tests unit/envelope_codec.cpp unit/endpoint.cpp)
+	# The ActressMAS wire codec is checked against the bytes captured from the C# code (actressmas/v1).
+	add_executable(cam_transport_tests unit/envelope_codec.cpp unit/endpoint.cpp unit/actressmas_codec.cpp)
 	target_link_libraries(cam_transport_tests cam_doctest_main ${CAM_TEST_LIBRARY})
 	target_compile_definitions(cam_transport_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")
 	add_test(NAME unit.transport COMMAND cam_transport_tests)

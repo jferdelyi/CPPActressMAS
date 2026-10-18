@@ -1,0 +1,11 @@
+{
+  "class": "ActressMas.ContainerMessage",
+  "assembly": "ActressMas, Version=3.1.0.0, Culture=neutral, PublicKeyToken=null",
+  "fields": {
+    "Content": "",
+    "Info": "Inform Containers",
+    "Receiver": "Container1",
+    "Sender": "Server"
+  },
+  "layer": "frame"
+}

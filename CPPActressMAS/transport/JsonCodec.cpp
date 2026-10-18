@@ -22,6 +22,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "Base64.h"
+
 namespace cam::transport {
 
 	namespace {
@@ -59,75 +61,6 @@ namespace cam::transport {
 				if (l_text == p_names[i]) return static_cast<std::uint8_t>(i);
 			}
 			return 255;
-		}
-
-		// ---------------------------------------------------------------- base64 (RFC 4648, with padding)
-
-		constexpr const char* BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-		std::string to_base64(const std::vector<std::uint8_t>& p_bytes) {
-			std::string l_out;
-			l_out.reserve((p_bytes.size() + 2) / 3 * 4);
-			std::size_t i = 0;
-			for (; i + 2 < p_bytes.size(); i += 3) {
-				const std::uint32_t l_block = (p_bytes[i] << 16) | (p_bytes[i + 1] << 8) | p_bytes[i + 2];
-				l_out.push_back(BASE64[(l_block >> 18) & 63]);
-				l_out.push_back(BASE64[(l_block >> 12) & 63]);
-				l_out.push_back(BASE64[(l_block >> 6) & 63]);
-				l_out.push_back(BASE64[l_block & 63]);
-			}
-			if (i + 1 == p_bytes.size()) {
-				const std::uint32_t l_block = p_bytes[i] << 16;
-				l_out.push_back(BASE64[(l_block >> 18) & 63]);
-				l_out.push_back(BASE64[(l_block >> 12) & 63]);
-				l_out.append("==");
-			} else if (i + 2 == p_bytes.size()) {
-				const std::uint32_t l_block = (p_bytes[i] << 16) | (p_bytes[i + 1] << 8);
-				l_out.push_back(BASE64[(l_block >> 18) & 63]);
-				l_out.push_back(BASE64[(l_block >> 12) & 63]);
-				l_out.push_back(BASE64[(l_block >> 6) & 63]);
-				l_out.push_back('=');
-			}
-			return l_out;
-		}
-
-		int base64_value(const char p_char) {
-			if (p_char >= 'A' && p_char <= 'Z') return p_char - 'A';
-			if (p_char >= 'a' && p_char <= 'z') return p_char - 'a' + 26;
-			if (p_char >= '0' && p_char <= '9') return p_char - '0' + 52;
-			if (p_char == '+') return 62;
-			if (p_char == '/') return 63;
-			return -1;
-		}
-
-		std::optional<std::vector<std::uint8_t>> from_base64(const std::string& p_text) {
-			if (p_text.size() % 4 != 0) {
-				return std::nullopt;
-			}
-			std::vector<std::uint8_t> l_out;
-			l_out.reserve(p_text.size() / 4 * 3);
-			for (std::size_t i = 0; i < p_text.size(); i += 4) {
-				int l_values[4];
-				int l_padding = 0;
-				for (int k = 0; k < 4; k++) {
-					const char l_char = p_text[i + static_cast<std::size_t>(k)];
-					if (l_char == '=') {
-						if (i + 4 != p_text.size() || k < 2) return std::nullopt;  // padding only at the end
-						l_values[k] = 0;
-						l_padding++;
-					} else {
-						if (l_padding > 0) return std::nullopt;
-						l_values[k] = base64_value(l_char);
-						if (l_values[k] < 0) return std::nullopt;
-					}
-				}
-				const std::uint32_t l_block = (static_cast<std::uint32_t>(l_values[0]) << 18) | (static_cast<std::uint32_t>(l_values[1]) << 12) |
-											  (static_cast<std::uint32_t>(l_values[2]) << 6) | static_cast<std::uint32_t>(l_values[3]);
-				l_out.push_back(static_cast<std::uint8_t>(l_block >> 16));
-				if (l_padding < 2) l_out.push_back(static_cast<std::uint8_t>(l_block >> 8));
-				if (l_padding < 1) l_out.push_back(static_cast<std::uint8_t>(l_block));
-			}
-			return l_out;
 		}
 
 		// ---------------------------------------------------------------- writing
