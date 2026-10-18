@@ -107,11 +107,18 @@ void cam::AgentCollection::run_turn() {
 
 		// Sequential, in a random order drawn each turn
 	} else {
-		const std::vector<std::string> l_agents = get_ids();
-		const auto l_count = l_agents.size();
-		const std::vector<int> l_agent_order = random_permutation(l_count);
+		// Ids and order kept in members: no large allocation per turn. An agent removed during the turn is skipped by
+		// the lookup, and the shared pointer keeps the running agent alive even if it removes itself.
+		m_turn_ids.clear();
+		for (auto& [l_id, l_agent]: m_agents) {
+			if (!l_agent->is_dead()) {
+				m_turn_ids.push_back(l_id);
+			}
+		}
+		const auto l_count = m_turn_ids.size();
+		random_permutation(l_count, m_turn_order);
 		for (size_t l_index = 0; l_index < l_count; l_index++) {
-			if (AgentPointer l_agent = get(l_agents.at(l_agent_order.at(l_index))); l_agent) {
+			if (AgentPointer l_agent = get(m_turn_ids[static_cast<size_t>(m_turn_order[l_index])]); l_agent) {
 				l_agent->run_turn();
 			}
 		}
@@ -173,15 +180,21 @@ std::vector<std::string> cam::AgentCollection::get_ids(const bool p_alive_only) 
 }
 
 std::vector<int> cam::AgentCollection::random_permutation(const size_t p_number) const {
-	std::vector<int> l_numbers(p_number);
+	std::vector<int> l_numbers;
+	random_permutation(p_number, l_numbers);
+	return l_numbers;
+}
+
+void cam::AgentCollection::random_permutation(const size_t p_number, std::vector<int>& p_numbers) const {
+	p_numbers.resize(p_number);
 	for (size_t l_index = 0; l_index < p_number; l_index++) {
-		l_numbers[l_index] = static_cast<int>(l_index);
+		p_numbers[l_index] = static_cast<int>(l_index);
 	}
 
 	// Nothing to shuffle with fewer than two elements; without this guard p_number - 1 underflows
 	// for an empty collection (an empty turn in Parallel or SequentialRandom mode, C1).
 	if (p_number < 2) {
-		return l_numbers;
+		return;
 	}
 
 	size_t l_index = p_number - 1;
@@ -190,13 +203,11 @@ std::vector<int> cam::AgentCollection::random_permutation(const size_t p_number)
 		if (l_k == l_index) {
 			continue;
 		}
-		const int l_temp = l_numbers[l_index];
-		l_numbers[l_index] = l_numbers[l_k];
-		l_numbers[l_k] = l_temp;
+		const int l_temp = p_numbers[l_index];
+		p_numbers[l_index] = p_numbers[l_k];
+		p_numbers[l_k] = l_temp;
 		l_index--;
 	}
-
-	return l_numbers;
 }
 
 size_t cam::AgentCollection::get_random_value(const size_t& p_min, const size_t& p_max) const {

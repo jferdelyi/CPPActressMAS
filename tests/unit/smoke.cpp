@@ -22,6 +22,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <type_traits>
 
@@ -347,6 +348,22 @@ TEST_SUITE("unit") {
 		l_env.start();
 		const std::vector<std::string> l_expected = {"0:a", "0:b", "0:c", "0:d", "1:a", "1:d", "2:a", "2:d", "0:a+"};
 		CHECK(g_recorder.entries() == l_expected);
+	}
+
+	TEST_CASE("in SequentialRandom mode every alive agent runs once per turn, after removals and additions") {
+		// Same agents as in Sequential mode: only the order within a turn may differ (turn buffers reused, P8)
+		g_recorder.clear();
+		cam::Environment l_env(4, Mode::SequentialRandom);
+		l_env.add<OrderedAgent>("a", false, true);
+		l_env.add<OrderedAgent>("b", true, false);
+		l_env.add<OrderedAgent>("c", true, false);
+		l_env.add<OrderedAgent>("d", false, false);
+		l_env.start();
+		std::vector<std::string> l_entries = g_recorder.entries();
+		std::vector<std::string> l_expected = {"0:a", "0:b", "0:c", "0:d", "1:a", "1:d", "2:a", "2:d", "0:a+"};
+		std::sort(l_entries.begin(), l_entries.end());
+		std::sort(l_expected.begin(), l_expected.end());
+		CHECK(l_entries == l_expected);
 	}
 
 	TEST_CASE("lookups by name, fragment and id after the first turn") {

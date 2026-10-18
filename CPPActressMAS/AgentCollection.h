@@ -68,6 +68,13 @@ namespace cam {
 		std::vector<Agent*> m_turn_agents;
 
 		/**
+		 * Ids of the alive agents of the current SequentialRandom turn, and their drawn order (capacity kept from turn to
+		 * turn)
+		 **/
+		std::vector<std::string> m_turn_ids;
+		std::vector<int> m_turn_order;
+
+		/**
 		 * Environment mode.
 		 **/
 		EnvironmentMasMode m_environment_mas_mode;
@@ -84,6 +91,13 @@ namespace cam {
 		 * @param p_id The agent id
 		 **/
 		void remove_name(const std::string& p_name, const std::string& p_id);
+
+		/**
+		 * Fill a vector with a random permutation of 0 to p_number - 1 (Fisher-Yates shuffle), reusing its capacity.
+		 * @param p_number Number of values
+		 * @param p_numbers Receives the permutation
+		 **/
+		void random_permutation(size_t p_number, std::vector<int>& p_numbers) const;
 
 	public:
 		/**
