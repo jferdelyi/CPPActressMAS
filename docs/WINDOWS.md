@@ -59,11 +59,11 @@
 
 Prérequis : Visual Studio 2022 (MSVC 19.3x, C++20), CMake ≥ 3.22, vcpkg (OpenSSL et pthreads pour le transport MQTT), accès réseau à GitHub à la première configuration avec `CAM_TRANSPORT_MQTT=ON`.
 
-Les bibliothèques tierces sont des sous-modules git (`ThirdParty/`, D69) : `git clone --recursive`, ou `git submodule update --init` dans un clone existant. Le chemin le plus long qu'ils apportent fait 143 caractères ; si le clone échoue sur un chemin trop long (dossier de travail très profond), `git config --global core.longpaths true` puis relancer.
+Les bibliothèques tierces sont des sous-modules git (`ThirdParty/`, D69) : après le clone, `git submodule update --init --depth 1` (environ 20 Mo ; `git clone --recursive` marche aussi mais télécharge environ 180 Mo, toutes les branches de nlohmann/json). Le chemin le plus long qu'ils apportent fait 143 caractères ; si le clone échoue sur un chemin trop long (dossier de travail très profond), `git config --global core.longpaths true` puis relancer.
 
 ```powershell
 # Sous-modules (une fois par clone)
-git submodule update --init
+git submodule update --init --depth 1
 
 # Cœur seul, sans aucune dépendance (recommandé en premier)
 cmake -S . -B build\msvc-core -DBUILD_EXAMPLES=ON -DCAM_TRANSPORT_MQTT=OFF

@@ -20,14 +20,15 @@ Dependencies:
 
 This project is developed with CLion (CMake). Compilation in pure CMake, the library, the examples and the tests are compiled through the presets of `CMakePresets.json` (`debug`, `release`, `core`, `asan`, `tsan`, `coverage`, `bench`; build directories under `build/<preset>`):
 ``` bash
-git clone --recursive https://github.com/jferdelyi/CPPActressMAS.git
+git clone https://github.com/jferdelyi/CPPActressMAS.git
 cd CPPActressMAS
+git submodule update --init --depth 1
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug
 ```
 
-A clone made without `--recursive` gets the submodules with `git submodule update --init`; the configuration stops with that hint while they are missing. Once they are checked out, the build works offline.
+`git submodule update --init --depth 1` fetches only the pinned commit of each library (about 20 MB). `git clone --recursive` works too, but downloads every branch of nlohmann/json (about 180 MB). The configuration stops with that hint while the submodules are missing; once they are checked out, the build works offline.
 
 Options: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the project is the top-level project), `BUILD_BENCH` (ON in the `bench` preset only), `BUILD_STATIC` and `BUILD_SHARED` (ON), `CAM_TRANSPORT_MQTT` and `CAM_TRANSPORT_ZENOH` (OFF by default; ON in the `debug`, `release`, `asan` and `tsan` presets, OFF in `core` and `bench`). The library (`CPPActressMAS`, `CPPActressMASStatic`) depends on a network library only when its transport option is ON: the transports compiled in join the library itself, and `Environment::connect(url)` selects them by scheme (the former `cam_transport` target remains as an alias).
 

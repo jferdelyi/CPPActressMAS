@@ -19,7 +19,7 @@ if (NOT TARGET CPPActressMAS)
 endif()
 set(CAM_DOCTEST_HEADER ${CMAKE_SOURCE_DIR}/ThirdParty/doctest/doctest/doctest.h)
 if (NOT EXISTS ${CAM_DOCTEST_HEADER})
-	message(FATAL_ERROR "ThirdParty/doctest is missing: run git submodule update --init")
+	message(FATAL_ERROR "ThirdParty/doctest is missing: run git submodule update --init --depth 1")
 endif()
 set(CAM_TSAN_SUPPRESSIONS ${CMAKE_CURRENT_LIST_DIR}/tsan/suppressions.txt)
 

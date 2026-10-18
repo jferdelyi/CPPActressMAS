@@ -1,6 +1,6 @@
 # CPPActressMAS: third-party libraries
 
-Git submodules, each pinned on a release tag of its upstream repository and cloned shallow (`shallow = true` in `.gitmodules`). Clone the project with `git clone --recursive`, or run `git submodule update --init` in an existing clone; the CMake configuration stops with that hint while one is missing.
+Git submodules, each pinned on a release tag of its upstream repository. After cloning the project, run `git submodule update --init --depth 1`: it fetches only the pinned commits (about 20 MB). `git clone --recursive` also works but downloads every branch of nlohmann/json (about 180 MB), even with `shallow = true` in `.gitmodules`. The CMake configuration stops with that hint while a submodule is missing.
 
 | Folder | Library | Version | License | Used by |
 |---|---|---|---|---|
