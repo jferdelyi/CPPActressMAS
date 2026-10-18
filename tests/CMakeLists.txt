@@ -94,6 +94,35 @@ cam_add_ok_probe(stop_and_send_parallel T2)
 # environment now has its own. The probe stays as a regression test.
 cam_add_ok_probe(rng_two_threads T7)
 
+# ---------------------------------------------------------------- ISO comparison with the C# (D74, D82)
+add_executable(cam_iso_check iso/iso_check.cpp)
+set(CAM_ISO_FIXTURES ${CMAKE_CURRENT_LIST_DIR}/iso/fixtures)
+
+# The tool itself, on fixtures: the same behaviour, then each kind of difference it must report.
+add_test(NAME unit.iso_check.same COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/basic.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/same.txt)
+set_tests_properties(unit.iso_check.same PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "same behaviour" FAIL_REGULAR_EXPRESSION "FAIL")
+foreach (l_case IN ITEMS "order|FAIL same msg seq" "uncovered|FAIL cover all on C\\+\\+" "missing|FAIL same total bag")
+	string(REPLACE "|" ";" l_parts "${l_case}")
+	list(GET l_parts 0 l_name)
+	list(GET l_parts 1 l_expected)
+	add_test(NAME unit.iso_check.${l_name} COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/basic.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/${l_name}.txt)
+	set_tests_properties(unit.iso_check.${l_name} PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "${l_expected}")
+endforeach()
+add_test(NAME unit.iso_check.typo COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/typo.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/same.txt)
+set_tests_properties(unit.iso_check.typo PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "FAIL fact msg: no tuple in the C# oracle")
+
+# Runs an example and compares its facts with the output of its C# original (tests/iso/oracles/<example>.txt, produced
+# by tools/csharp-ref) under tests/iso/rules/<example>.rules; extra arguments go to the example. Label iso.
+function(cam_add_iso p_example)
+	if (TARGET ${p_example})
+		add_test(NAME iso.${p_example}
+			COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/iso/rules/${p_example}.rules ${CMAKE_CURRENT_LIST_DIR}/iso/oracles/${p_example}.txt
+				-- $<TARGET_FILE:${p_example}> ${ARGN})
+		set_tests_properties(iso.${p_example} PROPERTIES LABELS iso TIMEOUT 300)
+		cam_apply_tsan_suppressions(iso.${p_example})
+	endif()
+endfunction()
+
 # ---------------------------------------------------------------- approval of deterministic examples
 add_executable(cam_approve approval/approve.cpp)
 target_link_libraries(cam_approve cam_test_support)

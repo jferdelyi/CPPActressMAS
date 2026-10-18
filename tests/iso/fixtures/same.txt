@@ -1,0 +1,7 @@
+[c -> b]: hi
+[a -> b]: hello
+[c -> b]: ho
+[a -> b]: bye
+total=10
+----
+total=20

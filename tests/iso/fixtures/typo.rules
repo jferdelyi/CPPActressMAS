@@ -1,0 +1,3 @@
+# Fixture of iso_check: a fact whose regex matches nothing in the oracle is an error, not two empty lists
+fact msg \[(\w+) => (\w+)\]: (.*)
+same msg bag
