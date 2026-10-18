@@ -145,6 +145,7 @@ public:
 		}
 	}
 };
+CAM_AGENT_TYPE(MobileAgent);  // its wire name, for programs that only receive it
 
 int main(int argc, char** argv) {
 	// Without argument the three environments share the in-process loopback, available in every build.
@@ -155,14 +156,13 @@ int main(int argc, char** argv) {
 	const std::string l_url_ab = argc > 2 ? argv[2] : l_url_c;
 
 	// A turn every 100 ms: the peers have time to announce themselves and the trip stays readable.
-	cam::Environment l_environment_c(0, cam::EnvironmentMasMode::Parallel, 100);
-	cam::Environment l_environment_b(0, cam::EnvironmentMasMode::Parallel, 100);
-	cam::Environment l_environment_a(0, cam::EnvironmentMasMode::Parallel, 100);
-	for (const auto& [l_environment, l_url] : {std::pair{&l_environment_c, l_url_c}, std::pair{&l_environment_b, l_url_ab},
-												std::pair{&l_environment_a, l_url_ab}}) {
-		l_environment->register_agent_type<MobileAgent>("MobileAgent");
-		if (const auto l_result = l_environment->connect(l_url); !l_result) {
-			std::cerr << "Cannot connect to " << l_url << ": " << l_result.error().m_message << std::endl;
+	cam::Environment l_environment_c({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_c});
+	cam::Environment l_environment_b({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_ab});
+	cam::Environment l_environment_a({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_ab});
+	// Connected before their threads start, so that every environment knows the others when the agent leaves
+	for (auto* const l_environment : {&l_environment_c, &l_environment_b, &l_environment_a}) {
+		if (const auto l_result = l_environment->connect(); !l_result) {
+			std::cerr << "Cannot connect to " << l_environment->transport_url() << ": " << l_result.error().m_message << std::endl;
 			return 1;
 		}
 	}

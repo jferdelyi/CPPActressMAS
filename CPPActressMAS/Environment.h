@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -33,6 +34,7 @@
 using json = nlohmann::json;
 
 #include "AgentCollection.h"
+#include "AgentTypes.h"
 #include "Message.h"
 #include "Agent.h"
 #include "transport/Endpoint.h"
@@ -70,7 +72,8 @@ namespace cam {
 	 * m_turns: maximum number of turns, 0 for no limit; m_delay_after_turn: in milliseconds; m_seed: seed of the
 	 * random order, drawn from std::random_device when absent; m_random: its generator; m_url: transport URL, the
 	 * environment connects through it at its first start() (offline when empty); m_endpoint: name and limits of that
-	 * connection.
+	 * connection; m_accepted_agent_types: wire names of the agent types that may arrive here by migration (every type
+	 * of the catalogue of the process when absent).
 	 **/
 	struct EnvironmentConfig {
 		int m_turns = 0;
@@ -80,6 +83,7 @@ namespace cam {
 		RandomEngine m_random = RandomEngine::Mt19937;
 		std::string m_url;
 		transport::EndpointConfig m_endpoint;
+		std::optional<std::vector<std::string>> m_accepted_agent_types;
 	};
 
 	/**
@@ -177,14 +181,9 @@ namespace cam {
 		transport::EndpointConfig m_endpoint_config;
 
 		/**
-		 * Agent types allowed to arrive here, by wire name: factory from the agent name.
+		 * Wire names of the agent types that may arrive here (every type of AgentTypes when absent).
 		 **/
-		std::unordered_map<std::string, std::function<AgentPointer(const std::string&)>> m_agent_factories;
-
-		/**
-		 * Wire name of each registered C++ type (used when an agent of this environment leaves).
-		 **/
-		std::unordered_map<std::type_index, std::string> m_agent_type_names;
+		std::optional<std::vector<std::string>> m_accepted_agent_types;
 
 		/**
 		 * Moves asked during the turn (any thread), handled at the end of the turn.
@@ -247,6 +246,8 @@ namespace cam {
 		 **/
 		template<ConceptAgent T>
 		AgentId add(auto&& ... p_args) {
+			static const bool s_catalogued = AgentTypes::catalogue<T>();  // once per type: its wire name for migration
+			(void) s_catalogued;
 			const AgentPointer l_agent = make_agent<T>(std::forward<decltype(p_args)>(p_args)...);
 			l_agent->set_environment(this);
 			m_agent_collection.add(l_agent);
@@ -526,26 +527,27 @@ namespace cam {
 		[[nodiscard]] transport::Statistics statistics() const;
 
 		/**
-		 * Allow agents of type T to arrive here by migration under a stable wire name, and give the
-		 * agents of type T living here that name when they leave. T is built as T(const std::string& name),
-		 * then load_state() restores it. The registry is also the white list: an offer of an unregistered
-		 * type is refused.
+		 * Give the agent type T a stable wire name in the catalogue of the process (AgentTypes, D82) and accept it here
+		 * when this environment has a list of accepted types. T is built as T(const std::string& name), then
+		 * load_state() restores it. Without it, add<T>() already names T automatically and CAM_AGENT_TYPE(T) gives a
+		 * stable name to a program that only receives T.
 		 * @param p_type_name The wire name of the type (the same on every environment)
 		 **/
 		template<ConceptAgent T>
 		void register_agent_type(const std::string& p_type_name) {
-			m_agent_factories[p_type_name] = [](const std::string& p_name) -> AgentPointer { return make_agent<T>(p_name); };
-			m_agent_type_names[std::type_index(typeid(T))] = p_type_name;
+			AgentTypes::add(std::type_index(typeid(T)), p_type_name,
+							[](const std::string& p_name) -> AgentPointer { return make_agent<T>(p_name); }, true);
+			if (m_accepted_agent_types && std::find(m_accepted_agent_types->begin(), m_accepted_agent_types->end(), p_type_name) == m_accepted_agent_types->end()) {
+				m_accepted_agent_types->push_back(p_type_name);
+			}
 		}
 
 		/**
-		 * True if agents of this wire name may arrive here.
+		 * True if agents of this wire name may arrive here: known by the catalogue and accepted here.
 		 * @param p_type_name The wire name
 		 * @return True if registered
 		 **/
-		[[nodiscard]] bool is_agent_type_registered(const std::string& p_type_name) const {
-			return m_agent_factories.contains(p_type_name);
-		}
+		[[nodiscard]] bool is_agent_type_registered(const std::string& p_type_name) const;
 
 		/**
 		 * A method that may be optionally overridden to perform additional

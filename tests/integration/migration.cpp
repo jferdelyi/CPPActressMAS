@@ -56,6 +56,12 @@ namespace {
 		explicit TestEnvironment(std::string p_label, const Mode p_mode = Mode::Sequential) : Environment(1, p_mode), m_label(std::move(p_label)) {
 			g_labels[get_id()] = m_label;
 		}
+		// Accepting only the given agent types: the catalogue of the process is shared by every environment (D82)
+		TestEnvironment(std::string p_label, std::vector<std::string> p_accepted_types) :
+				Environment({.m_turns = 1, .m_mode = Mode::Sequential, .m_accepted_agent_types = std::move(p_accepted_types)}),
+				m_label(std::move(p_label)) {
+			g_labels[get_id()] = m_label;
+		}
 		void on_environment_joined(const EnvironmentInfo& p_info) override { g_recorder.record(m_label + ":joined:" + p_info.m_name); }
 		void on_environment_left(const EnvironmentInfo& p_info) override { g_recorder.record(m_label + ":left:" + p_info.m_name); }
 		void on_delivery_failure(const Error& p_error) override { g_recorder.record(m_label + ":failure:" + to_string(p_error.m_code)); }
@@ -183,7 +189,21 @@ namespace {
 		int m_count = 0;
 	};
 
-	// Agent type never registered anywhere.
+	// Agent type never named: anonymous namespace, never registered by any test (the catalogue is per process, D82).
+	struct Unlisted final : cam::Agent {
+		Unlisted(const std::string& p_name, std::string p_target) : Agent(p_name), m_target(std::move(p_target)) {}
+		void default_action() override {
+			if (!m_moved) {
+				m_moved = true;
+				g_recorder.record(get_name() + ":move:" + code(move(m_target)));
+			}
+		}
+	private:
+		std::string m_target;
+		bool m_moved = false;
+	};
+
+	// Agent type named by one environment only; the destination does not accept it.
 	struct Stranger final : cam::Agent {
 		explicit Stranger(const std::string& p_name) : Agent(p_name) {}
 		Stranger(const std::string& p_name, std::string p_target) : Agent(p_name), m_target(std::move(p_target)) {}
@@ -250,7 +270,7 @@ TEST_SUITE("migration") {
 		SUBCASE("type not registered at the origin") {
 			REQUIRE(l_b.connect(l_transport, config("B")));
 			REQUIRE(l_a.connect(l_transport, config("A")));
-			l_a.add<Hopper>("h", l_b.get_id());
+			l_a.add<Unlisted>("h", l_b.get_id());  // Hopper is named by the other cases of this process
 			l_a.start();
 			l_a.start();
 			CHECK(g_recorder.contains("h:move:unknown agent type"));
@@ -313,7 +333,7 @@ TEST_SUITE("migration") {
 		g_recorder.clear();
 		auto l_transport = open_loopback();
 		TestEnvironment l_a("A");
-		TestEnvironment l_b("B");
+		TestEnvironment l_b("B", std::vector<std::string>{});  // B accepts no type
 		l_a.register_agent_type<Hopper>("Hopper");  // B does not register it
 		REQUIRE(l_b.connect(l_transport, config("B")));
 		REQUIRE(l_a.connect(l_transport, config("A")));
@@ -514,7 +534,7 @@ TEST_SUITE("migration") {
 		g_recorder.clear();
 		auto l_transport = open_loopback();
 		TestEnvironment l_a("A");
-		TestEnvironment l_b("B");
+		TestEnvironment l_b("B", std::vector<std::string>{});  // B accepts no type
 		l_a.register_agent_type<Stranger>("Stranger");
 		REQUIRE(l_b.connect(l_transport, config("B")));
 		REQUIRE(l_a.connect(l_transport, config("A")));

@@ -247,6 +247,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.message_parse PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.message_parse)
 
+	# Catalogue of the agent types of the process (Q27, D82): automatic names, CAM_AGENT_TYPE, conflicts, migration.
+	add_executable(cam_agent_types_tests unit/agent_types.cpp)
+	target_link_libraries(cam_agent_types_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.agent_types COMMAND cam_agent_types_tests)
+	set_tests_properties(unit.agent_types PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.agent_types)
+
 	# Number formatting and parsing of .NET for the examples (Examples/Common/DotNet.hpp, D82), against the C# vectors.
 	add_executable(cam_dotnet_format_tests unit/dotnet_format.cpp)
 	target_link_libraries(cam_dotnet_format_tests cam_doctest_main)

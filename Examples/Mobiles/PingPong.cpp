@@ -73,11 +73,12 @@ int main(int argc, char** argv) {
 	const std::string l_url_ping = argc > 2 ? argv[2] : l_url_pong;
 
 	// A remote message reaches its agent at the turn after its reception: a few turns are needed.
-	cam::Environment l_environment_b(10, cam::EnvironmentMasMode::Parallel, 100);
-	cam::Environment l_environment_a(10, cam::EnvironmentMasMode::Parallel, 100);
-	for (const auto& [l_environment, l_url] : {std::pair{&l_environment_b, l_url_pong}, std::pair{&l_environment_a, l_url_ping}}) {
-		if (const auto l_result = l_environment->connect(l_url); !l_result) {
-			std::cerr << "Cannot connect to " << l_url << ": " << l_result.error().m_message << std::endl;
+	cam::Environment l_environment_b({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_pong});
+	cam::Environment l_environment_a({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_ping});
+	// Connected before their threads start, so that each environment knows the other at its first turn
+	for (auto* const l_environment : {&l_environment_b, &l_environment_a}) {
+		if (const auto l_result = l_environment->connect(); !l_result) {
+			std::cerr << "Cannot connect to " << l_environment->transport_url() << ": " << l_result.error().m_message << std::endl;
 			return 1;
 		}
 	}

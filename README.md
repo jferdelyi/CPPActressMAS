@@ -36,17 +36,18 @@ Options: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the pr
 
 An environment stays offline until it is connected to a transport. It owns its transport URL: the scheme selects the transport among those compiled in the library (`loopback://` always, `zenoh://` with `CAM_TRANSPORT_ZENOH`, `mqtt://` and `mqtts://` with `CAM_TRANSPORT_MQTT`). Without a URL, `connect()` refuses. Zenoh is the recommended network transport: peers talk to each other without a broker, one of them listens and the others connect to it (or to a `zenohd` router):
 ``` cpp
-cam::Environment l_environment;
-l_environment.register_agent_type<MyMobileAgent>("MyMobileAgent");   // agents allowed to arrive here by migration
-// first peer of the simulation: listens on 127.0.0.1:7447
-if (const auto l_result = l_environment.connect("zenoh://?listen=tcp/127.0.0.1:7447&ns=my-simulation"); !l_result) {
-	std::cerr << l_result.error().m_message << std::endl;
-}
-// other peers: l_other.connect("zenoh://127.0.0.1:7447/my-simulation")
-// MQTT broker instead: l_other.connect("mqtt://127.0.0.1:1883/my-simulation")
-// several environments of one process: l_a.connect("loopback://my-simulation"), l_b.connect("loopback://my-simulation")
-// or set the URL first and connect later: l_environment.set_transport_url(url); ... l_environment.connect();
+CAM_AGENT_TYPE(MyMobileAgent);  // after the class, at global scope: its wire name, for programs that only receive it
+
+// first peer of the simulation: listens on 127.0.0.1:7447, connected at its first start()
+cam::Environment l_environment({.m_url = "zenoh://?listen=tcp/127.0.0.1:7447&ns=my-simulation"});
+l_environment.add<MyMobileAgent>("traveller");  // add<T>() also names the type automatically
+l_environment.start();                           // throws cam::transport::TransportError if the URL does not connect
+// other peers: {.m_url = "zenoh://127.0.0.1:7447/my-simulation"}
+// MQTT broker instead: {.m_url = "mqtt://127.0.0.1:1883/my-simulation"}
+// several environments of one process: {.m_url = "loopback://my-simulation"} for each
+// to connect earlier and get a Result instead: if (const auto l_result = l_environment.connect(); !l_result) { ... }
 ```
+Migration needs the wire name of the agent type in both programs: `add<T>()` gives a type of a named namespace its qualified C++ name, `CAM_AGENT_TYPE(T)` fixes it for a program that only receives `T`, and `EnvironmentConfig::m_accepted_agent_types` restricts what an environment accepts.
 Zenoh options: `mode=peer|client`, `listen=tcp/host:port` (several, comma separated), `connect=tcp/host:port`, `scouting=multicast` (discovery by UDP multicast; off by default, so an environment only talks to the endpoints it was given). Presence relies on Zenoh liveliness: the death of a process takes its environments offline for everyone.
 
 **Envelope codecs.** Every envelope on the wire starts with a 4-byte header (magic, codec id, version) and is encoded by the codec of the transport, chosen by the URL option `codec=` and the same for every environment of a namespace: `protobuf` (default) is the proto3 wire format of [`CPPActressMAS/transport/codec/envelope.proto`](CPPActressMAS/transport/codec/envelope.proto), written and read by the project itself without libprotobuf, so any proto3 implementation given that file can talk to it; `compact` is a fixed little-endian layout, the floor of the micro-benchmark; `json` is readable UTF-8 JSON (a text content travels in clear), for debugging and the simplest clients. The binary vectors of each codec are under `tests/vectors/envelope/<codec>/v1/`; the protobuf ones were checked against `protoc`.

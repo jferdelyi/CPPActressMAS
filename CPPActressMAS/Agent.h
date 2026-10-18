@@ -318,7 +318,8 @@ namespace cam {
 
 		/**
 		 * Move to another environment through the transport (three-step migration). The agent type must
-		 * be registered on both sides (Environment::register_agent_type). The agent keeps its id, carries
+		 * have a wire name in the catalogue of both processes (AgentTypes: given by add<T>(), CAM_AGENT_TYPE(T) or
+		 * Environment::register_agent_type) and be accepted by the destination. The agent keeps its id, carries
 		 * save_state(), its observables and its unconsumed messages, and runs setup() again on arrival.
 		 * Until the destination confirms, the agent stays here, inactive; it resumes if the move fails.
 		 * @param p_environment_id Destination environment id

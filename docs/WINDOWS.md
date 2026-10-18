@@ -55,6 +55,14 @@
   - `__STDCPP_DEFAULT_NEW_ALIGNMENT__` est défini par MSVC en `/std:c++17` et au-delà.
   - Sous AddressSanitizer (`/fsanitize=address`, qui définit `__SANITIZE_ADDRESS__`), les blocs ne sont pas recyclés, pour qu'ASan voie chaque libération ; les agents sur-alignés passent par `std::make_shared` (passe d'optimisation finale, D71).
 - **Identifiant d'agent** (`CPPActressMAS/AgentId.{h,cpp}`, D76) : un constructeur `consteval` depuis un littéral (MSVC 19.29 et suivants en `/std:c++20`), `std::hash` spécialisé, lecture des 16 octets par `std::memcpy` ; rien de propre à une plateforme.
+
+## 2 quinquies. Impact de la phase 1 du portage des exemples (D82, non vérifié sous Windows)
+
+- **Catalogue des types** (`CPPActressMAS/AgentTypes.{h,cpp}`) : le nom automatique d'un type vient du démangleur `<cxxabi.h>` sous GCC et Clang (inclus sous `#if`) ; sous MSVC, de `typeid(T).name()` sans son préfixe `class ` ou `struct `. Deux programmes compilés l'un par MSVC, l'autre par GCC ou Clang donnent le même nom à un type d'un espace de noms nommé (« ns::Type »), mais la macro `CAM_AGENT_TYPE(T)` reste le moyen sûr. Le catalogue est une variable statique de fonction dans le `.cpp` : une seule instance tant que la bibliothèque n'est pas dupliquée (avec une DLL, il faudra exporter `AgentTypes`, point W1). `CAM_AGENT_TYPE(T)` s'écrit à portée globale.
+- **Exemples** : `-ffp-contract=off` n'est passé qu'à GCC et Clang ; MSVC ne contracte pas les multiplications-additions par défaut (`/fp:precise`).
+- **`Examples/Common/DotNet.hpp`** : `std::to_chars` des flottants (MSVC 19.24 et suivants).
+- **`tests/iso/iso_check.cpp`** : `_popen` et `_pclose` sous Windows, comme `approve.cpp`.
+- **Tests** : `tests/unit/message_parse.cpp` écrit ses caractères UTF-8 en octets échappés, pour un compilateur qui ne lit pas la source en UTF-8.
 - **Non vérifié sous Windows** (D6).
 
 ## 3. Procédure de build proposée (à exécuter par toi, non vérifiée)

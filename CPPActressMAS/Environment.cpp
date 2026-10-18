@@ -18,6 +18,7 @@
 
 #include "Environment.h"
 
+#include <algorithm>
 #include <random>
 #include <thread>
 
@@ -62,6 +63,7 @@ cam::Environment::Environment(const EnvironmentConfig& p_config) :
 		m_transport_url(p_config.m_url),
 		m_connect_on_start(!p_config.m_url.empty()),
 		m_endpoint_config(p_config.m_endpoint),
+		m_accepted_agent_types(p_config.m_accepted_agent_types),
 		m_boundary(0) {
 }
 
@@ -83,6 +85,12 @@ cam::AgentPointer cam::Environment::get(const AgentId& p_id) const {
 
 void cam::Environment::continue_simulation(const int p_no_turns) {
 	run_turns(p_no_turns);
+}
+
+bool cam::Environment::is_agent_type_registered(const std::string& p_type_name) const {
+	const bool l_accepted = !m_accepted_agent_types || std::find(m_accepted_agent_types->begin(), m_accepted_agent_types->end(), p_type_name) !=
+															 m_accepted_agent_types->end();
+	return l_accepted && static_cast<bool>(AgentTypes::factory_of(p_type_name));
 }
 
 std::optional<cam::AgentId> cam::Environment::random_agent() const {
@@ -457,7 +465,7 @@ cam::transport::Result<void> cam::Environment::connect() {
 	if (m_transport_url.empty()) {
 		return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "no transport URL: call set_transport_url or connect(url)");
 	}
-	return connect(m_transport_url, transport::EndpointConfig{});
+	return connect(m_transport_url, m_endpoint_config);
 }
 
 cam::transport::Result<void> cam::Environment::connect(const std::string& p_url, transport::EndpointConfig p_config) {
@@ -726,9 +734,9 @@ cam::transport::Result<void> cam::Environment::request_move(const Agent& p_agent
 	if (!m_endpoint->knows_environment(p_environment_id)) {
 		return make_error(ErrorCategory::Routing, ErrorCode::UnknownDestination, "unknown environment " + p_environment_id);
 	}
-	if (!m_agent_type_names.contains(std::type_index(typeid(p_agent)))) {
+	if (!AgentTypes::name_of(std::type_index(typeid(p_agent)))) {
 		return make_error(ErrorCategory::Validation, ErrorCode::UnknownAgentType,
-						  "agent type not registered here (Environment::register_agent_type)");
+						  "agent type without a wire name: name it with CAM_AGENT_TYPE(T) or Environment::register_agent_type");
 	}
 	const std::lock_guard<std::mutex> l_lock(m_move_mutex);
 	m_move_requests.push_back(MoveRequest{p_agent.get_id(), p_environment_id, p_options.m_priority});
@@ -759,7 +767,7 @@ void cam::Environment::process_move_requests() {
 		const Agent& l_agent_ref = *l_agent;
 		transport::AgentTransfer l_transfer;
 		l_transfer.m_transfer_id = generate_uuid();
-		l_transfer.m_type_name = m_agent_type_names.at(std::type_index(typeid(l_agent_ref)));
+		l_transfer.m_type_name = AgentTypes::name_of(std::type_index(typeid(l_agent_ref))).value_or("");
 		l_transfer.m_agent_id = l_agent->get_id().str();
 		l_transfer.m_agent_name = l_agent->get_name();
 		l_transfer.m_state_encoding = MessageBinaryFormat::MessagePack;
@@ -895,8 +903,10 @@ void cam::Environment::apply_agent_offer(const transport::Envelope& p_envelope) 
 		m_endpoint->count_migration_failed();
 		return;
 	}
-	const auto l_factory = m_agent_factories.find(l_transfer->m_type_name);
-	if (l_factory == m_agent_factories.end()) {
+	const bool l_accepted = !m_accepted_agent_types || std::find(m_accepted_agent_types->begin(), m_accepted_agent_types->end(),
+																	   l_transfer->m_type_name) != m_accepted_agent_types->end();
+	const AgentTypes::Factory l_factory = l_accepted ? AgentTypes::factory_of(l_transfer->m_type_name) : AgentTypes::Factory();
+	if (!l_factory) {
 		send_control(transport::EnvelopeKind::AgentReject, l_origin, l_transfer->m_transfer_id, *l_agent_id, false,
 					 "unknown agent type " + l_transfer->m_type_name);
 		m_endpoint->count_migration_failed();
@@ -913,7 +923,7 @@ void cam::Environment::apply_agent_offer(const transport::Envelope& p_envelope) 
 	}
 	AgentPointer l_agent;
 	try {
-		l_agent = l_factory->second(l_transfer->m_agent_name);
+		l_agent = l_factory(l_transfer->m_agent_name);
 		l_agent->set_environment(this);
 		l_agent->set_identity(*l_agent_id, l_transfer->m_agent_name);
 		l_agent->m_is_using_observables = l_transfer->m_uses_observables;
