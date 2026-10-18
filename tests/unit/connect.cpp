@@ -32,9 +32,60 @@ namespace {
 
 	using namespace cam::transport;
 
+	// Counts its turns and its end
+	struct CountingEnvironment final : cam::Environment {
+		using cam::Environment::Environment;
+		int m_turns = 0;
+		int m_finished = 0;
+		void turn_finished(int) override { ++m_turns; }
+		void simulation_finished() override { ++m_finished; }
+	};
+
 } // namespace
 
 TEST_SUITE("connect") {
+
+	TEST_CASE("an environment configured with a URL connects at its first start (Q27, D82)") {
+		cam::Environment l_a({.m_turns = 1, .m_mode = cam::EnvironmentMasMode::Sequential, .m_url = "loopback://unit-connect-config",
+							  .m_endpoint = {.m_name = "A"}});
+		cam::Environment l_b({.m_turns = 1, .m_mode = cam::EnvironmentMasMode::Sequential, .m_url = "loopback://unit-connect-config",
+							  .m_endpoint = {.m_name = "B"}});
+		CHECK_FALSE(l_a.is_connected());
+		CHECK(l_a.transport_url() == "loopback://unit-connect-config");
+		l_a.start();
+		CHECK(l_a.is_connected());
+		l_b.start();  // B learns A from its retained presence
+		REQUIRE(l_b.environments().size() == 1);
+		CHECK(l_b.environments()[0].m_name == "A");
+		l_a.start();  // already connected: no second connection
+		CHECK(l_a.is_connected());
+		REQUIRE(l_a.disconnect());
+		REQUIRE(l_b.disconnect());
+	}
+
+	TEST_CASE("a configured URL that does not connect throws before any turn, and start retries it") {
+		CountingEnvironment l_env({.m_turns = 2, .m_mode = cam::EnvironmentMasMode::Sequential, .m_url = "carrier-pigeon://nowhere"});
+		for (int l_attempt = 0; l_attempt < 2; l_attempt++) {
+			try {
+				l_env.start();
+				FAIL("start() should have thrown");
+			} catch (const TransportError& p_error) {
+				CHECK(p_error.m_error.m_code == ErrorCode::NotSupported);
+			}
+		}
+		CHECK(l_env.m_turns == 0);
+		CHECK(l_env.m_finished == 0);
+		CHECK_FALSE(l_env.is_connected());
+	}
+
+	TEST_CASE("after an explicit disconnect, start never reconnects") {
+		cam::Environment l_env({.m_turns = 1, .m_mode = cam::EnvironmentMasMode::Sequential, .m_url = "loopback://unit-connect-once"});
+		l_env.start();
+		REQUIRE(l_env.is_connected());
+		REQUIRE(l_env.disconnect());
+		l_env.start();
+		CHECK_FALSE(l_env.is_connected());
+	}
 
 	TEST_CASE("an environment without URL stays offline and says so") {
 		cam::Environment l_env(1, cam::EnvironmentMasMode::Sequential);

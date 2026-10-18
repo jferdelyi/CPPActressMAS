@@ -59,6 +59,9 @@ cam::Environment::Environment(const EnvironmentConfig& p_config) :
 		m_no_turns(p_config.m_turns),
 		m_delay_after_turn(p_config.m_delay_after_turn),
 		m_agent_collection(p_config.m_mode, p_config.m_seed.value_or(std::random_device()()), p_config.m_random),
+		m_transport_url(p_config.m_url),
+		m_connect_on_start(!p_config.m_url.empty()),
+		m_endpoint_config(p_config.m_endpoint),
 		m_boundary(0) {
 }
 
@@ -311,6 +314,12 @@ cam::Environment::enqueue_content(const transport::Address& p_address, const tra
 }
 
 void cam::Environment::start() {
+	// The URL of the configuration connects at the first start(), before any turn; a failure is retried at the next one
+	if (m_connect_on_start && !m_endpoint) {
+		if (const auto l_result = connect(m_transport_url, m_endpoint_config); !l_result) {
+			throw transport::TransportError(l_result.error());
+		}
+	}
 	run_turns(m_no_turns);
 }
 
@@ -476,6 +485,7 @@ cam::Environment::connect(std::shared_ptr<transport::Transport> p_transport, tra
 		return l_result;
 	}
 	m_endpoint = std::move(l_endpoint);
+	m_connect_on_start = false;
 	announce_presence(true);
 	flush_outbox();
 	// Retained presences delivered by the transport at attach: known right away.
@@ -486,6 +496,7 @@ cam::Environment::connect(std::shared_ptr<transport::Transport> p_transport, tra
 }
 
 cam::transport::Result<void> cam::Environment::disconnect() {
+	m_connect_on_start = false;  // never reconnected by start() after an explicit disconnect
 	if (!m_endpoint) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "environment not connected");
 	}

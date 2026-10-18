@@ -68,7 +68,9 @@ namespace cam {
 	 * Configuration of an environment, written with designated initializers (D82):
 	 * cam::Environment l_environment({.m_turns = 100, .m_mode = cam::EnvironmentMasMode::Sequential});
 	 * m_turns: maximum number of turns, 0 for no limit; m_delay_after_turn: in milliseconds; m_seed: seed of the
-	 * random order, drawn from std::random_device when absent; m_random: its generator.
+	 * random order, drawn from std::random_device when absent; m_random: its generator; m_url: transport URL, the
+	 * environment connects through it at its first start() (offline when empty); m_endpoint: name and limits of that
+	 * connection.
 	 **/
 	struct EnvironmentConfig {
 		int m_turns = 0;
@@ -76,6 +78,8 @@ namespace cam {
 		int m_delay_after_turn = 0;
 		std::optional<unsigned int> m_seed;
 		RandomEngine m_random = RandomEngine::Mt19937;
+		std::string m_url;
+		transport::EndpointConfig m_endpoint;
 	};
 
 	/**
@@ -164,6 +168,13 @@ namespace cam {
 		 **/
 		std::string m_transport_url;
 		TransportFactory m_transport_factory;
+
+		/**
+		 * Connection asked by the configuration (m_url), made at the first start(); dropped once connected or after an
+		 * explicit disconnect().
+		 **/
+		bool m_connect_on_start = false;
+		transport::EndpointConfig m_endpoint_config;
 
 		/**
 		 * Agent types allowed to arrive here, by wire name: factory from the agent name.

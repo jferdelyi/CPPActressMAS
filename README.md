@@ -130,6 +130,10 @@ explicit Environment(int p_no_turns = 0, const EnvironmentMasMode& p_mode = Envi
  * EnvironmentConfig: m_turns, m_mode, m_delay_after_turn, m_seed (drawn from std::random_device when absent),
  * m_random (RandomEngine::Mt19937, the same numbers with every standard library, or RandomEngine::DotNet, the draws of
  * the seeded System.Random so that a port follows the random order of the C#). seed() returns the seed in use.
+ * m_url and m_endpoint: transport URL and endpoint configuration; the environment connects through them at its first
+ * start(), which throws cam::transport::TransportError if the connection fails (a later start() retries; never after an
+ * explicit disconnect()). connect() stays available to connect earlier, for instance to synchronize several
+ * environments started in their own threads.
  * @param p_config The configuration
  **/
 explicit Environment(const EnvironmentConfig& p_config);

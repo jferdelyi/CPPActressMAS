@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -252,6 +253,15 @@ namespace cam::transport {
 		ErrorCode m_code = ErrorCode::None;
 		std::string m_message;
 		int m_native = 0;
+	};
+
+	/**
+	 * Exception carrying a transport error, thrown where no Result can be returned: Environment::start() when the URL
+	 * of its configuration does not connect (D82).
+	 **/
+	struct TransportError final : std::runtime_error {
+		Error m_error;
+		explicit TransportError(Error p_error) : std::runtime_error(p_error.m_message), m_error(std::move(p_error)) {}
 	};
 
 	/**
