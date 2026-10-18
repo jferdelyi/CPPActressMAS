@@ -142,9 +142,8 @@ cam::Environment::send(const AgentId& p_sender_id, const AgentId& p_receiver_id,
 
 cam::MessagePointer cam::Environment::make_message(const AgentId& p_sender_id, const AgentId& p_receiver_id,
 												   MessageContent&& p_content, const std::string& p_sender_environment) {
-	// The block of the message and its counter is recycled by the thread that drops the last reference (P8)
-	return std::allocate_shared<Message>(RecyclingAllocator<Message>(), Message::Key(), p_sender_id, p_receiver_id, std::move(p_content),
-										 p_sender_environment);
+	// The message carries its counter, and its block is recycled by the thread that drops the last pointer (P8, D76)
+	return MessagePointer(new Message(Message::Key(), p_sender_id, p_receiver_id, std::move(p_content), p_sender_environment));
 }
 
 bool cam::Environment::deliver_local(const AgentId& p_sender_id, const AgentId& p_receiver_id,

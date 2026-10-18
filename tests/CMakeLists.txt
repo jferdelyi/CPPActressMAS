@@ -170,6 +170,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.recycling_allocator PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.recycling_allocator)
 
+	# Pointer to a message with its counter inside (D76): copies, moves, kept messages, release across threads.
+	add_executable(cam_message_pointer_tests unit/message_pointer.cpp)
+	target_link_libraries(cam_message_pointer_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.message_pointer COMMAND cam_message_pointer_tests)
+	set_tests_properties(unit.message_pointer PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.message_pointer)
+
 	# Identifier of an agent (D76): size, capacity, literals, comparisons, hash, stream, JSON.
 	add_executable(cam_agent_id_tests unit/agent_id.cpp)
 	target_link_libraries(cam_agent_id_tests cam_doctest_main ${CAM_TEST_LIBRARY})

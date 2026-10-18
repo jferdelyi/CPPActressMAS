@@ -147,7 +147,7 @@ namespace cam {
 
 	/**
 	 * Allocator whose single objects come from FreeBlocks: for objects made and dropped at a high rate, such as the
-	 * messages through std::allocate_shared (P8). Arrays go to std::allocator. Not final: the standard containers of
+	 * agents and the JSON contents through std::allocate_shared (P8). Arrays go to std::allocator. Not final: the standard containers of
 	 * libstdc++ derive from their allocator.
 	 **/
 	template<typename T>

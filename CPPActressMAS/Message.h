@@ -18,14 +18,19 @@
 
 #pragma once
 
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
 #include <nlohmann/json.hpp>
 
 #include "AgentId.h"
+#include "util/RecyclingAllocator.hpp"
 
 using json = nlohmann::json;
 
@@ -62,11 +67,19 @@ namespace cam {
 	 * transport encodes it once when it crosses the network.
 	 **/
 	class Environment;
+	class MessagePointer;
 
 	class Message final {
 		friend Environment;
+		friend MessagePointer;
 
 	protected:
+		/**
+		 * Number of MessagePointer sharing the message, atomic: a message is often dropped by another thread than the
+		 * one that built it.
+		 **/
+		mutable std::atomic<std::uint32_t> m_references{0};
+
 		/**
 		 * Sender.
 		 **/
@@ -229,8 +242,180 @@ namespace cam {
 		Message(const Message&) = delete;
 
 		Message& operator=(Message&) = delete;
+
+		/**
+		 * Memory of a message built on the heap, from the free blocks of the current thread (P8).
+		 * @param p_size Size of the message
+		 * @return The memory
+		 **/
+		static void* operator new(std::size_t p_size);
+
+		/**
+		 * Give the memory of a message back to the free blocks of the current thread.
+		 * @param p_pointer The memory
+		 **/
+		static void operator delete(void* p_pointer) noexcept;
 	};
 
-	// Message pointer
-	using MessagePointer = std::shared_ptr<const Message>;
+	/**
+	 * Shared pointer to a message, the counter inside the message (D76): a copy changes one atomic counter, and the
+	 * message with its counter is one block, recycled per thread. Only the environment makes one; an agent receives,
+	 * copies, keeps and drops them.
+	 **/
+	class MessagePointer final {
+		friend Environment;
+
+	private:
+		/**
+		 * The message, or null.
+		 **/
+		const Message* m_message = nullptr;
+
+		/**
+		 * Own a message just built on the heap, not shared yet (environment only): its counter is set, not incremented.
+		 * @param p_message The message
+		 **/
+		explicit MessagePointer(const Message* p_message) noexcept :
+				m_message(p_message) {
+			if (m_message) {
+				m_message->m_references.store(1, std::memory_order_relaxed);
+			}
+		}
+
+		/**
+		 * Share the message of another pointer.
+		 **/
+		void share() const noexcept {
+			if (m_message) {
+				m_message->m_references.fetch_add(1, std::memory_order_relaxed);
+			}
+		}
+
+		/**
+		 * Drop the share of this pointer: the last one deletes the message. A sole owner (counter at 1) cannot be
+		 * raced, since no other pointer exists to copy it: it deletes without an atomic decrement.
+		 **/
+		void release() noexcept {
+			if (!m_message) {
+				return;
+			}
+			if (m_message->m_references.load(std::memory_order_acquire) == 1 ||
+				m_message->m_references.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+				delete m_message;
+			}
+		}
+
+	public:
+		/**
+		 * Null pointer.
+		 **/
+		MessagePointer() noexcept = default;
+
+		/**
+		 * Null pointer.
+		 **/
+		MessagePointer(std::nullptr_t) noexcept {}
+
+		/**
+		 * Share the message of another pointer.
+		 * @param p_other The other pointer
+		 **/
+		MessagePointer(const MessagePointer& p_other) noexcept :
+				m_message(p_other.m_message) {
+			share();
+		}
+
+		/**
+		 * Take the message of another pointer, which becomes null.
+		 * @param p_other The other pointer
+		 **/
+		MessagePointer(MessagePointer&& p_other) noexcept :
+				m_message(std::exchange(p_other.m_message, nullptr)) {}
+
+		/**
+		 * Share the message of another pointer.
+		 * @param p_other The other pointer
+		 * @return This pointer
+		 **/
+		MessagePointer& operator=(const MessagePointer& p_other) noexcept {
+			MessagePointer(p_other).swap(*this);
+			return *this;
+		}
+
+		/**
+		 * Take the message of another pointer, which becomes null.
+		 * @param p_other The other pointer
+		 * @return This pointer
+		 **/
+		MessagePointer& operator=(MessagePointer&& p_other) noexcept {
+			MessagePointer(std::move(p_other)).swap(*this);
+			return *this;
+		}
+
+		/**
+		 * Drop the share of this pointer.
+		 **/
+		~MessagePointer() {
+			release();
+		}
+
+		/**
+		 * Exchange the messages of two pointers.
+		 * @param p_other The other pointer
+		 **/
+		void swap(MessagePointer& p_other) noexcept {
+			std::swap(m_message, p_other.m_message);
+		}
+
+		/**
+		 * Drop the share of this pointer, which becomes null.
+		 **/
+		void reset() noexcept {
+			release();
+			m_message = nullptr;
+		}
+
+		/**
+		 * The message.
+		 * @return The message, or null
+		 **/
+		[[nodiscard]] const Message* get() const noexcept { return m_message; }
+
+		/**
+		 * The message.
+		 * @return The message
+		 **/
+		const Message* operator->() const noexcept { return m_message; }
+
+		/**
+		 * The message.
+		 * @return The message
+		 **/
+		const Message& operator*() const noexcept { return *m_message; }
+
+		/**
+		 * True if the pointer has a message.
+		 * @return True if not null
+		 **/
+		explicit operator bool() const noexcept { return m_message != nullptr; }
+
+		/**
+		 * True if both pointers share the same message.
+		 * @param p_left A pointer
+		 * @param p_right Another pointer
+		 * @return True if the same message
+		 **/
+		friend bool operator==(const MessagePointer& p_left, const MessagePointer& p_right) noexcept {
+			return p_left.m_message == p_right.m_message;
+		}
+
+		/**
+		 * True if the pointer is null.
+		 * @param p_pointer A pointer
+		 * @return True if null
+		 **/
+		friend bool operator==(const MessagePointer& p_pointer, std::nullptr_t) noexcept {
+			return p_pointer.m_message == nullptr;
+		}
+	};
 } // namespace cam

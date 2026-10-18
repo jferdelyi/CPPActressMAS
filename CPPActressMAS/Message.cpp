@@ -66,6 +66,15 @@ cam::Message::Message(Key, const AgentId& p_sender, const AgentId& p_receiver, M
 		m_content(std::move(p_content)) {
 }
 
+void* cam::Message::operator new([[maybe_unused]] const std::size_t p_size) {
+	// A final class: the size asked is always that of a message
+	return FreeBlocks<sizeof(Message)>::acquire();
+}
+
+void cam::Message::operator delete(void* p_pointer) noexcept {
+	FreeBlocks<sizeof(Message)>::release(p_pointer);
+}
+
 cam::Message::Message() :
 		m_sender(),
 		m_receiver(),
