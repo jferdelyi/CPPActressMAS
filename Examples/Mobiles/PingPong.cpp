@@ -24,8 +24,8 @@
 
 // Port of ActressMAS E20 RemoteMessages: a ping agent asks a pong agent of another environment for
 // information, by name over the network; the pong agent answers twice by id. Two environments of this
-// process, each its own node: MobilePingPong [url-pong [url-ping]]; by default Zenoh peers on 127.0.0.1
-// (pong listens on port 17448, ping connects), no router nor broker. An MQTT URL works too.
+// process, each its own node: MobilePingPong [url-pong [url-ping]]; by default loopback://pingpong, in
+// memory (D46). Zenoh peers on 127.0.0.1 (pong listening, ping connecting) or an MQTT URL work too.
 
 class PingAgent : public cam::Agent {
 public:

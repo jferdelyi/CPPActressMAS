@@ -25,8 +25,8 @@
 
 // Port of ActressMAS E20 MasMobileConsole: a mobile agent visits every other environment, asks the
 // static agents there for information and reports once home. Three environments of this process, each
-// its own node: Mobile [url-c [url-a-b]]; by default Zenoh peers on 127.0.0.1 (C listens on port 17447,
-// A and B connect to it), no router nor broker. An MQTT URL works too: Mobile mqtt://127.0.0.1:1883/mobile.
+// its own node: Mobile [url-c [url-a-b]]; by default loopback://mobile, in memory (D46). Zenoh peers on
+// 127.0.0.1 (C listening, A and B connecting, no router) or an MQTT URL work too, see the URLs in main.
 
 class StaticAgent : public cam::Agent {
 public:

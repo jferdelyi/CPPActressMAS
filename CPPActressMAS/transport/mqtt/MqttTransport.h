@@ -85,7 +85,7 @@ namespace cam::transport {
 		 * Create an MQTT transport; nothing is opened yet.
 		 * @param p_config The configuration (endpoint "tcp://host:port" or "ssl://host:port", namespace, TLS, credentials)
 		 * @param p_options The MQTT options
-		 * @param p_codec The envelope codec (compact by default)
+		 * @param p_codec The envelope codec (protobuf by default)
 		 **/
 		explicit MqttTransport(TransportConfig p_config, MqttOptions p_options = {},
 							   std::shared_ptr<const EnvelopeCodec> p_codec = nullptr);

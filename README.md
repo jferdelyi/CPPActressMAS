@@ -266,7 +266,7 @@ virtual ~Agent() = default;
 
 /**
  * Return id.
- * @return Id of the agent
+ * @return Id of the agent: 15 random base62 characters (environments and nodes use version 4 UUIDs)
  **/
 [[nodiscard]] const std::string& get_id() const;
 

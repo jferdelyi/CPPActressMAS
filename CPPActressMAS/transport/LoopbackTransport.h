@@ -70,7 +70,7 @@ namespace cam::transport {
 		 * Create a loopback transport.
 		 * @param p_config The configuration (namespace, maximum envelope size)
 		 * @param p_options The options
-		 * @param p_codec The codec of the serializing mode (compact by default)
+		 * @param p_codec The codec of the serializing mode (protobuf by default)
 		 **/
 		explicit LoopbackTransport(TransportConfig p_config = {}, LoopbackOptions p_options = {},
 								   std::shared_ptr<const EnvelopeCodec> p_codec = nullptr);

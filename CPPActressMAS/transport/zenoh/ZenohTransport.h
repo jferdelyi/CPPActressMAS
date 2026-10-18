@@ -95,7 +95,7 @@ namespace cam::transport {
 		 * Create a Zenoh transport; nothing is opened yet.
 		 * @param p_config The configuration (namespace, maximum envelope size)
 		 * @param p_options Mode and endpoints
-		 * @param p_codec The envelope codec (compact by default)
+		 * @param p_codec The envelope codec (protobuf by default)
 		 **/
 		explicit ZenohTransport(TransportConfig p_config, ZenohOptions p_options = {},
 								std::shared_ptr<const EnvelopeCodec> p_codec = nullptr);
