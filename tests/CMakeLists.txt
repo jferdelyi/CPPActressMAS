@@ -148,6 +148,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME unit.connect COMMAND cam_connect_tests)
 	set_tests_properties(unit.connect PROPERTIES LABELS unit TIMEOUT 300)
 
+	# Queue of the agent messages (P8): arrival order, several producers at once, nodes recycled per thread.
+	add_executable(cam_mpsc_queue_tests unit/mpsc_queue.cpp)
+	target_link_libraries(cam_mpsc_queue_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.mpsc_queue COMMAND cam_mpsc_queue_tests)
+	set_tests_properties(unit.mpsc_queue PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.mpsc_queue)
+
 	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 	add_executable(cam_identifier_tests unit/identifier.cpp)
 	target_link_libraries(cam_identifier_tests cam_doctest_main ${CAM_TEST_LIBRARY})
