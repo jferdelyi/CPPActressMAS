@@ -79,11 +79,11 @@ namespace cam {
 		int m_turns = 0;
 		EnvironmentMasMode m_mode = EnvironmentMasMode::Parallel;
 		int m_delay_after_turn = 0;
-		std::optional<unsigned int> m_seed;
+		std::optional<unsigned int> m_seed{};
 		RandomEngine m_random = RandomEngine::Mt19937;
-		std::string m_url;
-		transport::EndpointConfig m_endpoint;
-		std::optional<std::vector<std::string>> m_accepted_agent_types;
+		std::string m_url{};
+		transport::EndpointConfig m_endpoint{};
+		std::optional<std::vector<std::string>> m_accepted_agent_types{};
 	};
 
 	/**
