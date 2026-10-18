@@ -81,8 +81,16 @@ namespace cam {
 		 * @param p_input_item new item
 		 */
 		void enqueue(const T& p_input_item) {
+			enqueue(T(p_input_item));
+		}
+
+		/**
+		 * Enqueue new item, moved in
+		 * @param p_input_item new item
+		 */
+		void enqueue(T&& p_input_item) {
 			auto* l_node = new MPSCQueueNode;
-			l_node->data = p_input_item;
+			l_node->data = std::move(p_input_item);
 			l_node->next.store(nullptr, std::memory_order_relaxed);
 			MPSCQueueNode* l_prev_head = m_head.exchange(l_node, std::memory_order_acq_rel);
 			l_prev_head->next.store(l_node, std::memory_order_release);
@@ -101,7 +109,8 @@ namespace cam {
 				return false;
 			}
 
-			p_output_item = l_next->data;
+			// Moved out: the node that becomes the sentinel no longer keeps the item alive (C17)
+			p_output_item = std::move(l_next->data);
 			m_tail.store(l_next, std::memory_order_release);
 			delete l_tail;
 			return true;

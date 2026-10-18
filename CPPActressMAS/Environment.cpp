@@ -110,7 +110,7 @@ cam::Environment::send_content(const std::string& p_sender_id, const std::string
 	// A local receiver takes the content without a copy; the transport needs it otherwise
 	if (const AgentPointer l_agent = m_agent_collection.get(p_receiver_id)) {
 		if (!l_agent->is_dead()) {
-			l_agent->post(make_message(p_sender_id, p_receiver_id, std::move(p_content), {}));
+			l_agent->receive(make_message(p_sender_id, p_receiver_id, std::move(p_content), {}));
 		}
 		return {};
 	}
@@ -132,7 +132,7 @@ cam::Environment::send(const std::string& p_sender_id, const std::string& p_rece
 	// A local receiver gets a message built in place from the bytes: no intermediate content to move (P12)
 	if (const AgentPointer l_agent = m_agent_collection.get(p_receiver_id)) {
 		if (!l_agent->is_dead()) {
-			l_agent->post(std::make_shared<Message>(p_sender_id, p_receiver_id, p_message, p_length));
+			l_agent->receive(std::make_shared<Message>(p_sender_id, p_receiver_id, p_message, p_length));
 		}
 		return {};
 	}
@@ -153,7 +153,7 @@ bool cam::Environment::deliver_local(const std::string& p_sender_id, const std::
 		return false;
 	}
 	if (!l_agent->is_dead()) {
-		l_agent->post(make_message(p_sender_id, p_receiver_id, std::move(p_content), p_sender_environment));
+		l_agent->receive(make_message(p_sender_id, p_receiver_id, std::move(p_content), p_sender_environment));
 	}
 	return true;
 }
@@ -166,14 +166,14 @@ void cam::Environment::deliver_broadcast(const std::string& p_sender_id, Message
 	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
 		if (l_id != p_sender_id && !l_agent->is_dead()) {
 			if (l_last_agent) {
-				(*l_last_agent)->post(make_message(p_sender_id, *l_last_id, MessageContent(p_content), p_sender_environment));
+				(*l_last_agent)->receive(make_message(p_sender_id, *l_last_id, MessageContent(p_content), p_sender_environment));
 			}
 			l_last_id = &l_id;
 			l_last_agent = &l_agent;
 		}
 	}
 	if (l_last_agent) {
-		(*l_last_agent)->post(make_message(p_sender_id, *l_last_id, std::move(p_content), p_sender_environment));
+		(*l_last_agent)->receive(make_message(p_sender_id, *l_last_id, std::move(p_content), p_sender_environment));
 	}
 }
 
@@ -190,7 +190,7 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 			return true;
 		}
 		if (l_last_agent) {
-			l_last_agent->post(make_message(p_sender_id, *l_last_id, MessageContent(p_content), p_sender_environment));
+			l_last_agent->receive(make_message(p_sender_id, *l_last_id, MessageContent(p_content), p_sender_environment));
 		}
 		l_last_id = &p_id;
 		l_last_agent = std::move(l_agent);
@@ -214,7 +214,7 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 	if (!l_last_agent) {
 		return false;
 	}
-	l_last_agent->post(make_message(p_sender_id, *l_last_id, std::move(p_content), p_sender_environment));
+	l_last_agent->receive(make_message(p_sender_id, *l_last_id, std::move(p_content), p_sender_environment));
 	return true;
 }
 
@@ -904,7 +904,7 @@ void cam::Environment::apply_agent_offer(const transport::Envelope& p_envelope) 
 			m_endpoint->count_rejected();
 			continue;
 		}
-		l_agent->post(make_message(l_queued.m_sender_agent, l_transfer->m_agent_id, std::move(l_content.value()),
+		l_agent->receive(make_message(l_queued.m_sender_agent, l_transfer->m_agent_id, std::move(l_content.value()),
 								   l_queued.effective_sender_environment()));
 	}
 	PendingArrival l_arrival;

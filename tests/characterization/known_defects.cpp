@@ -251,7 +251,7 @@ TEST_SUITE("characterization") {
 		void default_action() override { stop(); }
 	};
 
-	TEST_CASE("C17: a removed agent is destroyed when it is removed" * doctest::should_fail()) {
+	TEST_CASE("C17 (fixed in 3B): a removed agent is destroyed when it is removed") {
 		g_destroyed = 0;
 		{
 			cam::Environment l_env(3, Mode::Sequential);
@@ -259,7 +259,7 @@ TEST_SUITE("characterization") {
 			l_env.add<Tracked>("b");
 			l_env.start();  // turn 1: a and b stop; removed at the end of the turn
 			CHECK(l_env.agents_count() == 0);
-			CHECK(g_destroyed == 2);  // the sentinel node of m_new_agents keeps the last added agent alive
+			CHECK(g_destroyed == 2);  // the queue moves an item out: its sentinel node no longer keeps the last added agent alive
 		}
 		CHECK(g_destroyed == 2);
 	}

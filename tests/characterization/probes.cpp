@@ -247,7 +247,7 @@ namespace {
 	void dangling_add_ref() {
 		cam::Environment l_env(3, Mode::Sequential);
 		const std::string& l_id = l_env.add<Quitter>("q1");  // reference to Agent::m_id
-		l_env.add<Quitter>("q2");  // q2 stays alive in the sentinel node of m_new_agents (C17)
+		l_env.add<Quitter>("q2");  // q2 no longer stays alive in the sentinel node of m_new_agents (C17, fixed in 3B)
 		l_env.start();             // q1 and q2 stop and are removed: q1 is destroyed
 		std::cout << "id still readable? size=" << l_id.size() << " value=" << l_id << "\n";
 		std::cout << "OK no crash\n";

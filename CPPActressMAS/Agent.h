@@ -406,6 +406,12 @@ namespace cam {
 		}
 
 		/**
+		 * Receive a message built by the environment, moved in: no reference count change (P8).
+		 * @param p_message The new message
+		 **/
+		void receive(MessagePointer&& p_message);
+
+		/**
 		 * Take every message waiting in the queue (environment only, turn boundary).
 		 * @return The messages, oldest first
 		 **/
@@ -413,7 +419,7 @@ namespace cam {
 			std::vector<MessagePointer> l_messages;
 			MessagePointer l_message;
 			while (m_messages.dequeue(l_message)) {
-				l_messages.push_back(l_message);
+				l_messages.push_back(std::move(l_message));
 			}
 			return l_messages;
 		}

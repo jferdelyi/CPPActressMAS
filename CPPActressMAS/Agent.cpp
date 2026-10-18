@@ -91,6 +91,10 @@ void cam::Agent::post(const MessagePointer& p_message) {
 	m_messages.enqueue(p_message);
 }
 
+void cam::Agent::receive(MessagePointer&& p_message) {
+	m_messages.enqueue(std::move(p_message));
+}
+
 namespace {
 
 	cam::MessageContent bytes_content(const uint8_t* p_message, const size_t& p_length) {
