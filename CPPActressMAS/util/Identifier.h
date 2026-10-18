@@ -19,6 +19,9 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <functional>
 #include <string>
 
 /**
@@ -45,5 +48,32 @@ namespace cam {
 	 * @return The identifier
 	 **/
 	[[nodiscard]] std::string generate_agent_id();
+
+	/**
+	 * Hash of the agent identifiers (P14). An identifier of AGENT_ID_LENGTH characters is read as two overlapping
+	 * 8-byte words, mixed by multiplications and shifts so that every bit reaches the low bits the buckets use; any
+	 * other key goes to std::hash.
+	 **/
+	struct AgentIdHash {
+		/**
+		 * Hash a key.
+		 * @param p_id The key, an agent identifier or any string
+		 * @return The hash
+		 **/
+		[[nodiscard]] std::size_t operator()(const std::string& p_id) const noexcept {
+			if (p_id.size() != AGENT_ID_LENGTH) {
+				return std::hash<std::string>{}(p_id);
+			}
+			std::uint64_t l_low;
+			std::uint64_t l_high;
+			std::memcpy(&l_low, p_id.data(), sizeof(l_low));
+			std::memcpy(&l_high, p_id.data() + AGENT_ID_LENGTH - sizeof(l_high), sizeof(l_high));
+			std::uint64_t l_hash = l_low ^ (l_high * 0x9E3779B97F4A7C15ULL);
+			l_hash ^= l_hash >> 32;
+			l_hash *= 0xD6E8FEB86659FD93ULL;
+			l_hash ^= l_hash >> 32;
+			return static_cast<std::size_t>(l_hash);
+		}
+	};
 
 } // namespace cam

@@ -22,6 +22,7 @@
 #include <doctest/doctest.h>
 
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -31,6 +32,7 @@
 #include <Environment.h>
 #include <util/Identifier.h>
 #include <transport/Types.h>
+#include <tsl/ordered_map.h>
 
 namespace {
 
@@ -112,6 +114,35 @@ TEST_SUITE("unit") {
 			l_thread.join();
 		}
 		CHECK(l_ids.size() == 2 * DRAWS);
+	}
+
+	TEST_CASE("agents are found by identifier through their hash, which spreads over the low bits (P14)") {
+		const cam::AgentIdHash l_hash;
+		tsl::ordered_map<std::string, int, cam::AgentIdHash> l_agents;
+		std::vector<std::string> l_ids;
+		std::unordered_set<std::size_t> l_hashes;
+		std::unordered_set<std::size_t> l_low_bits;
+		for (int i = 0; i < DRAWS; i++) {
+			l_ids.push_back(cam::generate_agent_id());
+			l_agents.emplace(l_ids.back(), i);
+			l_hashes.insert(l_hash(l_ids.back()));
+			l_low_bits.insert(l_hash(l_ids.back()) & 0xFFFF);
+		}
+		bool l_found = true;
+		for (int i = 0; i < DRAWS; i++) {
+			const auto l_it = l_agents.find(l_ids[i]);
+			l_found = l_found && l_it != l_agents.end() && l_it->second == i;
+		}
+		CHECK(l_found);
+		CHECK(l_hashes.size() >= DRAWS - 2);
+		// 100 000 random keys over 65 536 values cover about 51 500 of them; a weak mix of the low bits covers far fewer
+		CHECK(l_low_bits.size() > 48000);
+
+		// A key of another length is hashed like any string, and still found
+		const std::string l_uuid = cam::generate_uuid();
+		CHECK(l_hash(l_uuid) == std::hash<std::string>{}(l_uuid));
+		l_agents.emplace(l_uuid, -1);
+		CHECK(l_agents.at(l_uuid) == -1);
 	}
 
 	TEST_CASE("an agent gets a short identifier, its environment a UUID") {
