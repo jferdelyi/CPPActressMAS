@@ -75,6 +75,10 @@ cam_add_crash_probe(random_agent_bound C4 asan "container-overflow|misaligned ad
 # C10: remove() during a Parallel turn erases from the collection other threads are iterating.
 cam_add_crash_probe(remove_during_parallel_turn C10 asan "container-overflow|heap-buffer-overflow|member call on null pointer|AddressSanitizer: SEGV")
 cam_add_crash_probe(remove_during_parallel_turn C10 tsan "ThreadSanitizer: (data race|SEGV)")
+# Two threads crashing at once may hang the ThreadSanitizer report (once in 19 runs on Linux): fail in 2 minutes, not 15
+if (CAM_SANITIZER STREQUAL "tsan")
+	set_tests_properties(characterization.tsan.remove_during_parallel_turn PROPERTIES TIMEOUT 120)
+endif()
 # C12: remove() during a Sequential turn invalidates the range-for of run_turn().
 cam_add_crash_probe(remove_during_sequential_turn C12 asan "container-overflow|member call on null pointer|AddressSanitizer: SEGV")
 # C16: add<T>() returns a reference to the agent's id, dangling once the agent is destroyed.
