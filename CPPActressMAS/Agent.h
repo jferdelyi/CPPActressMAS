@@ -19,6 +19,7 @@
 #pragma once
 
 #include <cassert>
+#include <concepts>
 #include <memory>
 #include <optional>
 #include <string>
@@ -215,8 +216,11 @@ namespace cam {
 		transport::Result<void> send(const AgentId& p_receiver_id, const char* p_text,
 									 const transport::SendOptions& p_options = {}) const;
 
-		transport::Result<void> send(const AgentId& p_receiver_id, const Text& p_text,
-									 const transport::SendOptions& p_options = {}) const;
+		// A shared text (D76). The overloads for Text are templates: a braced JSON list never takes them.
+		template<std::same_as<Text> T>
+		transport::Result<void> send(const AgentId& p_receiver_id, const T& p_text, const transport::SendOptions& p_options = {}) const {
+			return send_text(p_receiver_id, p_text, p_options);
+		}
 
 		/**
 		 * Send a new message by name: local agents, and with the network scope every connected environment.
@@ -237,8 +241,11 @@ namespace cam {
 		transport::Result<void> send_by_name(const std::string& p_receiver_name, std::string p_text, bool p_first_only = true,
 											 const transport::SendOptions& p_options = {}) const;
 
-		transport::Result<void> send_by_name(const std::string& p_receiver_name, const Text& p_text, bool p_first_only = true,
-											 const transport::SendOptions& p_options = {}) const;
+		template<std::same_as<Text> T>
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, const T& p_text, const bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const {
+			return send_text_by_name(p_receiver_name, p_text, false, p_first_only, p_options);
+		}
 
 		transport::Result<void> send_by_name(const std::string& p_receiver_name, const char* p_text, bool p_first_only = true,
 											 const transport::SendOptions& p_options = {}) const;
@@ -265,8 +272,11 @@ namespace cam {
 		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const char* p_text,
 													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
 
-		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const Text& p_text,
-													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
+		template<std::same_as<Text> T>
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const T& p_text, const bool p_first_only = true,
+													  const transport::SendOptions& p_options = {}) const {
+			return send_text_by_name(p_fragment_name, p_text, true, p_first_only, p_options);
+		}
 
 		/**
 		 * Send a new message to all agents: local agents except this one, and with the network scope every
@@ -285,7 +295,10 @@ namespace cam {
 
 		transport::Result<void> broadcast(const char* p_text, const transport::SendOptions& p_options = {}) const;
 
-		transport::Result<void> broadcast(const Text& p_text, const transport::SendOptions& p_options = {}) const;
+		template<std::same_as<Text> T>
+		transport::Result<void> broadcast(const T& p_text, const transport::SendOptions& p_options = {}) const {
+			return broadcast_text(p_text, p_options);
+		}
 
 		/**
 		 * Move to another environment through the transport (three-step migration). The agent type must
@@ -399,6 +412,35 @@ namespace cam {
 		}
 
 	private:
+		/**
+		 * Send a shared text by id.
+		 * @param p_receiver_id The receiver
+		 * @param p_text The text
+		 * @param p_options Send options
+		 * @return Success, or UnknownDestination
+		 **/
+		transport::Result<void> send_text(const AgentId& p_receiver_id, const Text& p_text, const transport::SendOptions& p_options) const;
+
+		/**
+		 * Send a shared text by name or by fragment of name.
+		 * @param p_name The name or the fragment
+		 * @param p_text The text
+		 * @param p_is_fragment True for a fragment
+		 * @param p_first_only True for the first agent found only
+		 * @param p_options Send options
+		 * @return Success, or the error of the network scope
+		 **/
+		transport::Result<void> send_text_by_name(const std::string& p_name, const Text& p_text, bool p_is_fragment, bool p_first_only,
+												  const transport::SendOptions& p_options) const;
+
+		/**
+		 * Send a shared text to every other agent.
+		 * @param p_text The text
+		 * @param p_options Send options
+		 * @return Success, or the error of the network scope
+		 **/
+		transport::Result<void> broadcast_text(const Text& p_text, const transport::SendOptions& p_options) const;
+
 
 		/**
 		 * Set environment.
