@@ -95,3 +95,11 @@ apply_compile_options(MechanismDesign)
 add_executable(PrisonerDilemma ${CMAKE_CURRENT_LIST_DIR}/PrisonerDilemma/PrisonerDilemma.cpp)
 target_link_libraries(PrisonerDilemma CPPActressMAS)
 apply_compile_options(PrisonerDilemma)
+
+add_executable(TransportRoundTrip ${CMAKE_CURRENT_LIST_DIR}/Features/TransportRoundTrip.cpp)
+target_link_libraries(TransportRoundTrip CPPActressMAS)
+apply_compile_options(TransportRoundTrip)
+
+add_executable(SharedText ${CMAKE_CURRENT_LIST_DIR}/Features/SharedText.cpp)
+target_link_libraries(SharedText CPPActressMAS)
+apply_compile_options(SharedText)

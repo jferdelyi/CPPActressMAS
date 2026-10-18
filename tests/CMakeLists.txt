@@ -127,6 +127,19 @@ endfunction()
 cam_add_iso(MechanismDesign)
 cam_add_iso(PrisonerDilemma)
 
+# Examples of the features of the C++ port (Examples/Features): they run and report what they measure.
+if (TARGET TransportRoundTrip)
+	add_test(NAME example.TransportRoundTrip COMMAND TransportRoundTrip loopback://smoke-roundtrip loopback://smoke-roundtrip 50)
+	set_tests_properties(example.TransportRoundTrip PROPERTIES LABELS integration PASS_REGULAR_EXPRESSION "50 round trips in" TIMEOUT 120)
+	cam_apply_tsan_suppressions(example.TransportRoundTrip)
+endif()
+if (TARGET SharedText)
+	add_test(NAME example.SharedText COMMAND SharedText 10 4)
+	set_tests_properties(example.SharedText PROPERTIES LABELS integration PASS_REGULAR_EXPRESSION "cam::Text [^\n]* 40960 characters received"
+		FAIL_REGULAR_EXPRESSION "MISSING" TIMEOUT 120)
+	cam_apply_tsan_suppressions(example.SharedText)
+endif()
+
 # ---------------------------------------------------------------- approval of deterministic examples
 add_executable(cam_approve approval/approve.cpp)
 target_link_libraries(cam_approve cam_test_support)
