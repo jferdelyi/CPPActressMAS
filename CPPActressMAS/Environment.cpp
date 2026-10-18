@@ -106,9 +106,13 @@ void cam::Environment::remove(const std::string& p_agent_id) {
 }
 
 cam::transport::Result<void>
-cam::Environment::send_content(const std::string& p_sender_id, const std::string& p_receiver_id, const MessageContent& p_content,
+cam::Environment::send_content(const std::string& p_sender_id, const std::string& p_receiver_id, MessageContent p_content,
 							   const transport::SendOptions& p_options) const {
-	if (deliver_local(p_sender_id, p_receiver_id, p_content)) {
+	// A local receiver takes the content without a copy; the transport needs it otherwise
+	if (const AgentPointer l_agent = m_agent_collection.get(p_receiver_id)) {
+		if (!l_agent->is_dead()) {
+			l_agent->post(make_message(p_sender_id, p_receiver_id, std::move(p_content), {}));
+		}
 		return {};
 	}
 	if (!m_endpoint) {
@@ -126,41 +130,60 @@ cam::Environment::send_content(const std::string& p_sender_id, const std::string
 cam::transport::Result<void>
 cam::Environment::send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
 					   const size_t& p_length, const transport::SendOptions& p_options) const {
+	// A local receiver gets a message built in place from the bytes: no intermediate content to move (P12)
+	if (const AgentPointer l_agent = m_agent_collection.get(p_receiver_id)) {
+		if (!l_agent->is_dead()) {
+			l_agent->post(std::make_shared<Message>(p_sender_id, p_receiver_id, p_message, p_length));
+		}
+		return {};
+	}
 	return send_content(p_sender_id, p_receiver_id, make_content(p_message, p_length), p_options);
 }
 
 cam::MessagePointer cam::Environment::make_message(const std::string& p_sender_id, const std::string& p_receiver_id,
-												   MessageContent p_content, const std::string& p_sender_environment) {
+												   MessageContent&& p_content, const std::string& p_sender_environment) {
 	auto l_message = std::make_shared<Message>(p_sender_id, p_receiver_id, std::move(p_content));
 	l_message->m_sender_environment = p_sender_environment;
 	return l_message;
 }
 
 bool cam::Environment::deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id,
-									 const MessageContent& p_content, const std::string& p_sender_environment) const {
+									 MessageContent p_content, const std::string& p_sender_environment) const {
 	const AgentPointer l_agent = m_agent_collection.get(p_receiver_id);
 	if (!l_agent) {
 		return false;
 	}
 	if (!l_agent->is_dead()) {
-		l_agent->post(make_message(p_sender_id, p_receiver_id, p_content, p_sender_environment));
+		l_agent->post(make_message(p_sender_id, p_receiver_id, std::move(p_content), p_sender_environment));
 	}
 	return true;
 }
 
-void cam::Environment::deliver_broadcast(const std::string& p_sender_id, const MessageContent& p_content,
+void cam::Environment::deliver_broadcast(const std::string& p_sender_id, MessageContent p_content,
 										 const std::string& p_sender_environment) const {
+	// Each receiver is served once the next one is known: the last one takes the content without a copy
+	const std::string* l_last_id = nullptr;
+	const AgentPointer* l_last_agent = nullptr;
 	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
 		if (l_id != p_sender_id && !l_agent->is_dead()) {
-			l_agent->post(make_message(p_sender_id, l_id, p_content, p_sender_environment));
+			if (l_last_agent) {
+				(*l_last_agent)->post(make_message(p_sender_id, *l_last_id, MessageContent(p_content), p_sender_environment));
+			}
+			l_last_id = &l_id;
+			l_last_agent = &l_agent;
 		}
+	}
+	if (l_last_agent) {
+		(*l_last_agent)->post(make_message(p_sender_id, *l_last_id, std::move(p_content), p_sender_environment));
 	}
 }
 
 bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
-									   const MessageContent& p_content, const bool p_is_fragment, const bool p_first_only,
+									   MessageContent p_content, const bool p_is_fragment, const bool p_first_only,
 									   const std::string& p_sender_environment) const {
-	bool l_delivered = false;
+	// Each receiver is served once the next one is known: the last one takes the content without a copy
+	const std::string* l_last_id = nullptr;
+	AgentPointer l_last_agent;
 	auto l_filtered_elements =
 		m_agent_collection.m_agents_by_name | std::views::filter([p_is_fragment, p_receiver_name](auto& p_value) {
 		if (p_is_fragment) {
@@ -171,28 +194,35 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 
 	for (auto it = std::ranges::begin(l_filtered_elements); it != std::ranges::end(l_filtered_elements); ++it) {
 		const auto& [l_name, l_id] = *it;
-		const auto& l_agent = m_agent_collection.get(l_id);
+		AgentPointer l_agent = m_agent_collection.get(l_id);
 		if (l_agent->is_dead()) {
 			continue;
 		}
-
-		l_agent->post(make_message(p_sender_id, l_id, p_content, p_sender_environment));
-		l_delivered = true;
+		if (l_last_agent) {
+			l_last_agent->post(make_message(p_sender_id, *l_last_id, MessageContent(p_content), p_sender_environment));
+		}
+		l_last_id = &l_id;
+		l_last_agent = std::move(l_agent);
 		if (p_first_only) {
 			break;
 		}
 	}
-	return l_delivered;
+	if (!l_last_agent) {
+		return false;
+	}
+	l_last_agent->post(make_message(p_sender_id, *l_last_id, std::move(p_content), p_sender_environment));
+	return true;
 }
 
 cam::transport::Result<void>
 cam::Environment::send_content_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
-									   const MessageContent& p_content, const bool p_is_fragment, const bool p_first_only,
+									   MessageContent p_content, const bool p_is_fragment, const bool p_first_only,
 									   const transport::SendOptions& p_options) const {
-	deliver_by_name(p_sender_id, p_receiver_name, p_content, p_is_fragment, p_first_only);
 	if (p_options.m_scope != transport::Scope::Network) {
+		deliver_by_name(p_sender_id, p_receiver_name, std::move(p_content), p_is_fragment, p_first_only);
 		return {};
 	}
+	deliver_by_name(p_sender_id, p_receiver_name, p_content, p_is_fragment, p_first_only);
 	if (!m_endpoint) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "network scope asked while offline");
 	}
@@ -209,12 +239,13 @@ cam::Environment::send_by_name(const std::string& p_sender_id, const std::string
 }
 
 cam::transport::Result<void>
-cam::Environment::broadcast_content(const std::string& p_sender_id, const MessageContent& p_content,
+cam::Environment::broadcast_content(const std::string& p_sender_id, MessageContent p_content,
 									const transport::SendOptions& p_options) const {
-	deliver_broadcast(p_sender_id, p_content);
 	if (p_options.m_scope != transport::Scope::Network) {
+		deliver_broadcast(p_sender_id, std::move(p_content));
 		return {};
 	}
+	deliver_broadcast(p_sender_id, p_content);
 	if (!m_endpoint) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "network scope asked while offline");
 	}
@@ -557,15 +588,15 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 			}
 			switch (p_envelope.m_target_kind) {
 				case TargetKind::Id:
-					deliver_local(p_envelope.m_sender_agent, p_envelope.m_target_id, l_content.value(), l_origin);
+					deliver_local(p_envelope.m_sender_agent, p_envelope.m_target_id, std::move(l_content.value()), l_origin);
 					break;
 				case TargetKind::Name:
 				case TargetKind::Fragment:
-					deliver_by_name(p_envelope.m_sender_agent, p_envelope.m_target_name, l_content.value(),
+					deliver_by_name(p_envelope.m_sender_agent, p_envelope.m_target_name, std::move(l_content.value()),
 									p_envelope.m_target_kind == TargetKind::Fragment, p_envelope.m_first_only, l_origin);
 					break;
 				case TargetKind::Broadcast:
-					deliver_broadcast(p_envelope.m_sender_agent, l_content.value(), l_origin);
+					deliver_broadcast(p_envelope.m_sender_agent, std::move(l_content.value()), l_origin);
 					break;
 				case TargetKind::Environment:
 				default:

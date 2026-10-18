@@ -245,12 +245,12 @@ namespace cam {
 		 * the transport at the end of the turn, whatever the scope.
 		 * @param p_sender_id The sender ID
 		 * @param p_receiver_id The receiver ID
-		 * @param p_content The content (text, JSON value or bytes)
+		 * @param p_content The content (text, JSON value or bytes), moved into the message of a local receiver
 		 * @param p_options Send options (encoding of a JSON value on the wire; scope and priority are not used by id)
 		 * @return Success, or UnknownDestination when no environment hosts the receiver
 		 **/
 		transport::Result<void> send_content(const std::string& p_sender_id, const std::string& p_receiver_id,
-											 const MessageContent& p_content, const transport::SendOptions& p_options = {}) const;
+											 MessageContent p_content, const transport::SendOptions& p_options = {}) const;
 
 		/**
 		 * Sends bytes by id (see send_content).
@@ -269,14 +269,14 @@ namespace cam {
 		 * to every connected environment (first_only applies per environment).
 		 * @param p_sender_id The sender ID
 		 * @param p_receiver_name The receiver name
-		 * @param p_content The content (text, JSON value or bytes)
+		 * @param p_content The content (text, JSON value or bytes), moved into the message of the last local receiver
 		 * @param p_is_fragment If true search all agent that the name contain "p_receiver_name"
 		 * @param p_first_only If true send to the first agent found
 		 * @param p_options Send options (scope, encoding of a JSON value on the wire)
 		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
 		transport::Result<void> send_content_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
-													 const MessageContent& p_content, bool p_is_fragment, bool p_first_only,
+													 MessageContent p_content, bool p_is_fragment, bool p_first_only,
 													 const transport::SendOptions& p_options = {}) const;
 
 		/**
@@ -298,11 +298,11 @@ namespace cam {
 		 * Send a new message to all agents: the local ones except the sender, then,
 		 * with the network scope, every agent of the connected environments.
 		 * @param p_sender_id From
-		 * @param p_content The content (text, JSON value or bytes)
+		 * @param p_content The content (text, JSON value or bytes), moved into the message of the last local receiver
 		 * @param p_options Send options (scope, encoding of a JSON value on the wire)
 		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		transport::Result<void> broadcast_content(const std::string& p_sender_id, const MessageContent& p_content,
+		transport::Result<void> broadcast_content(const std::string& p_sender_id, MessageContent p_content,
 												  const transport::SendOptions& p_options = {}) const;
 
 		/**
@@ -586,29 +586,33 @@ namespace cam {
 
 		/**
 		 * Deliver a message to a local agent by id; nothing leaves the environment.
+		 * @param p_content The content, moved into the message
 		 * @param p_sender_environment Origin environment of a message received through the transport
 		 * @return True if the agent exists here
 		 **/
-		bool deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id, const MessageContent& p_content,
+		bool deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id, MessageContent p_content,
 						   const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to the local agents matching a name or a fragment.
+		 * @param p_content The content, copied for every receiver but the last, which takes it
 		 * @return True if at least one agent received it
 		 **/
-		bool deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const MessageContent& p_content,
+		bool deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, MessageContent p_content,
 							 bool p_is_fragment, bool p_first_only, const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to every local agent but the sender.
+		 * @param p_content The content, copied for every receiver but the last, which takes it
 		 **/
-		void deliver_broadcast(const std::string& p_sender_id, const MessageContent& p_content,
+		void deliver_broadcast(const std::string& p_sender_id, MessageContent p_content,
 							   const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Build a message for a local queue.
+		 * @param p_content The content, moved into the message (a reference: one move less per message)
 		 **/
-		static MessagePointer make_message(const std::string& p_sender_id, const std::string& p_receiver_id, MessageContent p_content,
+		static MessagePointer make_message(const std::string& p_sender_id, const std::string& p_receiver_id, MessageContent&& p_content,
 										   const std::string& p_sender_environment);
 
 		//###############################################################

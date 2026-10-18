@@ -126,7 +126,7 @@ cam::Agent::send(const std::string& p_receiver_id, const char* p_text, const tra
 cam::transport::Result<void>
 cam::Agent::send(const std::string& p_receiver_id, const uint8_t* p_message, const size_t& p_length,
 				 const transport::SendOptions& p_options) const {
-	return get_environment()->send_content(m_id, p_receiver_id, bytes_content(p_message, p_length), p_options);
+	return get_environment()->send(m_id, p_receiver_id, p_message, p_length, p_options);
 }
 
 cam::transport::Result<void>

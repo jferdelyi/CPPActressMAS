@@ -76,6 +76,32 @@ namespace {
 		bool m_first_only;
 	};
 
+	// Records every message it receives as "<name>:<kind>:<content>".
+	struct KindReceiver final : cam::Agent {
+		explicit KindReceiver(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			const std::string l_kind = p_message->kind() == cam::ContentKind::Text ? "text"
+									 : p_message->kind() == cam::ContentKind::Json ? "json"
+									 : p_message->kind() == cam::ContentKind::Bytes ? "bytes" : "none";
+			g_recorder.record(get_name() + ":" + l_kind + ":" + p_message->to_string());
+		}
+	};
+
+	// Sends a text, bytes and a JSON value at setup, by name to every "worker", then by broadcast.
+	struct KindSpeaker final : cam::Agent {
+		explicit KindSpeaker(const std::string& p_name) : Agent(p_name) {}
+		void setup() override {
+			const std::string l_name_bytes = "name bytes";
+			const std::string l_broadcast_bytes = "broadcast bytes";
+			send_by_name("worker", std::string("name text"), false);
+			send_by_name("worker", raw(l_name_bytes), l_name_bytes.size(), false);
+			send_by_name("worker", json("name json"), false);
+			broadcast(std::string("broadcast text"));
+			broadcast(raw(l_broadcast_bytes), l_broadcast_bytes.size());
+			broadcast(json("broadcast json"));
+		}
+	};
+
 	// Stops itself at its first action (turn 1).
 	struct Quitter final : cam::Agent {
 		explicit Quitter(const std::string& p_name) : Agent(p_name) {}
@@ -154,6 +180,24 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count_of("r1:\"to all\"") == 1);
 		CHECK(g_recorder.count_of("r2:\"to all\"") == 1);
 		CHECK(g_recorder.count() == 2);
+	}
+
+	TEST_CASE("every receiver of a send by name or a broadcast gets the whole content, text, JSON or bytes (P12)") {
+		// The content is copied for every receiver but the last, which takes it: none may get a moved-from value
+		g_recorder.clear();
+		cam::Environment l_env(2, Mode::Sequential);
+		for (int i = 0; i < 3; i++) {
+			l_env.add<KindReceiver>("worker");
+		}
+		l_env.add<KindSpeaker>("speaker");
+		l_env.start();
+		for (const std::string l_mode: {"name", "broadcast"}) {
+			CAPTURE(l_mode);
+			CHECK(g_recorder.count_of("worker:text:" + l_mode + " text") == 3);
+			CHECK(g_recorder.count_of("worker:bytes:" + l_mode + " bytes") == 3);
+			CHECK(g_recorder.count_of("worker:json:\"" + l_mode + " json\"") == 3);
+		}
+		CHECK(g_recorder.count() == 18);
 	}
 
 	TEST_CASE("lookups by name, fragment and id after the first turn") {
