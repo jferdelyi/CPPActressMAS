@@ -1,0 +1,20 @@
+# E09 Mechanism Design: two sequential runs in a fixed order (honest, then a lying), so the C# guarantees the order of
+# every kind of line; each run is a section, every line is a fact (exact trace, level (a)).
+section ^-{10,}$
+ignore ^$
+cover all
+fact benefits ^\[(\w+)\]: My net benefits are \(([-\d ]+)\)$
+fact reported ^\[(\w+)\]: My \*reported\* net benefits are \(([-\d ]+)\)$
+fact message ^\t\[(\w+) -> (\w+)\]: (.*)$
+fact lights ^\[dm\]: We will install (\d+) lights$
+fact pivotal ^\[dm\]: (\w) is pivotal - from (\d+) - and its tax is (-?\d+)$
+fact not_pivotal ^\[dm\]: (\w) is not pivotal and its tax is 0$
+fact after_tax ^\[(\w+)\]: My net benefit after tax is (-?\d+)$
+same benefits seq
+same reported seq
+same message seq
+same lights seq
+same pivotal seq
+same not_pivotal seq
+same after_tax seq
+check after_tax count by 0 == 3

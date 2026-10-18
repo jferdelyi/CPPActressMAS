@@ -87,3 +87,7 @@ apply_compile_options(MobilePingPong)
 add_executable(Reactive ${CMAKE_CURRENT_LIST_DIR}/MAS/Reactive.cpp)
 target_link_libraries(Reactive CPPActressMAS)
 apply_compile_options(Reactive)
+
+add_executable(MechanismDesign ${CMAKE_CURRENT_LIST_DIR}/MechanismDesign/MechanismDesign.cpp)
+target_link_libraries(MechanismDesign CPPActressMAS)
+apply_compile_options(MechanismDesign)

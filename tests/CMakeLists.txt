@@ -123,6 +123,9 @@ function(cam_add_iso p_example)
 	endif()
 endfunction()
 
+# Ports of the C# examples compared with their originals (docs/port/EXEMPLES.md)
+cam_add_iso(MechanismDesign)
+
 # ---------------------------------------------------------------- approval of deterministic examples
 add_executable(cam_approve approval/approve.cpp)
 target_link_libraries(cam_approve cam_test_support)

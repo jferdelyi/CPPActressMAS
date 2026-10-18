@@ -9,6 +9,7 @@ in `build/<preset>/Examples/`). Each folder has its own README with the C# examp
 | [`Observables/`](Observables/README.md) | `ColorGame`, `NumberGame` | Agents that see the observable properties of the others |
 | [`MAS/`](MAS/README.md) | `Reactive` | Reactive explorers bringing samples back to a base |
 | [`Mobiles/`](Mobiles/README.md) | `Mobile`, `MobilePingPong` | Several environments: agent migration and remote messages |
+| [`MechanismDesign/`](MechanismDesign/README.md) | `MechanismDesign` | Taxes that make telling the truth the best choice (Clarke tax) |
 | [`Serialization/`](Serialization/README.md) | `Serialization` | Saving and restoring the state of an agent |
 | [`Benchmarks/`](Benchmarks/README.md) | `PingPong`, `Skynet` | The two original C++ benchmarks |
 | [`Common/`](Common/README.md) | (helpers) | `DotNet.hpp`: .NET number formatting and parsing, so that a port prints and reads numbers as its C# original |
