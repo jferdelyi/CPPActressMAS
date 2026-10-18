@@ -14,17 +14,20 @@ The project works on
 Dependencies:
  - cmake 3.22 (may work with lower versions)
  - C++20
+ - nlohmann/json 3.11.3, tessil/ordered-map 1.2.0 and, for the tests, doctest 2.4.12: git submodules under `ThirdParty/` ([ThirdParty/README.md](ThirdParty/README.md))
  - OpenSSL (development headers) only for the MQTT transport (`CAM_TRANSPORT_MQTT`); libmosquitto 2.0.22 (the Eclipse Mosquitto client library) is fetched and built by the project
  - zenoh-c and zenoh-cpp 1.7.1 only for the Zenoh transport (`CAM_TRANSPORT_ZENOH`), found with `find_package(zenohc)` and `find_package(zenohcxx)`
 
 This project is developed with CLion (CMake). Compilation in pure CMake, the library, the examples and the tests are compiled through the presets of `CMakePresets.json` (`debug`, `release`, `core`, `asan`, `tsan`, `coverage`, `bench`; build directories under `build/<preset>`):
 ``` bash
-git clone https://github.com/jferdelyi/CPPActressMAS.git
+git clone --recursive https://github.com/jferdelyi/CPPActressMAS.git
 cd CPPActressMAS
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug
 ```
+
+A clone made without `--recursive` gets the submodules with `git submodule update --init`; the configuration stops with that hint while they are missing. Once they are checked out, the build works offline.
 
 Options: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the project is the top-level project), `BUILD_BENCH` (ON in the `bench` preset only), `BUILD_STATIC` and `BUILD_SHARED` (ON), `CAM_TRANSPORT_MQTT` and `CAM_TRANSPORT_ZENOH` (OFF by default; ON in the `debug`, `release`, `asan` and `tsan` presets, OFF in `core` and `bench`). The library (`CPPActressMAS`, `CPPActressMASStatic`) depends on a network library only when its transport option is ON: the transports compiled in join the library itself, and `Environment::connect(url)` selects them by scheme (the former `cam_transport` target remains as an alias).
 

@@ -3,7 +3,13 @@ project(CPPActressMAS)
 
 set(CMAKE_CXX_STANDARD 20)
 
-include_directories(Externals)
+# Third-party libraries are git submodules (ThirdParty/README.md): stop with a clear message when they are not checked out
+foreach (l_header json/single_include/nlohmann/json.hpp ordered-map/include/tsl/ordered_map.h)
+	if (NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/ThirdParty/${l_header})
+		message(FATAL_ERROR "ThirdParty/${l_header} is missing: run git submodule update --init")
+	endif()
+endforeach()
+include_directories(ThirdParty/json/single_include ThirdParty/ordered-map/include)
 include_directories(CPPActressMAS)
 
 # The core has no network dependency by default: each network transport joins the library behind its

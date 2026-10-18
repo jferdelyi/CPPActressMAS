@@ -17,12 +17,15 @@ set(CAM_TEST_LIBRARY CPPActressMAS)
 if (NOT TARGET CPPActressMAS)
 	set(CAM_TEST_LIBRARY CPPActressMASStatic)
 endif()
-set(CAM_DOCTEST_HEADER ${CMAKE_SOURCE_DIR}/Externals/doctest/doctest.h)
+set(CAM_DOCTEST_HEADER ${CMAKE_SOURCE_DIR}/ThirdParty/doctest/doctest/doctest.h)
+if (NOT EXISTS ${CAM_DOCTEST_HEADER})
+	message(FATAL_ERROR "ThirdParty/doctest is missing: run git submodule update --init")
+endif()
 set(CAM_TSAN_SUPPRESSIONS ${CMAKE_CURRENT_LIST_DIR}/tsan/suppressions.txt)
 
 # ---------------------------------------------------------------- support
 add_library(cam_test_support INTERFACE)
-target_include_directories(cam_test_support INTERFACE ${CMAKE_CURRENT_LIST_DIR}/support ${CMAKE_SOURCE_DIR}/Externals)
+target_include_directories(cam_test_support INTERFACE ${CMAKE_CURRENT_LIST_DIR}/support ${CMAKE_SOURCE_DIR}/ThirdParty/doctest)
 
 # Ordinary tests run with the TSan suppressions of the known races (each entry carries its ID).
 function(cam_apply_tsan_suppressions p_test)
