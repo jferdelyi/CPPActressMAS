@@ -79,6 +79,22 @@ namespace {
 		}
 	};
 
+	// From its second turn on, sends one shared text by id until the send is accepted.
+	struct SharedTextSender final : cam::Agent {
+		SharedTextSender(const std::string& p_name, cam::AgentId p_target_id, const std::string& p_text) :
+				Agent(p_name), m_target_id(p_target_id), m_text(p_text) {}
+		void default_action() override {
+			if (m_sent) return;
+			if (send(m_target_id, m_text)) {
+				m_sent = true;
+			}
+		}
+	private:
+		cam::AgentId m_target_id;
+		cam::Text m_text;
+		bool m_sent = false;
+	};
+
 	// From its second turn on, sends one text by id until the send is accepted.
 	struct TextSender final : cam::Agent {
 		TextSender(const std::string& p_name, cam::AgentId p_target_id, std::string p_text) :
@@ -267,11 +283,13 @@ TEST_SUITE("loopback") {
 			REQUIRE(l_b.connect(l_transport, named("B")));
 			REQUIRE(l_a.connect(l_transport, named("A")));
 			l_a.add<TextSender>("s", l_receiver, "hello in clear");
+			l_a.add<SharedTextSender>("t", l_receiver, "shared in clear");
 			l_b.start();
 			l_a.start();
 			l_a.start();
 			l_b.start();
 			CHECK(g_recorder.contains("r:text:hello in clear"));
+			CHECK(g_recorder.contains("r:text:shared in clear"));
 			REQUIRE(l_a.disconnect());
 			REQUIRE(l_b.disconnect());
 		}

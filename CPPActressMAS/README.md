@@ -10,7 +10,7 @@ helpers that are not objects of the library live in [`util/`](util/README.md).
 | `AgentCollection.{h,cpp}` | The agents of one environment, in insertion order, with the name index and the agents added during a turn; runs one turn in the chosen mode (`Sequential`, `SequentialRandom`, `Parallel`) and removes the dead agents at the turn boundary. |
 | `Agent.{h,cpp}` | Base class of the agents: `setup`, `see`, `action`, `default_action`; `send`, `send_by_name`, `send_by_fragment_name`, `broadcast`, `move`; the mailbox of incoming messages. |
 | `AgentId.{h,cpp}` | Identifier of an agent: at most 15 characters in 16 bytes, trivially copyable, hashed for the standard containers, written and read as a string (stream, JSON). |
-| `Message.{h,cpp}` | A message: sender, receiver and a typed content (text, JSON value or bytes), read with `kind`, `as_text`, `as_json`, `as_bytes`. |
+| `Message.{h,cpp}` | A message: sender, receiver and a typed content (text, JSON value or bytes), read with `kind`, `as_text`, `as_json`, `as_bytes`; `MessagePointer`, the pointer that shares it, its counter inside the message; `Text`, an optional immutable text shared by the messages that carry it (read as text). |
 
 ## Notes
 - **Identifiers**: an agent is named by a `cam::AgentId` (`AgentId.{h,cpp}`): at most 15 characters held in 16 bytes, copied, compared and hashed as two machine words; generated ones have 15 random base62 characters (about 89 bits), and a string literal such as `"ext"` converts when compiling. Environments, nodes and transfers use version 4 UUIDs (`util/Identifier.h`).

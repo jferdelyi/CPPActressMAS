@@ -55,10 +55,41 @@ namespace cam {
 	};
 
 	/**
-	 * Content of a message: nothing, UTF-8 text, an immutable JSON value shared between the receivers of
-	 * a broadcast, or opaque bytes.
+	 * Immutable text shared between messages, like a C# string (D76): sending it to many agents, or many times, copies a
+	 * pointer instead of the characters. Optional: a std::string or a literal is sent as before.
 	 **/
-	using MessageContent = std::variant<std::monostate, std::string, std::shared_ptr<const json>, std::vector<std::uint8_t>>;
+	class Text final {
+	private:
+		/**
+		 * The characters, shared.
+		 **/
+		std::shared_ptr<const std::string> m_text;
+
+	public:
+		/**
+		 * Text from its characters.
+		 * @param p_text The characters
+		 **/
+		explicit Text(std::string p_text);
+
+		/**
+		 * Text from a C string.
+		 * @param p_text The characters (null gives an empty text)
+		 **/
+		explicit Text(const char* p_text);
+
+		/**
+		 * The characters.
+		 * @return The characters
+		 **/
+		[[nodiscard]] const std::string& str() const noexcept { return *m_text; }
+	};
+
+	/**
+	 * Content of a message: nothing, UTF-8 text, an immutable JSON value shared between the receivers of
+	 * a broadcast, opaque bytes, or a shared text (read as text: kind() Text, as_text()).
+	 **/
+	using MessageContent = std::variant<std::monostate, std::string, std::shared_ptr<const json>, std::vector<std::uint8_t>, Text>;
 
 	/**
 	 * A message that the agents use to communicate. In an agent-based system, the

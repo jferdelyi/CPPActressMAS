@@ -215,6 +215,9 @@ namespace cam {
 		transport::Result<void> send(const AgentId& p_receiver_id, const char* p_text,
 									 const transport::SendOptions& p_options = {}) const;
 
+		transport::Result<void> send(const AgentId& p_receiver_id, const Text& p_text,
+									 const transport::SendOptions& p_options = {}) const;
+
 		/**
 		 * Send a new message by name: local agents, and with the network scope every connected environment.
 		 * @param p_receiver_name The name of the receiver
@@ -232,6 +235,9 @@ namespace cam {
 											 const transport::SendOptions& p_options = {}) const;
 
 		transport::Result<void> send_by_name(const std::string& p_receiver_name, std::string p_text, bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, const Text& p_text, bool p_first_only = true,
 											 const transport::SendOptions& p_options = {}) const;
 
 		transport::Result<void> send_by_name(const std::string& p_receiver_name, const char* p_text, bool p_first_only = true,
@@ -259,6 +265,9 @@ namespace cam {
 		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const char* p_text,
 													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
 
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const Text& p_text,
+													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
+
 		/**
 		 * Send a new message to all agents: local agents except this one, and with the network scope every
 		 * agent of the connected environments.
@@ -275,6 +284,8 @@ namespace cam {
 		transport::Result<void> broadcast(std::string p_text, const transport::SendOptions& p_options = {}) const;
 
 		transport::Result<void> broadcast(const char* p_text, const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> broadcast(const Text& p_text, const transport::SendOptions& p_options = {}) const;
 
 		/**
 		 * Move to another environment through the transport (three-step migration). The agent type must

@@ -66,6 +66,14 @@ cam::Message::Message(Key, const AgentId& p_sender, const AgentId& p_receiver, M
 		m_content(std::move(p_content)) {
 }
 
+cam::Text::Text(std::string p_text) :
+		m_text(std::allocate_shared<std::string>(RecyclingAllocator<std::string>(), std::move(p_text))) {
+}
+
+cam::Text::Text(const char* p_text) :
+		Text(std::string(p_text ? p_text : "")) {
+}
+
 void* cam::Message::operator new([[maybe_unused]] const std::size_t p_size) {
 	// A final class: the size asked is always that of a message
 	return FreeBlocks<sizeof(Message)>::acquire();
@@ -86,13 +94,17 @@ cam::ContentKind cam::Message::kind() const {
 		case 1: return ContentKind::Text;
 		case 2: return ContentKind::Json;
 		case 3: return ContentKind::Bytes;
+		case 4: return ContentKind::Text;
 		default: return ContentKind::None;
 	}
 }
 
 const std::string& cam::Message::as_text() const {
-	const auto* l_text = std::get_if<std::string>(&m_content);
-	return l_text ? *l_text : s_no_text;
+	if (const auto* l_text = std::get_if<std::string>(&m_content)) {
+		return *l_text;
+	}
+	const auto* l_shared = std::get_if<Text>(&m_content);
+	return l_shared ? l_shared->str() : s_no_text;
 }
 
 const json& cam::Message::as_json() const {

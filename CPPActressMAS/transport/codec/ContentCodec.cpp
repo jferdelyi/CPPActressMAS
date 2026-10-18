@@ -84,6 +84,8 @@ namespace cam::transport {
 			}
 			case 3:  // bytes: opaque, unless the sender tags them
 				return p_options.m_encoding.value_or(MessageBinaryFormat::RAW);
+			case 4:  // shared text
+				return MessageBinaryFormat::Text;
 			default:
 				return MessageBinaryFormat::RAW;
 		}
@@ -101,6 +103,9 @@ namespace cam::transport {
 		}
 		if (const auto* l_bytes = std::get_if<std::vector<std::uint8_t>>(&p_content)) {
 			return *l_bytes;
+		}
+		if (const auto* l_shared = std::get_if<Text>(&p_content)) {
+			return std::vector<std::uint8_t>(l_shared->str().begin(), l_shared->str().end());
 		}
 		return std::vector<std::uint8_t>();
 	}

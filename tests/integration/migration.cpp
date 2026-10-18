@@ -142,6 +142,9 @@ namespace {
 		void action(const cam::MessagePointer& p_message) override {
 			g_recorder.record(get_name() + ":" + p_message->to_string() + "@" + label_of(get_environment())
 							  + (p_message->get_sender_environment().empty() ? "" : " remote"));
+			if (p_message->kind() == cam::ContentKind::Text) {
+				g_recorder.record(get_name() + ":text:" + p_message->as_text());
+			}
 		}
 		void default_action() override {
 			if (!m_moved) {
@@ -159,17 +162,24 @@ namespace {
 		bool m_moved = false;
 	};
 
+	// How a Feeder sends its "<prefix><n>": bytes, a text, or a shared text.
+	enum class FeedKind { Bytes, Text, SharedText };
+
 	// Sends "<prefix><n>" to a given id every turn, from its second turn.
 	struct Feeder final : cam::Agent {
-		Feeder(const std::string& p_name, cam::AgentId p_target_id, std::string p_prefix) :
-				Agent(p_name), m_target_id(p_target_id), m_prefix(std::move(p_prefix)) {}
+		Feeder(const std::string& p_name, cam::AgentId p_target_id, std::string p_prefix, const FeedKind p_kind = FeedKind::Bytes) :
+				Agent(p_name), m_target_id(p_target_id), m_prefix(std::move(p_prefix)), m_kind(p_kind) {}
 		void default_action() override {
 			const std::string l_text = m_prefix + std::to_string(++m_count);
-			g_recorder.record(get_name() + ":" + l_text + ":" + code(send(m_target_id, raw(l_text), l_text.size())));
+			const auto l_result = m_kind == FeedKind::Bytes ? send(m_target_id, raw(l_text), l_text.size())
+								: m_kind == FeedKind::Text ? send(m_target_id, l_text)
+								: send(m_target_id, cam::Text(l_text));
+			g_recorder.record(get_name() + ":" + l_text + ":" + code(l_result));
 		}
 	private:
 		cam::AgentId m_target_id;
 		std::string m_prefix;
+		FeedKind m_kind;
 		int m_count = 0;
 	};
 
@@ -459,6 +469,42 @@ TEST_SUITE("migration") {
 		l_b.start();
 		l_b.start();
 		CHECK(g_recorder.contains("r:c2@B remote"));
+		REQUIRE(l_a.disconnect());
+		REQUIRE(l_b.disconnect());
+		REQUIRE(l_c.disconnect());
+	}
+
+	TEST_CASE("texts carried by the offer and forwarded after the move arrive as text, shared or not (D76)") {
+		g_recorder.clear();
+		auto l_transport = open_loopback();
+		TestEnvironment l_a("A");
+		TestEnvironment l_b("B");
+		TestEnvironment l_c("C");
+		l_a.register_agent_type<MovingReceiver>("MovingReceiver");
+		l_b.register_agent_type<MovingReceiver>("MovingReceiver");
+		REQUIRE(l_b.connect(l_transport, config("B")));
+		REQUIRE(l_a.connect(l_transport, config("A")));
+		REQUIRE(l_c.connect(l_transport, config("C")));
+		const cam::AgentId l_receiver = l_a.add<MovingReceiver>("r", l_b.get_id());
+		l_a.add<Feeder>("f", l_receiver, "t", FeedKind::Text);
+		l_c.add<Feeder>("g", l_receiver, "s", FeedKind::SharedText);
+
+		// Same course as above: t1 is carried by the offer, s1 is forwarded by A after the move
+		l_b.start();
+		l_a.start();
+		l_c.start();
+		l_a.start();
+		l_b.start();
+		l_c.start();
+		l_a.start();
+		l_b.start();
+		l_a.start();
+		l_b.start();
+		l_b.start();
+		CHECK(g_recorder.contains("r:text:t1"));
+		CHECK(g_recorder.contains("r:text:s1"));
+		CHECK(g_recorder.contains("r:text:t2"));
+		CHECK(l_a.statistics().m_forwarded == 1);
 		REQUIRE(l_a.disconnect());
 		REQUIRE(l_b.disconnect());
 		REQUIRE(l_c.disconnect());

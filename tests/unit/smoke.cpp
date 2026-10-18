@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <set>
 #include <type_traits>
 
 #include <Environment.h>
@@ -103,6 +104,27 @@ namespace {
 			broadcast(std::string("broadcast text"));
 			broadcast(raw(l_broadcast_bytes), l_broadcast_bytes.size());
 			broadcast(json("broadcast json"));
+		}
+	};
+
+	// Records "<kind>:<text>" for every message it receives, and the address of the characters of the broadcast text.
+	struct BufferReceiver final : cam::Agent {
+		explicit BufferReceiver(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			g_recorder.record(std::string(p_message->kind() == cam::ContentKind::Text ? "text" : "other") + ":" + p_message->as_text());
+			if (p_message->as_text() == "to all") {
+				g_recorder.record("buffer:" + std::to_string(reinterpret_cast<std::uintptr_t>(p_message->as_text().data())));
+			}
+		}
+	};
+
+	// Sends shared texts at setup: by broadcast, by name to every "worker", by fragment to every "work".
+	struct TextSharer final : cam::Agent {
+		explicit TextSharer(const std::string& p_name) : Agent(p_name) {}
+		void setup() override {
+			broadcast(cam::Text("to all"));
+			send_by_name("worker", cam::Text("by name"), false);
+			send_by_fragment_name("work", cam::Text("by fragment"), false);
 		}
 	};
 
@@ -239,6 +261,26 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count_of(l_prefix + "id text") == 1);
 		CHECK(g_recorder.count_of(l_prefix + "\"id json\"") == 1);
 		CHECK(g_recorder.count() == 3);
+	}
+
+	TEST_CASE("a shared text reaches every receiver as text, all of them reading the same characters (D76)") {
+		g_recorder.clear();
+		cam::Environment l_env(2, Mode::Sequential);
+		for (int i = 0; i < 3; i++) {
+			l_env.add<BufferReceiver>("worker");
+		}
+		l_env.add<TextSharer>("sharer");
+		l_env.start();
+		CHECK(g_recorder.count_of("text:to all") == 3);
+		CHECK(g_recorder.count_of("text:by name") == 3);
+		CHECK(g_recorder.count_of("text:by fragment") == 3);
+		std::set<std::string> l_buffers;
+		for (const auto& l_entry: g_recorder.entries()) {
+			if (l_entry.rfind("buffer:", 0) == 0) {
+				l_buffers.insert(l_entry);
+			}
+		}
+		CHECK(l_buffers.size() == 1);  // one string shared by the three messages, not three copies
 	}
 
 	TEST_CASE("send_by_name reaches every agent of that name, or the first one only") {
