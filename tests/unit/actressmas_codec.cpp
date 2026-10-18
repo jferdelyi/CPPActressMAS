@@ -29,7 +29,6 @@
 #include <nlohmann/json.hpp>
 
 #include <transport/ActressMasCodec.h>
-#include <transport/Base64.h>
 
 namespace {
 

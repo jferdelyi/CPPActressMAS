@@ -19,7 +19,7 @@
 #include "Agent.h"
 
 #include "Environment.h"
-#include "Identifier.h"
+#include "util/Identifier.h"
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_id(generate_agent_id()),

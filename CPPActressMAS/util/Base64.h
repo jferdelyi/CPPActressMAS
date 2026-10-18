@@ -26,9 +26,9 @@
 #include <vector>
 
 /**
- * CPPActressMAS transport layer.
+ * CPPActressMAS.
  **/
-namespace cam::transport {
+namespace cam {
 
 	/**
 	 * Encode bytes in base64 (RFC 4648, standard alphabet, with padding), as the json codec and the
@@ -45,4 +45,4 @@ namespace cam::transport {
 	 **/
 	[[nodiscard]] std::optional<std::vector<std::uint8_t>> from_base64(std::string_view p_text);
 
-} // namespace cam::transport
+} // namespace cam

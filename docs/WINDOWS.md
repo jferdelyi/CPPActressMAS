@@ -44,8 +44,8 @@
 
 ## 2 quater. Impact de l'étape 3B avancée (performance du cœur)
 
-- **Identifiants** (`CPPActressMAS/Identifier.{h,cpp}`) : `std::random_device`, `std::mt19937_64` et `thread_local`, portables (MSVC les fournit). Plus d'en-tête `Externals/uuid`.
-- **Mode parallèle** (`CPPActressMAS/TurnPool.{h,cpp}`) :
+- **Identifiants** (`CPPActressMAS/util/Identifier.{h,cpp}`) : `std::random_device`, `std::mt19937_64` et `thread_local`, portables (MSVC les fournit). Plus d'en-tête `Externals/uuid`.
+- **Mode parallèle** (`CPPActressMAS/util/TurnPool.{h,cpp}`) :
   - `std::atomic::wait` et `notify_*` (C++20) : MSVC 19.28 et suivants, Windows 8 et suivants (`WaitOnAddress`) ;
   - attente active par `_mm_pause` sur x64 (`<immintrin.h>`). Sous ARM64 avec MSVC, aucune instruction de pause n'est émise : l'attente est seulement plus coûteuse en énergie ;
   - `Externals/ThreadPool` n'est plus utilisé.

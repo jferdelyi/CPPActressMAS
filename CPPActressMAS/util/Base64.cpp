@@ -18,7 +18,7 @@
 
 #include "Base64.h"
 
-namespace cam::transport {
+namespace cam {
 
 	namespace {
 
@@ -113,4 +113,4 @@ namespace cam::transport {
 		return l_out;
 	}
 
-} // namespace cam::transport
+} // namespace cam

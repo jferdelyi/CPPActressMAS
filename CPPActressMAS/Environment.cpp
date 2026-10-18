@@ -21,9 +21,9 @@
 #include <thread>
 
 #include "Agent.h"
-#include "Identifier.h"
 #include "transport/ContentCodec.h"
 #include "transport/Facade.h"
+#include "util/Identifier.h"
 
 namespace {
 
