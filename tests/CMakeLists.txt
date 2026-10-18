@@ -125,6 +125,7 @@ endfunction()
 
 # Ports of the C# examples compared with their originals (docs/port/EXEMPLES.md)
 cam_add_iso(MechanismDesign)
+cam_add_iso(PrisonerDilemma)
 
 # ---------------------------------------------------------------- approval of deterministic examples
 add_executable(cam_approve approval/approve.cpp)
