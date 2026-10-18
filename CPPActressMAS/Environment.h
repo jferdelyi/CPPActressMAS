@@ -22,6 +22,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -51,6 +52,19 @@ namespace cam {
 	};
 
 	class Agent;
+
+	/**
+	 * Configuration of an environment, written with designated initializers (D82):
+	 * cam::Environment l_environment({.m_turns = 100, .m_mode = cam::EnvironmentMasMode::Sequential});
+	 * m_turns: maximum number of turns, 0 for no limit; m_delay_after_turn: in milliseconds; m_seed: seed of the
+	 * random order, drawn from std::random_device when absent.
+	 **/
+	struct EnvironmentConfig {
+		int m_turns = 0;
+		EnvironmentMasMode m_mode = EnvironmentMasMode::Parallel;
+		int m_delay_after_turn = 0;
+		std::optional<unsigned int> m_seed;
+	};
 
 	/**
 	 * An abstract base class for the multiagent environment, where all the agents are executed.
@@ -190,6 +204,13 @@ namespace cam {
 		 **/
 		explicit Environment(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel,
 							 int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
+
+		/**
+		 * Initializes a new instance of the Environment class from its configuration (D82), for instance
+		 * cam::Environment l_environment({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Sequential}).
+		 * @param p_config The configuration
+		 **/
+		explicit Environment(const EnvironmentConfig& p_config);
 
 		/**
 		 * Disconnects from the transport, if connected.

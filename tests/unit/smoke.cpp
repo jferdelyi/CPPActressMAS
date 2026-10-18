@@ -231,6 +231,17 @@ namespace {
 
 TEST_SUITE("unit") {
 
+	TEST_CASE("an environment built from its configuration runs its turns in its mode (D82)") {
+		g_recorder.clear();
+		HookedEnvironment l_env({.m_turns = 3, .m_mode = Mode::Sequential, .m_seed = 7});
+		l_env.add<Receiver>("r");
+		l_env.start();
+		CHECK(g_recorder.count_of("turn:2") == 1);
+		CHECK(g_recorder.count_of("turn:3") == 0);
+		CHECK(g_recorder.count_of("finished") == 1);
+		CHECK(l_env.agents_count() == 1);
+	}
+
 	TEST_CASE("a message sent by id is delivered at the next turn, hooks run once per turn and once at the end") {
 		g_recorder.clear();
 		HookedEnvironment l_env(3, Mode::Sequential);

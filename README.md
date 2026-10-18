@@ -108,7 +108,7 @@ Benchmarks examples, to benchmark the library
 **Environment**
 ``` cpp
 /**
- * Initializes a new instance of the EnvironmentMas class.
+ * Initializes a new instance of the Environment class.
  *
  * @param p_no_turns The maximum number of turns of the simulation. Setup is
  * considered to be the first turn. The simulation may stop earlier if there
@@ -122,12 +122,20 @@ Benchmarks examples, to benchmark the library
  * @param p_seed A random number generator seed for non-deterministic but
  * repeatable experiments.
  **/
-explicit EnvironmentMas(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel, int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
+explicit Environment(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel, int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
 
 /**
- * Nothing to delete.
+ * Initializes a new instance of the Environment class from its configuration (D82), for instance
+ * cam::Environment l_environment({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Sequential}).
+ * EnvironmentConfig: m_turns, m_mode, m_delay_after_turn, m_seed (drawn from std::random_device when absent).
+ * @param p_config The configuration
  **/
-virtual ~EnvironmentMas() = default;
+explicit Environment(const EnvironmentConfig& p_config);
+
+/**
+ * Disconnects from the transport, if connected.
+ **/
+virtual ~Environment();
 
 /**
  * Adds an agent to the environment.

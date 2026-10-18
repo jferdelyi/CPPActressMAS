@@ -18,6 +18,7 @@
 
 #include "Environment.h"
 
+#include <random>
 #include <thread>
 
 #include "Agent.h"
@@ -55,6 +56,11 @@ cam::Environment::Environment(const int p_no_turns, const EnvironmentMasMode& p_
 		m_delay_after_turn(p_delay_after_turn),
 		m_agent_collection(p_mode, p_seed),
 		m_boundary(0) {
+}
+
+cam::Environment::Environment(const EnvironmentConfig& p_config) :
+		Environment(p_config.m_turns, p_config.m_mode, p_config.m_delay_after_turn,
+					p_config.m_seed.value_or(std::random_device()())) {
 }
 
 cam::Environment::~Environment() {
