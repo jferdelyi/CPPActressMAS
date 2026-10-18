@@ -55,10 +55,10 @@ namespace {
 
 	// Sends one message at setup, by id, to a given agent.
 	struct Sender final : cam::Agent {
-		Sender(const std::string& p_name, std::string p_target_id) : Agent(p_name), m_target_id(std::move(p_target_id)) {}
+		Sender(const std::string& p_name, cam::AgentId p_target_id) : Agent(p_name), m_target_id(p_target_id) {}
 		void setup() override { send(m_target_id, json("hello")); }
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 	};
 
 	// Sends one message at setup through the addressing mode given by its name.
@@ -110,14 +110,14 @@ namespace {
 	struct OriginReceiver final : cam::Agent {
 		explicit OriginReceiver(const std::string& p_name) : Agent(p_name) {}
 		void action(const cam::MessagePointer& p_message) override {
-			g_recorder.record(p_message->get_sender() + "|" + p_message->get_receiver() + "|" +
+			g_recorder.record(p_message->get_sender().str() + "|" + p_message->get_receiver().str() + "|" +
 							  p_message->get_sender_environment() + "|" + p_message->to_string());
 		}
 	};
 
 	// Sends bytes, a text and a JSON value at setup, by id, to a given agent.
 	struct IdSpeaker final : cam::Agent {
-		IdSpeaker(const std::string& p_name, std::string p_target_id) : Agent(p_name), m_target_id(std::move(p_target_id)) {}
+		IdSpeaker(const std::string& p_name, cam::AgentId p_target_id) : Agent(p_name), m_target_id(p_target_id) {}
 		void setup() override {
 			const std::string l_bytes = "id bytes";
 			send(m_target_id, raw(l_bytes), l_bytes.size());
@@ -125,7 +125,7 @@ namespace {
 			send(m_target_id, json("id json"));
 		}
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 	};
 
 	// Records "<its turn>:<name>" at each action; at its first action it may stop, or add an agent named "<name>+".
@@ -161,14 +161,14 @@ namespace {
 
 	// Reports its number to its parent at its first turn and stops, so it is removed at the next turn boundary.
 	struct Child final : cam::Agent {
-		Child(const std::string& p_name, std::string p_parent_id, const int p_number) :
-				Agent(p_name), m_parent_id(std::move(p_parent_id)), m_number(p_number) {}
+		Child(const std::string& p_name, cam::AgentId p_parent_id, const int p_number) :
+				Agent(p_name), m_parent_id(p_parent_id), m_number(p_number) {}
 		void setup() override {
 			send(m_parent_id, json{{"child", m_number}});
 			stop();
 		}
 	private:
-		std::string m_parent_id;
+		cam::AgentId m_parent_id;
 		int m_number;
 	};
 
@@ -212,7 +212,7 @@ TEST_SUITE("unit") {
 	TEST_CASE("a message sent by id is delivered at the next turn, hooks run once per turn and once at the end") {
 		g_recorder.clear();
 		HookedEnvironment l_env(3, Mode::Sequential);
-		const std::string l_receiver = l_env.add<Receiver>("receiver");
+		const cam::AgentId l_receiver = l_env.add<Receiver>("receiver");
 		l_env.add<Sender>("sender", l_receiver);
 		l_env.start();
 
@@ -230,11 +230,11 @@ TEST_SUITE("unit") {
 
 		g_recorder.clear();
 		cam::Environment l_env(2, Mode::Sequential);
-		const std::string l_receiver = l_env.add<OriginReceiver>("receiver");
-		const std::string l_sender = l_env.add<IdSpeaker>("speaker", l_receiver);
+		const cam::AgentId l_receiver = l_env.add<OriginReceiver>("receiver");
+		const cam::AgentId l_sender = l_env.add<IdSpeaker>("speaker", l_receiver);
 		l_env.start();
 
-		const std::string l_prefix = l_sender + "|" + l_receiver + "||";
+		const std::string l_prefix = l_sender.str() + "|" + l_receiver.str() + "||";
 		CHECK(g_recorder.count_of(l_prefix + "id bytes") == 1);
 		CHECK(g_recorder.count_of(l_prefix + "id text") == 1);
 		CHECK(g_recorder.count_of(l_prefix + "\"id json\"") == 1);
@@ -368,13 +368,13 @@ TEST_SUITE("unit") {
 
 	TEST_CASE("lookups by name, fragment and id after the first turn") {
 		cam::Environment l_env(1, Mode::Sequential);
-		const std::string l_a1 = l_env.add<Receiver>("agent-1");
-		const std::string l_a2 = l_env.add<Receiver>("agent-2");
+		const cam::AgentId l_a1 = l_env.add<Receiver>("agent-1");
+		const cam::AgentId l_a2 = l_env.add<Receiver>("agent-2");
 		l_env.add<Receiver>("monitor");
 		l_env.start();
 
 		CHECK(l_env.agents_count() == 3);
-		CHECK(l_env.get_agents_by_name("agent-1") == std::vector<std::string>{l_a1});
+		CHECK(l_env.get_agents_by_name("agent-1") == std::vector<cam::AgentId>{l_a1});
 		CHECK(l_env.get_first_agent_by_name("agent-2") == l_a2);
 		CHECK_FALSE(l_env.get_first_agent_by_name("nobody").has_value());
 		CHECK(l_env.get_filtered_agents("agent-").size() == 2);
@@ -410,7 +410,7 @@ TEST_SUITE("unit") {
 	TEST_CASE("a removed agent is gone from the name index, send_by_name delivers nothing (C6 fixed in 1A)") {
 		g_recorder.clear();
 		cam::Environment l_env(2, Mode::Sequential);
-		const std::string l_id = l_env.add<Receiver>("target");
+		const cam::AgentId l_id = l_env.add<Receiver>("target");
 		l_env.start();
 		REQUIRE(l_env.agents_count() == 1);
 		l_env.remove(l_id);
@@ -439,7 +439,7 @@ TEST_SUITE("unit") {
 	TEST_CASE("messages sent by id in Parallel mode are all delivered") {
 		g_recorder.clear();
 		cam::Environment l_env(3, Mode::Parallel);
-		const std::string l_receiver = l_env.add<Receiver>("receiver");
+		const cam::AgentId l_receiver = l_env.add<Receiver>("receiver");
 		for (int i = 0; i < 8; i++) {
 			l_env.add<Sender>("sender-" + std::to_string(i), l_receiver);
 		}

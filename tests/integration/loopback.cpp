@@ -26,6 +26,7 @@
 #include <Environment.h>
 #include <transport/codec/EnvelopeCodec.h>
 #include <transport/loopback/LoopbackTransport.h>
+#include <util/Identifier.h>
 
 #include "Recorder.hpp"
 
@@ -50,8 +51,8 @@ namespace {
 
 	// From its second turn on, sends one message by id until the send is accepted.
 	struct Sender final : cam::Agent {
-		Sender(const std::string& p_name, std::string p_target_id, std::string p_text = "hello") :
-				Agent(p_name), m_target_id(std::move(p_target_id)), m_text(std::move(p_text)) {}
+		Sender(const std::string& p_name, cam::AgentId p_target_id, std::string p_text = "hello") :
+				Agent(p_name), m_target_id(p_target_id), m_text(std::move(p_text)) {}
 		void default_action() override {
 			if (m_sent) return;
 			if (const auto l_result = send(m_target_id, raw(m_text), m_text.size()); l_result) {
@@ -62,7 +63,7 @@ namespace {
 			}
 		}
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 		std::string m_text;
 		bool m_sent = false;
 	};
@@ -80,8 +81,8 @@ namespace {
 
 	// From its second turn on, sends one text by id until the send is accepted.
 	struct TextSender final : cam::Agent {
-		TextSender(const std::string& p_name, std::string p_target_id, std::string p_text) :
-				Agent(p_name), m_target_id(std::move(p_target_id)), m_text(std::move(p_text)) {}
+		TextSender(const std::string& p_name, cam::AgentId p_target_id, std::string p_text) :
+				Agent(p_name), m_target_id(p_target_id), m_text(std::move(p_text)) {}
 		void default_action() override {
 			if (m_sent) return;
 			if (send(m_target_id, m_text)) {
@@ -89,15 +90,15 @@ namespace {
 			}
 		}
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 		std::string m_text;
 		bool m_sent = false;
 	};
 
 	// Sends "m1", "m2"... by id, one per turn.
 	struct MultiSender final : cam::Agent {
-		MultiSender(const std::string& p_name, std::string p_target_id, const int p_total) :
-				Agent(p_name), m_target_id(std::move(p_target_id)), m_total(p_total) {}
+		MultiSender(const std::string& p_name, cam::AgentId p_target_id, const int p_total) :
+				Agent(p_name), m_target_id(p_target_id), m_total(p_total) {}
 		void default_action() override {
 			if (m_count >= m_total) return;
 			const std::string l_text = "m" + std::to_string(++m_count);
@@ -106,7 +107,7 @@ namespace {
 			}
 		}
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 		int m_total;
 		int m_count = 0;
 	};
@@ -170,7 +171,7 @@ namespace {
 		g_recorder.clear();
 		TestEnvironment l_a("A");
 		TestEnvironment l_b("B");
-		const std::string l_receiver = l_b.add<Receiver>("r");
+		const cam::AgentId l_receiver = l_b.add<Receiver>("r");
 		REQUIRE(l_b.connect(p_transport, named("B")));
 		REQUIRE(l_a.connect(p_transport, named("A")));
 		l_a.add<Sender>("s", l_receiver);
@@ -262,7 +263,7 @@ TEST_SUITE("loopback") {
 			auto l_transport = open_loopback(LoopbackOptions{.m_serialize = true}, make_codec(l_name));
 			TestEnvironment l_a("A");
 			TestEnvironment l_b("B");
-			const std::string l_receiver = l_b.add<TypedReceiver>("r");
+			const cam::AgentId l_receiver = l_b.add<TypedReceiver>("r");
 			REQUIRE(l_b.connect(l_transport, named("B")));
 			REQUIRE(l_a.connect(l_transport, named("A")));
 			l_a.add<TextSender>("s", l_receiver, "hello in clear");
@@ -291,7 +292,7 @@ TEST_SUITE("loopback") {
 		CHECK(l_a.statistics().m_unknown_destination == 1);
 
 		// A local agent is always reached directly, connected or not.
-		const std::string l_local = l_a.add<Receiver>("local");
+		const cam::AgentId l_local = l_a.add<Receiver>("local");
 		l_a.start();
 		REQUIRE(l_a.send("ext", l_local, raw("x"), 1));
 		l_a.start();
@@ -379,7 +380,7 @@ TEST_SUITE("loopback") {
 		TestEnvironment l_b("B");
 		REQUIRE(l_b.connect(l_transport, named("B")));
 		REQUIRE(l_a.connect(l_transport, named("A")));
-		const std::string l_receiver = l_b.add<Receiver>("r");
+		const cam::AgentId l_receiver = l_b.add<Receiver>("r");
 		l_b.start();  // r inserted: AgentAdded published
 		l_a.start();  // A knows r
 		REQUIRE(l_a.send("ext", l_receiver, raw("1"), 1));
@@ -397,7 +398,7 @@ TEST_SUITE("loopback") {
 			explicit Quitter(const std::string& p_name) : Agent(p_name) {}
 			void setup() override { stop(); }
 		};
-		const std::string l_quitter = l_b.add<Quitter>("q");
+		const cam::AgentId l_quitter = l_b.add<Quitter>("q");
 		l_b.start();  // inserted (AgentAdded), set up and stopped
 		l_a.start();  // A knows q
 		REQUIRE(l_a.send("ext", l_quitter, raw("3"), 1));
@@ -408,12 +409,46 @@ TEST_SUITE("loopback") {
 		REQUIRE(l_b.disconnect());
 	}
 
+	TEST_CASE("a message whose sender identifier is longer than an AgentId is refused and counted (D76)") {
+		g_recorder.clear();
+		auto l_transport = open_loopback();
+		TestEnvironment l_b("B");
+		const cam::AgentId l_receiver = l_b.add<Receiver>("r");
+		REQUIRE(l_b.connect(l_transport, named("B")));
+		l_b.start();  // r inserted
+
+		// A peer sends to r, first with a 36-character sender identifier, then with a short one
+		Endpoint l_peer(cam::generate_uuid(), EndpointConfig{.m_name = "peer"});
+		REQUIRE(l_peer.attach(l_transport));
+		const auto l_send = [&](const std::string& p_sender, const std::string& p_text) {
+			Envelope l_envelope = l_peer.make_envelope(EnvelopeKind::Message);
+			l_envelope.m_sender_agent = p_sender;
+			l_envelope.m_target_kind = TargetKind::Id;
+			l_envelope.m_target_id = l_receiver.str();
+			l_envelope.m_content_encoding = cam::MessageBinaryFormat::Text;
+			l_envelope.m_content.assign(p_text.begin(), p_text.end());
+			REQUIRE(l_peer.enqueue(Address{AddressKind::EnvIn, l_peer.ns(), l_b.get_id()}, std::move(l_envelope)));
+			CHECK(l_peer.flush_outbox().empty());
+		};
+		const auto l_rejected = l_b.statistics().m_rejected;
+		l_send(cam::generate_uuid(), "too long");
+		l_b.start();
+		CHECK(l_b.statistics().m_rejected == l_rejected + 1);
+		CHECK_FALSE(g_recorder.contains("r:too long"));
+		l_send("ext", "short");
+		l_b.start();
+		CHECK(g_recorder.count_of("r:short") == 1);
+		CHECK(l_b.statistics().m_rejected == l_rejected + 1);
+		REQUIRE(l_peer.detach());
+		REQUIRE(l_b.disconnect());
+	}
+
 	TEST_CASE("duplicates injected by the transport are delivered once") {
 		g_recorder.clear();
 		auto l_transport = open_loopback(LoopbackOptions{.m_duplicate_every_n = 1});
 		TestEnvironment l_a("A");
 		TestEnvironment l_b("B");
-		const std::string l_receiver = l_b.add<Receiver>("r");
+		const cam::AgentId l_receiver = l_b.add<Receiver>("r");
 		REQUIRE(l_b.connect(l_transport, named("B")));
 		REQUIRE(l_a.connect(l_transport, named("A")));
 		l_a.add<Sender>("s", l_receiver);
@@ -437,7 +472,7 @@ TEST_SUITE("loopback") {
 		auto l_transport = open_loopback(l_options);
 		TestEnvironment l_a("A");
 		TestEnvironment l_b("B");
-		const std::string l_receiver = l_b.add<Receiver>("r");
+		const cam::AgentId l_receiver = l_b.add<Receiver>("r");
 		EndpointConfig l_config = named("B");
 		l_config.m_reorder_turns = 2;
 		REQUIRE(l_b.connect(l_transport, l_config));
@@ -470,7 +505,7 @@ TEST_SUITE("loopback") {
 		auto l_transport = open_loopback();
 		TestEnvironment l_a("A");
 		TestEnvironment l_b("B");
-		const std::string l_receiver = l_b.add<Receiver>("r");
+		const cam::AgentId l_receiver = l_b.add<Receiver>("r");
 		l_b.start();  // r inserted offline
 		REQUIRE(l_b.connect(l_transport, named("B")));  // presence lists r
 		REQUIRE(l_a.connect(l_transport, named("A")));  // retained presence: A knows r at once

@@ -18,7 +18,6 @@
 
 #include "Message.h"
 
-#include "util/Identifier.h"
 #include "util/RecyclingAllocator.hpp"
 
 namespace {
@@ -29,42 +28,41 @@ namespace {
 
 } // namespace
 
-cam::Message::Message(std::string p_sender, std::string p_receiver, const json& p_message) :
-		m_sender(std::move(p_sender)),
-		m_receiver(std::move(p_receiver)),
+cam::Message::Message(AgentId p_sender, AgentId p_receiver, const json& p_message) :
+		m_sender(p_sender),
+		m_receiver(p_receiver),
 		m_content(std::shared_ptr<const json>(std::allocate_shared<json>(RecyclingAllocator<json>(), p_message))) {
 }
 
-cam::Message::Message(std::string p_sender, std::string p_receiver, std::shared_ptr<const json> p_message) :
-		m_sender(std::move(p_sender)),
-		m_receiver(std::move(p_receiver)),
+cam::Message::Message(AgentId p_sender, AgentId p_receiver, std::shared_ptr<const json> p_message) :
+		m_sender(p_sender),
+		m_receiver(p_receiver),
 		m_content(p_message ? MessageContent(std::move(p_message)) : MessageContent()) {
 }
 
-cam::Message::Message(std::string p_sender, std::string p_receiver, std::string p_text) :
-		m_sender(std::move(p_sender)),
-		m_receiver(std::move(p_receiver)),
+cam::Message::Message(AgentId p_sender, AgentId p_receiver, std::string p_text) :
+		m_sender(p_sender),
+		m_receiver(p_receiver),
 		m_content(std::move(p_text)) {
 }
 
-cam::Message::Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length) :
-		m_sender(std::move(p_sender)),
-		m_receiver(std::move(p_receiver)),
+cam::Message::Message(AgentId p_sender, AgentId p_receiver, const uint8_t* p_message, const size_t& p_length) :
+		m_sender(p_sender),
+		m_receiver(p_receiver),
 		m_content(p_message ? std::vector(p_message, p_message + p_length) : std::vector<std::uint8_t>()) {
 }
 
-cam::Message::Message(std::string p_sender, std::string p_receiver, MessageContent p_content) :
-		m_sender(std::move(p_sender)),
-		m_receiver(std::move(p_receiver)),
+cam::Message::Message(AgentId p_sender, AgentId p_receiver, MessageContent p_content) :
+		m_sender(p_sender),
+		m_receiver(p_receiver),
 		m_content(std::move(p_content)) {
 }
 
-cam::Message::Message(Key, const std::string& p_sender, const std::string& p_receiver, MessageContent&& p_content,
+cam::Message::Message(Key, const AgentId& p_sender, const AgentId& p_receiver, MessageContent&& p_content,
 					  const std::string& p_sender_environment) :
-		// An agent identifier has a known length: copied with that constant length, the copy is inlined (P8)
-		m_sender(p_sender.size() == AGENT_ID_LENGTH ? std::string(p_sender.data(), AGENT_ID_LENGTH) : p_sender),
+		m_sender(p_sender),
 		m_sender_environment(p_sender_environment),
-		m_receiver(p_receiver.size() == AGENT_ID_LENGTH ? std::string(p_receiver.data(), AGENT_ID_LENGTH) : p_receiver),
+		m_receiver(p_receiver),
 		m_content(std::move(p_content)) {
 }
 
@@ -119,5 +117,5 @@ std::string cam::Message::to_string() const {
 }
 
 std::string cam::Message::format() const {
-	return "[" + m_sender + " -> " + m_receiver + "]: " + to_string();
+	return "[" + m_sender.str() + " -> " + m_receiver.str() + "]: " + to_string();
 }

@@ -26,15 +26,15 @@ static constexpr int AGENT_COUNT = 10000;
 
 class MyAgent : public cam::Agent {
 	protected:
-		std::string m_parent_id;
+		cam::AgentId m_parent_id;
 		int m_sum;
 		int m_sum_id;
 		int m_message_left;
 
 	public:
-		explicit MyAgent(const std::string& p_name, const int p_sum_id, std::string p_parent_id) :
+		explicit MyAgent(const std::string& p_name, const int p_sum_id, const cam::AgentId& p_parent_id) :
 			Agent(p_name),
-			m_parent_id(std::move(p_parent_id)),
+			m_parent_id(p_parent_id),
 			m_sum(p_sum_id),
 			m_sum_id(p_sum_id),
 			m_message_left(0) {}
@@ -72,7 +72,7 @@ int main() {
 	const auto& l_start_time = std::chrono::high_resolution_clock::now();
 
 	cam::Environment l_environment(0, cam::EnvironmentMasMode::Parallel);
-	l_environment.add<MyAgent>("a0", 0, "");
+	l_environment.add<MyAgent>("a0", 0, cam::AgentId());
 	l_environment.start();
 
 	const auto& l_end_time = std::chrono::high_resolution_clock::now();

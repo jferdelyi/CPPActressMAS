@@ -84,8 +84,9 @@ if (CAM_SANITIZER STREQUAL "tsan")
 endif()
 # C12: remove() during a Sequential turn invalidates the range-for of run_turn().
 cam_add_crash_probe(remove_during_sequential_turn C12 asan "container-overflow|member call on null pointer|AddressSanitizer: SEGV")
-# C16: add<T>() returns a reference to the agent's id, dangling once the agent is destroyed.
-cam_add_crash_probe(dangling_add_ref C16 asan "heap-use-after-free")
+# C16 (fixed in 3B, D76): add<T>() returned a reference to the agent's id, dangling once the agent was destroyed;
+# it now returns the AgentId by value. The probe stays as a regression test.
+cam_add_ok_probe(dangling_add_ref C16)
 # T1: live observables map read by other agents while its owner writes it.
 cam_add_crash_probe(observables_parallel T1 tsan "ThreadSanitizer: data race")
 # T2: stop() writes m_is_dead while send_by_name() reads it from another thread.
@@ -168,6 +169,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME unit.recycling_allocator COMMAND cam_recycling_allocator_tests)
 	set_tests_properties(unit.recycling_allocator PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.recycling_allocator)
+
+	# Identifier of an agent (D76): size, capacity, literals, comparisons, hash, stream, JSON.
+	add_executable(cam_agent_id_tests unit/agent_id.cpp)
+	target_link_libraries(cam_agent_id_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.agent_id COMMAND cam_agent_id_tests)
+	set_tests_properties(unit.agent_id PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.agent_id)
 
 	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 	add_executable(cam_identifier_tests unit/identifier.cpp)

@@ -23,7 +23,7 @@
 #include "util/RecyclingAllocator.hpp"
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
-		m_id(generate_agent_id()),
+		m_id(AgentId::generate()),
 		m_name(std::move(p_name)),
 		m_environment(nullptr),
 		m_is_setup(false),
@@ -114,22 +114,22 @@ namespace {
 } // namespace
 
 cam::transport::Result<void>
-cam::Agent::send(const std::string& p_receiver_id, const json& p_message, const transport::SendOptions& p_options) const {
+cam::Agent::send(const AgentId& p_receiver_id, const json& p_message, const transport::SendOptions& p_options) const {
 	return get_environment()->send_content(m_id, p_receiver_id, json_content(p_message), p_options);
 }
 
 cam::transport::Result<void>
-cam::Agent::send(const std::string& p_receiver_id, std::string p_text, const transport::SendOptions& p_options) const {
+cam::Agent::send(const AgentId& p_receiver_id, std::string p_text, const transport::SendOptions& p_options) const {
 	return get_environment()->send_content(m_id, p_receiver_id, MessageContent(std::move(p_text)), p_options);
 }
 
 cam::transport::Result<void>
-cam::Agent::send(const std::string& p_receiver_id, const char* p_text, const transport::SendOptions& p_options) const {
+cam::Agent::send(const AgentId& p_receiver_id, const char* p_text, const transport::SendOptions& p_options) const {
 	return get_environment()->send_content(m_id, p_receiver_id, text_content(p_text), p_options);
 }
 
 cam::transport::Result<void>
-cam::Agent::send(const std::string& p_receiver_id, const uint8_t* p_message, const size_t& p_length,
+cam::Agent::send(const AgentId& p_receiver_id, const uint8_t* p_message, const size_t& p_length,
 				 const transport::SendOptions& p_options) const {
 	return get_environment()->send(m_id, p_receiver_id, p_message, p_length, p_options);
 }
@@ -218,19 +218,19 @@ size_t cam::Agent::agents_count() const {
 	return get_environment()->agents_count();
 }
 
-std::vector<std::string> cam::Agent::get_agents_by_name(const std::string& p_name, bool p_first_only) const {
+std::vector<cam::AgentId> cam::Agent::get_agents_by_name(const std::string& p_name, bool p_first_only) const {
 	return get_environment()->get_agents_by_name(p_name, p_first_only);
 }
 
-std::optional<std::string> cam::Agent::get_first_agent_by_name(const std::string& p_name) const {
+std::optional<cam::AgentId> cam::Agent::get_first_agent_by_name(const std::string& p_name) const {
 	return get_environment()->get_first_agent_by_name(p_name);
 }
 
-std::optional<std::string> cam::Agent::get_agent_name(const std::string& p_id) const {
+std::optional<std::string> cam::Agent::get_agent_name(const AgentId& p_id) const {
 	return get_environment()->get_agent_name(p_id);
 }
 
-std::vector<std::string> cam::Agent::get_filtered_agents(const std::string& p_fragment_name, bool p_first_only) const {
+std::vector<cam::AgentId> cam::Agent::get_filtered_agents(const std::string& p_fragment_name, bool p_first_only) const {
 	return get_environment()->get_filtered_agents(p_fragment_name, p_first_only);
 }
 

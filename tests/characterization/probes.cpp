@@ -94,14 +94,14 @@ namespace {
 
 	void remove_buffered() {
 		cam::Environment l_env(1, Mode::Sequential);
-		const std::string l_id = l_env.add<Plain>("x");  // added, not inserted yet
+		const cam::AgentId l_id = l_env.add<Plain>("x");  // added, not inserted yet
 		l_env.remove(l_id);
 		std::cout << "OK no crash\n";
 	}
 
 	void remove_then_send_by_name() {  // C6, fixed in 1A: kept as a regression test
 		cam::Environment l_env(2, Mode::Sequential);
-		const std::string l_id = l_env.add<Plain>("target");
+		const cam::AgentId l_id = l_env.add<Plain>("target");
 		l_env.start();       // agent inserted
 		l_env.remove(l_id);  // used to erase m_agents only, not m_agents_by_name
 		l_env.send_by_name("ext", "target", raw("x"), 1, false, false);  // used to dereference a null pointer
@@ -246,7 +246,7 @@ namespace {
 	// ---------------------------------------------------------------- C16
 	void dangling_add_ref() {
 		cam::Environment l_env(3, Mode::Sequential);
-		const std::string& l_id = l_env.add<Quitter>("q1");  // reference to Agent::m_id
+		const cam::AgentId& l_id = l_env.add<Quitter>("q1");  // a copy since D76 (it referred to Agent::m_id)
 		l_env.add<Quitter>("q2");  // q2 no longer stays alive in the sentinel node of m_new_agents (C17, fixed in 3B)
 		l_env.start();             // q1 and q2 stop and are removed: q1 is destroyed
 		std::cout << "id still readable? size=" << l_id.size() << " value=" << l_id << "\n";

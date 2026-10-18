@@ -59,7 +59,7 @@ namespace cam {
 		/**
 		 * Unique ID: 15 base62 characters (see generate_agent_id), never allocated when copied.
 		 **/
-		std::string m_id;
+		AgentId m_id;
 
 		/**
 		 * Name of the agent.
@@ -120,7 +120,7 @@ namespace cam {
 		 * Return id.
 		 * @return Id of the agent
 		 **/
-		[[nodiscard]] const std::string& get_id() const { return m_id; }
+		[[nodiscard]] const AgentId& get_id() const { return m_id; }
 
 		/**
 		 * Return name.
@@ -203,16 +203,16 @@ namespace cam {
 		 * @return Success, or UnknownDestination
 		 **/
 		transport::Result<void>
-		send(const std::string& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0,
+		send(const AgentId& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0,
 			 const transport::SendOptions& p_options = {}) const;
 
-		transport::Result<void> send(const std::string& p_receiver_id, const json& p_message,
+		transport::Result<void> send(const AgentId& p_receiver_id, const json& p_message,
 									 const transport::SendOptions& p_options = {}) const;
 
-		transport::Result<void> send(const std::string& p_receiver_id, std::string p_text,
+		transport::Result<void> send(const AgentId& p_receiver_id, std::string p_text,
 									 const transport::SendOptions& p_options = {}) const;
 
-		transport::Result<void> send(const std::string& p_receiver_id, const char* p_text,
+		transport::Result<void> send(const AgentId& p_receiver_id, const char* p_text,
 									 const transport::SendOptions& p_options = {}) const;
 
 		/**
@@ -316,7 +316,7 @@ namespace cam {
 		 * @param p_first_only if true the first found
 		 * @return All agents by name
 		 **/
-		[[nodiscard]] std::vector<std::string>
+		[[nodiscard]] std::vector<AgentId>
 		get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
 
 		/**
@@ -324,14 +324,14 @@ namespace cam {
 		 * @param p_name the name of agent
 		 * @return All agents by name
 		 **/
-		[[nodiscard]] std::optional<std::string> get_first_agent_by_name(const std::string& p_name) const;
+		[[nodiscard]] std::optional<AgentId> get_first_agent_by_name(const std::string& p_name) const;
 
 		/**
 		 * Get agent name by id
 		 * @param p_id the name of agent
 		 * @return Agents name
 		 **/
-		[[nodiscard]] std::optional<std::string> get_agent_name(const std::string& p_id) const;
+		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 		/**
 		 * Get all agents by fragment name
@@ -339,7 +339,7 @@ namespace cam {
 		 * @param p_first_only if true the first found
 		 * @return All agents by fragment name
 		 **/
-		[[nodiscard]] std::vector<std::string>
+		[[nodiscard]] std::vector<AgentId>
 		get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
 
 		/**
@@ -400,8 +400,8 @@ namespace cam {
 		 * @param p_id The id
 		 * @param p_name The name
 		 **/
-		void set_identity(std::string p_id, std::string p_name) {
-			m_id = std::move(p_id);
+		void set_identity(const AgentId& p_id, std::string p_name) {
+			m_id = p_id;
 			m_name = std::move(p_name);
 		}
 

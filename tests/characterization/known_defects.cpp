@@ -161,7 +161,7 @@ TEST_SUITE("characterization") {
 	TEST_CASE("C8: a message sent to an agent added but not yet inserted is delivered" * doctest::should_fail()) {
 		g_received = 0;
 		cam::Environment l_env(2, Mode::Sequential);
-		const std::string l_id = l_env.add<Inbox>("dest");
+		const cam::AgentId l_id = l_env.add<Inbox>("dest");
 		l_env.send("ext", l_id, raw("lost?"), 5);  // agent still in the buffer: message ignored
 		l_env.start();                             // turn 0: setup; turn 1: empty queue
 		CHECK(g_received == 1);  // C#: Add is immediate, the message is queued
@@ -192,7 +192,7 @@ TEST_SUITE("characterization") {
 		REQUIRE(l_copy_env.connect(l_transport));
 		REQUIRE(l_env.connect(l_transport));
 		g_away = l_copy_env.get_id();
-		const std::string l_id = l_env.add<Migrant>("orig");
+		const cam::AgentId l_id = l_env.add<Migrant>("orig");
 		l_env.start();  // setup turn
 		l_env.send("ext", l_id, raw("go"), 2);
 		l_env.start();  // handles "go" and asks to move during that handling
@@ -229,7 +229,7 @@ TEST_SUITE("characterization") {
 		REQUIRE(l_copy_env.connect(l_transport));
 		REQUIRE(l_env.connect(l_transport));
 		g_away = l_copy_env.get_id();
-		const std::string l_id = l_env.add<LateMigrant>("orig");
+		const cam::AgentId l_id = l_env.add<LateMigrant>("orig");
 		l_env.start();
 		l_env.send("ext", l_id, raw("old"), 3);
 		l_env.start();  // consumes "old"
@@ -358,7 +358,7 @@ TEST_SUITE("characterization") {
 	}
 
 	// ---------------------------------------------------------------- C22
-	std::vector<std::string> g_receivers;
+	std::vector<cam::AgentId> g_receivers;
 	struct Named final : cam::Agent {
 		explicit Named(const std::string& p_name) : Agent(p_name) {}
 		void action(const cam::MessagePointer&) override { g_receivers.push_back(get_id()); }
@@ -444,7 +444,7 @@ TEST_SUITE("characterization") {
 	TEST_CASE("witness ISO m: the messages already queued are handled after stop in action") {
 		g_after_stop = 0;
 		cam::Environment l_env(2, Mode::Sequential);
-		const std::string l_id = l_env.add<StopInAction>("s");
+		const cam::AgentId l_id = l_env.add<StopInAction>("s");
 		l_env.start();
 		for (const char* l_text: {"1", "2", "3"}) {
 			l_env.send("ext", l_id, raw(l_text), 1);

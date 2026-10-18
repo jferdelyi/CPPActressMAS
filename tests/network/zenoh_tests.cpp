@@ -77,7 +77,7 @@ namespace {
 	// Sends one message by id to a remote agent, retrying every turn until the directory knows it, and
 	// records the number of attempts.
 	struct RemoteSender final : cam::Agent {
-		RemoteSender(const std::string& p_name, std::string p_target_id) : Agent(p_name), m_target_id(std::move(p_target_id)) {}
+		RemoteSender(const std::string& p_name, cam::AgentId p_target_id) : Agent(p_name), m_target_id(p_target_id) {}
 		void default_action() override {
 			if (!m_sent) {
 				++m_attempts;
@@ -91,7 +91,7 @@ namespace {
 			}
 		}
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 		bool m_sent = false;
 		int m_attempts = 0;
 	};
@@ -257,7 +257,7 @@ TEST_SUITE("zenoh") {
 			const std::string l_namespace = "cam-test-codec-" + l_codec;
 			REQUIRE(connect(l_env_a, "A", listen_url(l_port, l_namespace) + "&codec=" + l_codec));
 			REQUIRE(connect(l_env_b, "B", connect_url(l_port, l_namespace) + "?codec=" + l_codec));
-			const std::string l_receiver = l_env_b.add<Receiver>("receiver");
+			const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 			l_env_b.add<Keeper>("keeper-b");
 			l_env_a.add<RemoteSender>("sender", l_receiver);
 			l_env_a.add<Keeper>("keeper-a");
@@ -282,7 +282,7 @@ TEST_SUITE("zenoh") {
 		REQUIRE(connect(l_env_a, "A", listen_url(17447, "cam-test-delivery")));
 		REQUIRE(connect(l_env_b, "B", connect_url(17447, "cam-test-delivery")));
 
-		const std::string l_receiver = l_env_b.add<Receiver>("receiver");
+		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
 		l_env_a.add<RemoteSender>("sender", l_receiver);
 		l_env_a.add<Keeper>("keeper-a");
@@ -324,7 +324,7 @@ TEST_SUITE("zenoh") {
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_c("C");
 		REQUIRE(connect(l_env_a, "A", listen_url(17449, "cam-test-late")));
-		const std::string l_receiver = l_env_a.add<Receiver>("receiver");
+		const cam::AgentId l_receiver = l_env_a.add<Receiver>("receiver");
 		l_env_a.add<Beacon>("beacon");
 		// A runs alone first: its presence, with the receiver, is what the newcomer must get.
 		g_stop_keepers = false;

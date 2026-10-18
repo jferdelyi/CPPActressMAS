@@ -85,7 +85,7 @@ namespace {
 	// Sends one message by id to an agent of another environment, retrying every turn until the
 	// directory knows the receiver; stops with the keepers.
 	struct RemoteSender final : cam::Agent {
-		RemoteSender(const std::string& p_name, std::string p_target_id) : Agent(p_name), m_target_id(std::move(p_target_id)) {}
+		RemoteSender(const std::string& p_name, cam::AgentId p_target_id) : Agent(p_name), m_target_id(p_target_id) {}
 		void default_action() override {
 			if (!m_sent && send(m_target_id, json("hello from afar"))) {
 				m_sent = true;
@@ -96,13 +96,13 @@ namespace {
 			}
 		}
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 		bool m_sent = false;
 	};
 
 	// Sends "ping<n>" by id every 25 turns (reconnection test).
 	struct Pinger final : cam::Agent {
-		Pinger(const std::string& p_name, std::string p_target_id) : Agent(p_name), m_target_id(std::move(p_target_id)) {}
+		Pinger(const std::string& p_name, cam::AgentId p_target_id) : Agent(p_name), m_target_id(p_target_id) {}
 		void default_action() override {
 			if (++m_turns % 25 == 0) {
 				(void) send(m_target_id, json("ping" + std::to_string(m_turns / 25)));
@@ -112,7 +112,7 @@ namespace {
 			}
 		}
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 		int m_turns = 0;
 	};
 
@@ -261,7 +261,7 @@ TEST_SUITE("mqtt") {
 		REQUIRE(connect(l_env_a, "A", "cam-test-delivery"));
 		REQUIRE(connect(l_env_b, "B", "cam-test-delivery"));
 
-		const std::string l_receiver = l_env_b.add<Receiver>("receiver");
+		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
 		l_env_a.add<RemoteSender>("sender", l_receiver);
 		l_env_a.add<Keeper>("keeper-a");
@@ -297,7 +297,7 @@ TEST_SUITE("mqtt") {
 			TestEnvironment l_env_b("B");
 			REQUIRE(connect(l_env_a, "A", "cam-test-codec-" + l_codec, "codec=" + l_codec));
 			REQUIRE(connect(l_env_b, "B", "cam-test-codec-" + l_codec, "codec=" + l_codec));
-			const std::string l_receiver = l_env_b.add<Receiver>("receiver");
+			const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 			l_env_b.add<Keeper>("keeper-b");
 			l_env_a.add<RemoteSender>("sender", l_receiver);
 			l_env_a.add<Keeper>("keeper-a");
@@ -397,7 +397,7 @@ TEST_SUITE("mqtt") {
 		TestEnvironment l_env_b("B");
 		REQUIRE(connect(l_env_a, "A", "cam-test-reconnect"));
 		REQUIRE(connect(l_env_b, "B", "cam-test-reconnect"));
-		const std::string l_receiver = l_env_b.add<Receiver>("receiver");
+		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
 		l_env_a.add<Pinger>("pinger", l_receiver);
 		l_env_a.add<Keeper>("keeper-a");

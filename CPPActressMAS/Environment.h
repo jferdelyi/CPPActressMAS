@@ -71,7 +71,7 @@ namespace cam {
 		 * A move asked by an agent during a turn, handled at the end of the turn.
 		 **/
 		struct MoveRequest {
-			std::string m_agent_id;
+			AgentId m_agent_id;
 			std::string m_target;
 			std::uint32_t m_priority = 0;
 		};
@@ -80,7 +80,7 @@ namespace cam {
 		 * A migration started here, waiting for the destination.
 		 **/
 		struct Transit {
-			std::string m_agent_id;
+			AgentId m_agent_id;
 			std::string m_target;
 			std::chrono::steady_clock::time_point m_deadline;
 			std::vector<MessagePointer> m_carried;  ///< messages sent with the offer, given back if the move fails
@@ -164,7 +164,7 @@ namespace cam {
 		/**
 		 * Agents that left, with their new host, for the forwarding grace period.
 		 **/
-		std::unordered_map<std::string, MovedAgent> m_moved_agents;
+		std::unordered_map<AgentId, MovedAgent> m_moved_agents;
 
 		/**
 		 * Number of turn boundaries seen (forwarding grace is counted in boundaries).
@@ -199,10 +199,10 @@ namespace cam {
 		/**
 		 * Adds an agent to the environment.
 		 * @param p_args Argument to create a new agent
-		 * @return Id of the agent
+		 * @return Id of the agent, a copy that stays valid after the agent is gone (C16)
 		 **/
 		template<ConceptAgent T>
-		const std::string& add(auto&& ... p_args) {
+		AgentId add(auto&& ... p_args) {
 			const AgentPointer l_agent = make_agent<T>(std::forward<decltype(p_args)>(p_args)...);
 			l_agent->set_environment(this);
 			m_agent_collection.add(l_agent);
@@ -214,7 +214,7 @@ namespace cam {
 		 * @param p_agent The agent
 		 * @return Id of the agent
 		 **/
-		const std::string& add(AgentPointer p_agent);
+		AgentId add(AgentPointer p_agent);
 
 		/**
 		 * Continues the simulation for an additional number of turns, after an
@@ -235,7 +235,7 @@ namespace cam {
 		 *
 		 * @param p_agent_id The id of the agent to be removed
 		 **/
-		void remove(const std::string& p_agent_id);
+		void remove(const AgentId& p_agent_id);
 
 		/**
 		 * Sends a message from the outside of the multiagent system. Whenever
@@ -250,7 +250,7 @@ namespace cam {
 		 * @param p_options Send options (encoding of a JSON value on the wire; scope and priority are not used by id)
 		 * @return Success, or UnknownDestination when no environment hosts the receiver
 		 **/
-		transport::Result<void> send_content(const std::string& p_sender_id, const std::string& p_receiver_id,
+		transport::Result<void> send_content(const AgentId& p_sender_id, const AgentId& p_receiver_id,
 											 MessageContent p_content, const transport::SendOptions& p_options = {}) const;
 
 		/**
@@ -262,7 +262,7 @@ namespace cam {
 		 * @param p_options Send options
 		 * @return Success, or UnknownDestination when no environment hosts the receiver
 		 **/
-		transport::Result<void> send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message,
+		transport::Result<void> send(const AgentId& p_sender_id, const AgentId& p_receiver_id, const uint8_t* p_message,
 									 const size_t& p_length, const transport::SendOptions& p_options = {}) const;
 
 		/**
@@ -276,7 +276,7 @@ namespace cam {
 		 * @param p_options Send options (scope, encoding of a JSON value on the wire)
 		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		transport::Result<void> send_content_by_name(const std::string& p_sender_id, const std::string& p_receiver_name,
+		transport::Result<void> send_content_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name,
 													 MessageContent p_content, bool p_is_fragment, bool p_first_only,
 													 const transport::SendOptions& p_options = {}) const;
 
@@ -291,7 +291,7 @@ namespace cam {
 		 * @param p_options Send options (scope)
 		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		transport::Result<void> send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message,
+		transport::Result<void> send_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message,
 											 const size_t& p_length, bool p_is_fragment, bool p_first_only,
 											 const transport::SendOptions& p_options = {}) const;
 
@@ -303,7 +303,7 @@ namespace cam {
 		 * @param p_options Send options (scope, encoding of a JSON value on the wire)
 		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		transport::Result<void> broadcast_content(const std::string& p_sender_id, MessageContent p_content,
+		transport::Result<void> broadcast_content(const AgentId& p_sender_id, MessageContent p_content,
 												  const transport::SendOptions& p_options = {}) const;
 
 		/**
@@ -314,7 +314,7 @@ namespace cam {
 		 * @param p_options Send options (scope)
 		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
-		transport::Result<void> broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length,
+		transport::Result<void> broadcast(const AgentId& p_sender_id, const uint8_t* p_message, const size_t& p_length,
 										  const transport::SendOptions& p_options = {}) const;
 
 		/**
@@ -333,7 +333,7 @@ namespace cam {
 		 * @param p_first_only if true the first found
 		 * @return All agents by name
 		 **/
-		[[nodiscard]] std::vector<std::string>
+		[[nodiscard]] std::vector<AgentId>
 		get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
 
 		/**
@@ -341,14 +341,14 @@ namespace cam {
 		 * @param p_name the name of agent
 		 * @return All agents by name
 		 **/
-		[[nodiscard]] std::optional<std::string> get_first_agent_by_name(const std::string& p_name) const;
+		[[nodiscard]] std::optional<AgentId> get_first_agent_by_name(const std::string& p_name) const;
 
 		/**
 		 * Get agent name by id
 		 * @param p_id the name of agent
 		 * @return Agents name
 		 **/
-		[[nodiscard]] std::optional<std::string> get_agent_name(const std::string& p_id) const;
+		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 		/**
 		 * Get all agents by fragment name
@@ -356,7 +356,7 @@ namespace cam {
 		 * @param p_first_only if true the first found
 		 * @return All agents by fragment name
 		 **/
-		[[nodiscard]] std::vector<std::string>
+		[[nodiscard]] std::vector<AgentId>
 		get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
 
 		/**
@@ -534,7 +534,7 @@ namespace cam {
 		 * @param p_id Agent ID
 		 * @return Agent pointer
 		 **/
-		AgentPointer get(const std::string& p_id) const;
+		AgentPointer get(const AgentId& p_id) const;
 
 		/**
 		 * Run one turn.
@@ -606,7 +606,7 @@ namespace cam {
 		 * @param p_sender_environment Origin environment of a message received through the transport
 		 * @return True if the agent exists here
 		 **/
-		bool deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id, MessageContent p_content,
+		bool deliver_local(const AgentId& p_sender_id, const AgentId& p_receiver_id, MessageContent p_content,
 						   const std::string& p_sender_environment = {}) const;
 
 		/**
@@ -614,21 +614,21 @@ namespace cam {
 		 * @param p_content The content, copied for every receiver but the last, which takes it
 		 * @return True if at least one agent received it
 		 **/
-		bool deliver_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, MessageContent p_content,
+		bool deliver_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name, MessageContent p_content,
 							 bool p_is_fragment, bool p_first_only, const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to every local agent but the sender.
 		 * @param p_content The content, copied for every receiver but the last, which takes it
 		 **/
-		void deliver_broadcast(const std::string& p_sender_id, MessageContent p_content,
+		void deliver_broadcast(const AgentId& p_sender_id, MessageContent p_content,
 							   const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Build a message for a local queue.
 		 * @param p_content The content, moved into the message (a reference: one move less per message)
 		 **/
-		static MessagePointer make_message(const std::string& p_sender_id, const std::string& p_receiver_id, MessageContent&& p_content,
+		static MessagePointer make_message(const AgentId& p_sender_id, const AgentId& p_receiver_id, MessageContent&& p_content,
 										   const std::string& p_sender_environment);
 
 		//###############################################################
@@ -656,7 +656,7 @@ namespace cam {
 		 * Queue a control envelope (accept, reject, commit, abort) about a transfer.
 		 **/
 		void send_control(transport::EnvelopeKind p_kind, const std::string& p_environment_id, const std::string& p_transfer_id,
-						  const std::string& p_agent_id, bool p_accepted, const std::string& p_reason);
+						  const AgentId& p_agent_id, bool p_accepted, const std::string& p_reason);
 
 		/**
 		 * End of a transit without success: the agent runs here again with all its messages.
@@ -666,7 +666,7 @@ namespace cam {
 		/**
 		 * Forward to the new host of an agent the messages it received here while leaving.
 		 **/
-		void forward_messages(const std::string& p_agent_id, const std::string& p_host, const std::vector<MessagePointer>& p_messages);
+		void forward_messages(const AgentId& p_agent_id, const std::string& p_host, const std::vector<MessagePointer>& p_messages);
 
 		void apply_agent_offer(const transport::Envelope& p_envelope);
 		void apply_agent_control(const transport::Envelope& p_envelope);
@@ -680,7 +680,7 @@ namespace cam {
 		/**
 		 * Queue a directory event about a local agent for the end of the turn.
 		 **/
-		void announce_agent(transport::DirectoryEventKind p_event, const std::string& p_agent_id, const std::string& p_agent_name);
+		void announce_agent(transport::DirectoryEventKind p_event, const AgentId& p_agent_id, const std::string& p_agent_name);
 
 		/**
 		 * Publish the queued envelopes and report the failures to on_delivery_failure().

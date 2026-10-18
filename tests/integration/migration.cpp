@@ -161,14 +161,14 @@ namespace {
 
 	// Sends "<prefix><n>" to a given id every turn, from its second turn.
 	struct Feeder final : cam::Agent {
-		Feeder(const std::string& p_name, std::string p_target_id, std::string p_prefix) :
-				Agent(p_name), m_target_id(std::move(p_target_id)), m_prefix(std::move(p_prefix)) {}
+		Feeder(const std::string& p_name, cam::AgentId p_target_id, std::string p_prefix) :
+				Agent(p_name), m_target_id(p_target_id), m_prefix(std::move(p_prefix)) {}
 		void default_action() override {
 			const std::string l_text = m_prefix + std::to_string(++m_count);
 			g_recorder.record(get_name() + ":" + l_text + ":" + code(send(m_target_id, raw(l_text), l_text.size())));
 		}
 	private:
-		std::string m_target_id;
+		cam::AgentId m_target_id;
 		std::string m_prefix;
 		int m_count = 0;
 	};
@@ -259,7 +259,7 @@ TEST_SUITE("migration") {
 		l_b.register_agent_type<Traveler>("Traveler");
 		REQUIRE(l_b.connect(l_transport, config("B")));
 		REQUIRE(l_a.connect(l_transport, config("A")));
-		const std::string l_id = l_a.add<Traveler>("t", l_a.get_id(), l_b.get_id());
+		const cam::AgentId l_id = l_a.add<Traveler>("t", l_a.get_id(), l_b.get_id());
 		l_b.start();
 
 		l_a.start();  // inserted, setup
@@ -421,7 +421,7 @@ TEST_SUITE("migration") {
 		REQUIRE(l_b.connect(l_transport, config("B")));
 		REQUIRE(l_a.connect(l_transport, config("A")));
 		REQUIRE(l_c.connect(l_transport, config("C")));
-		const std::string l_receiver = l_a.add<MovingReceiver>("r", l_b.get_id());
+		const cam::AgentId l_receiver = l_a.add<MovingReceiver>("r", l_b.get_id());
 		l_a.add<Feeder>("f", l_receiver, "m");
 		l_c.add<Feeder>("g", l_receiver, "c");
 

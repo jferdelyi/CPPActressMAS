@@ -67,8 +67,8 @@ namespace {
 	// Sends a ping, waits for the pong, sends the next one; stops after N round trips (or when asked).
 	class Ping final : public cam::Agent {
 	public:
-		Ping(const std::string& p_name, std::string p_pong_id, const long p_pings) :
-				Agent(p_name), m_pong_id(std::move(p_pong_id)), m_pings(p_pings) {}
+		Ping(const std::string& p_name, const cam::AgentId& p_pong_id, const long p_pings) :
+				Agent(p_name), m_pong_id(p_pong_id), m_pings(p_pings) {}
 		void action(const cam::MessagePointer&) override {
 			g_received.fetch_add(1, std::memory_order_relaxed);
 			if (++m_count >= m_pings || g_done.load()) {
@@ -92,7 +92,7 @@ namespace {
 			static const std::string s_payload = "ping";
 			return static_cast<bool>(send(m_pong_id, reinterpret_cast<const std::uint8_t*>(s_payload.data()), s_payload.size()));
 		}
-		std::string m_pong_id;
+		cam::AgentId m_pong_id;
 		long m_pings;
 		long m_count = 0;
 		bool m_started = false;
@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
 			std::cout << "skipped: " << l_result.error().m_message << std::endl;
 			return 77;
 		}
-		const std::string l_pong = l_environment_b.add<Pong>("pong");
+		const cam::AgentId l_pong = l_environment_b.add<Pong>("pong");
 		l_environment_a.add<Ping>("ping", l_pong, l_settings.m_pings);
 
 		// Watchdog: a trial that does not finish within 300 s is abandoned (the keepers stop the environments).

@@ -116,14 +116,14 @@ TEST_SUITE("unit") {
 		CHECK(l_ids.size() == 2 * DRAWS);
 	}
 
-	TEST_CASE("agents are found by identifier through their hash, which spreads over the low bits (P14)") {
-		const cam::AgentIdHash l_hash;
-		tsl::ordered_map<std::string, int, cam::AgentIdHash> l_agents;
-		std::vector<std::string> l_ids;
+	TEST_CASE("agents are found by identifier through their hash, which spreads over the low bits (P14, D76)") {
+		const std::hash<cam::AgentId> l_hash;
+		tsl::ordered_map<cam::AgentId, int> l_agents;
+		std::vector<cam::AgentId> l_ids;
 		std::unordered_set<std::size_t> l_hashes;
 		std::unordered_set<std::size_t> l_low_bits;
 		for (int i = 0; i < DRAWS; i++) {
-			l_ids.push_back(cam::generate_agent_id());
+			l_ids.push_back(cam::AgentId::generate());
 			l_agents.emplace(l_ids.back(), i);
 			l_hashes.insert(l_hash(l_ids.back()));
 			l_low_bits.insert(l_hash(l_ids.back()) & 0xFFFF);
@@ -138,41 +138,37 @@ TEST_SUITE("unit") {
 		// 100 000 random keys over 65 536 values cover about 51 500 of them; a weak mix of the low bits covers far fewer
 		CHECK(l_low_bits.size() > 48000);
 
-		// A key of another length is hashed like any string, and still found
-		const std::string l_uuid = cam::generate_uuid();
-		CHECK(l_hash(l_uuid) == std::hash<std::string>{}(l_uuid));
-		l_agents.emplace(l_uuid, -1);
-		CHECK(l_agents.at(l_uuid) == -1);
+		// A shorter identifier is hashed and found too
+		const cam::AgentId l_short("ext");
+		l_agents.emplace(l_short, -1);
+		CHECK(l_agents.at(l_short) == -1);
 	}
 
-	TEST_CASE("agent identifiers compare like strings, whatever their length (P14)") {
-		const cam::AgentIdEqual l_equal;
+	TEST_CASE("agent identifiers compare like their characters, whatever their length (P14, D76)") {
 		for (int i = 0; i < 1000; i++) {
-			const std::string l_id = cam::generate_agent_id();
-			std::string l_copy = l_id;
-			CHECK(l_equal(l_id, l_copy));
+			const std::string l_text = cam::generate_agent_id();
+			const cam::AgentId l_id(l_text);
+			CHECK(l_id == cam::AgentId(l_text));
 			// One character changed at each end and in the middle, where the two words overlap
 			for (const std::size_t l_index: {std::size_t{0}, std::size_t{7}, cam::AGENT_ID_LENGTH - 1}) {
-				l_copy = l_id;
+				std::string l_copy = l_text;
 				l_copy[l_index] = l_copy[l_index] == 'a' ? 'b' : 'a';
-				CHECK_FALSE(l_equal(l_id, l_copy));
+				CHECK_FALSE(l_id == cam::AgentId(l_copy));
 			}
+			// A prefix is another identifier
+			CHECK_FALSE(l_id == cam::AgentId(l_text.substr(0, cam::AGENT_ID_LENGTH - 1)));
 		}
-		// Keys of another length, or of different lengths, compare as strings
-		CHECK(l_equal("abc", "abc"));
-		CHECK_FALSE(l_equal("abc", "abd"));
-		const std::string l_id = cam::generate_agent_id();
-		CHECK_FALSE(l_equal(l_id, l_id + "x"));
-		CHECK_FALSE(l_equal(l_id, l_id.substr(0, cam::AGENT_ID_LENGTH - 1)));
-		const std::string l_uuid = cam::generate_uuid();
-		CHECK(l_equal(l_uuid, std::string(l_uuid)));
+		// Shorter identifiers compare as their characters
+		CHECK(cam::AgentId("abc") == cam::AgentId("abc"));
+		CHECK_FALSE(cam::AgentId("abc") == cam::AgentId("abd"));
+		CHECK_FALSE(cam::AgentId("abc") == cam::AgentId("abcd"));
 	}
 
 	TEST_CASE("an agent gets a short identifier, its environment a UUID") {
 		cam::Environment l_env(1, cam::EnvironmentMasMode::Sequential);
-		const std::string l_id = l_env.add<Idle>("idle");
+		const cam::AgentId l_id = l_env.add<Idle>("idle");
 		CHECK(l_id.size() == cam::AGENT_ID_LENGTH);
-		CHECK(is_base62(l_id));
+		CHECK(is_base62(l_id.str()));
 		CHECK(cam::transport::is_canonical_uuid(l_env.get_id()));
 	}
 }

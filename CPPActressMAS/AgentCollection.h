@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "Agent.h"
-#include "util/Identifier.h"
 #include "util/RecyclingAllocator.hpp"
 #include "util/TurnPool.h"
 #include "tsl/ordered_map.h"
@@ -44,13 +43,13 @@ namespace cam {
 		/**
 		 * Agents: id, content
 		 **/
-		tsl::ordered_map<std::string, AgentPointer, AgentIdHash, AgentIdEqual> m_agents;
+		tsl::ordered_map<AgentId, AgentPointer> m_agents;
 
 		/**
 		 * Agents: name, id
 		 **/
-		std::unordered_multimap<std::string, std::string, std::hash<std::string>, std::equal_to<std::string>,
-							   RecyclingAllocator<std::pair<const std::string, std::string>>> m_agents_by_name;
+		std::unordered_multimap<std::string, AgentId, std::hash<std::string>, std::equal_to<std::string>,
+							   RecyclingAllocator<std::pair<const std::string, AgentId>>> m_agents_by_name;
 
 		/**
 		 * New agent buffer
@@ -71,7 +70,7 @@ namespace cam {
 		 * Ids of the alive agents of the current SequentialRandom turn, and their drawn order (capacity kept from turn to
 		 * turn)
 		 **/
-		std::vector<std::string> m_turn_ids;
+		std::vector<AgentId> m_turn_ids;
 		std::vector<int> m_turn_order;
 
 		/**
@@ -90,7 +89,7 @@ namespace cam {
 		 * @param p_name The agent name
 		 * @param p_id The agent id
 		 **/
-		void remove_name(const std::string& p_name, const std::string& p_id);
+		void remove_name(const std::string& p_name, const AgentId& p_id);
 
 		/**
 		 * Fill a vector with a random permutation of 0 to p_number - 1 (Fisher-Yates shuffle), reusing its capacity.
@@ -145,27 +144,27 @@ namespace cam {
 		 * @param p_id The agent id
 		 * @return True if exists
 		 **/
-		[[nodiscard]] bool contains(const std::string& p_id) const;
+		[[nodiscard]] bool contains(const AgentId& p_id) const;
 
 		/**
 		 * Remove agent from the collection and from the name index; unknown ids are ignored
 		 * @param p_id The agent id
 		 **/
-		void remove(const std::string& p_id);
+		void remove(const AgentId& p_id);
 
 		/**
 		 * Get agent by id
 		 * @param p_id The agent id
 		 * @return The agent
 		 **/
-		AgentPointer get(const std::string& p_id) const;
+		AgentPointer get(const AgentId& p_id) const;
 
 		/**
 		 * Agent by id, without sharing its ownership: valid until the next turn boundary, where agents are removed (P8)
 		 * @param p_id The agent id
 		 * @return The agent, or nullptr
 		 **/
-		[[nodiscard]] Agent* find(const std::string& p_id) const;
+		[[nodiscard]] Agent* find(const AgentId& p_id) const;
 
 		/**
 		 * Run one turn
@@ -176,8 +175,8 @@ namespace cam {
 		 * What a turn boundary changed: (id, name) of the agents inserted and removed.
 		 **/
 		struct BufferChanges {
-			std::vector<std::pair<std::string, std::string>> m_added;
-			std::vector<std::pair<std::string, std::string>> m_removed;
+			std::vector<std::pair<AgentId, std::string>> m_added;
+			std::vector<std::pair<AgentId, std::string>> m_removed;
 		};
 
 		/**
@@ -192,7 +191,7 @@ namespace cam {
 		 * @param p_alive_only if true then return only alive agents
 		 * @return All ids
 		 **/
-		[[nodiscard]] std::vector<std::string> get_ids(bool p_alive_only = true);
+		[[nodiscard]] std::vector<AgentId> get_ids(bool p_alive_only = true);
 
 		/**
 		 * Return a vector (p_number length) of random index.

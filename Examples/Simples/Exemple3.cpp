@@ -42,8 +42,8 @@ class MonitorAgent final : public cam::Agent {
 	protected:
 		int m_round{};
 		int m_max_rounds{};
-		std::map<std::string, bool> m_finished;
-		std::vector<std::string> m_agents_id;
+		std::map<cam::AgentId, bool> m_finished;
+		std::vector<cam::AgentId> m_agents_id;
 
 	public:
 		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) { }
@@ -107,7 +107,7 @@ class MonitorAgent final : public cam::Agent {
 };
 
 class MyAgent : public cam::Agent {
-	std::string m_monitor_id;
+	cam::AgentId m_monitor_id;
 	public:
 		explicit MyAgent(const std::string& p_name) : Agent(p_name) { }
 

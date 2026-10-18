@@ -25,6 +25,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "AgentId.h"
+
 using json = nlohmann::json;
 
 /**
@@ -68,7 +70,7 @@ namespace cam {
 		/**
 		 * Sender.
 		 **/
-		std::string m_sender;
+		AgentId m_sender;
 
 		/**
 		 * Environment the sender belongs to when the message came through the transport; empty for a
@@ -79,7 +81,7 @@ namespace cam {
 		/**
 		 * Receiver.
 		 **/
-		std::string m_receiver;
+		AgentId m_receiver;
 
 		/**
 		 * Content.
@@ -104,7 +106,7 @@ namespace cam {
 		 * @param p_content Content.
 		 * @param p_sender_environment Environment of the sender when the message came through the transport, else empty.
 		 **/
-		Message(Key p_key, const std::string& p_sender, const std::string& p_receiver, MessageContent&& p_content,
+		Message(Key p_key, const AgentId& p_sender, const AgentId& p_receiver, MessageContent&& p_content,
 				const std::string& p_sender_environment);
 
 		/**
@@ -113,7 +115,7 @@ namespace cam {
 		 * @param p_receiver Receiver.
 		 * @param p_message JSON value.
 		 **/
-		Message(std::string p_sender, std::string p_receiver, const json& p_message);
+		Message(AgentId p_sender, AgentId p_receiver, const json& p_message);
 
 		/**
 		 * Message carrying a JSON value already shared.
@@ -121,7 +123,7 @@ namespace cam {
 		 * @param p_receiver Receiver.
 		 * @param p_message Shared JSON value.
 		 **/
-		Message(std::string p_sender, std::string p_receiver, std::shared_ptr<const json> p_message);
+		Message(AgentId p_sender, AgentId p_receiver, std::shared_ptr<const json> p_message);
 
 		/**
 		 * Message carrying text.
@@ -129,7 +131,7 @@ namespace cam {
 		 * @param p_receiver Receiver.
 		 * @param p_text UTF-8 text.
 		 **/
-		Message(std::string p_sender, std::string p_receiver, std::string p_text);
+		Message(AgentId p_sender, AgentId p_receiver, std::string p_text);
 
 		/**
 		 * Message carrying opaque bytes.
@@ -138,7 +140,7 @@ namespace cam {
 		 * @param p_message Bytes (may be null when the length is 0).
 		 * @param p_length Number of bytes.
 		 **/
-		Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length);
+		Message(AgentId p_sender, AgentId p_receiver, const uint8_t* p_message, const size_t& p_length);
 
 		/**
 		 * Message carrying any content.
@@ -146,7 +148,7 @@ namespace cam {
 		 * @param p_receiver Receiver.
 		 * @param p_content Content.
 		 **/
-		Message(std::string p_sender, std::string p_receiver, MessageContent p_content);
+		Message(AgentId p_sender, AgentId p_receiver, MessageContent p_content);
 
 		Message();
 
@@ -159,13 +161,13 @@ namespace cam {
 		 * Get sender.
 		 * @return Sender.
 		 **/
-		[[nodiscard]] const std::string& get_sender() const { return m_sender; }
+		[[nodiscard]] const AgentId& get_sender() const { return m_sender; }
 
 		/**
 		 * Get receiver.
 		 * @return Receiver.
 		 **/
-		[[nodiscard]] const std::string& get_receiver() const { return m_receiver; }
+		[[nodiscard]] const AgentId& get_receiver() const { return m_receiver; }
 
 		/**
 		 * Get the environment of the sender: empty for a local message, the id of the origin environment

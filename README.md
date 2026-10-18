@@ -135,7 +135,7 @@ virtual ~EnvironmentMas() = default;
  * @return Id of the agent
  **/
 template <ConceptAgent T>
-const std::string& add(auto&&... p_args);
+AgentId add(auto&&... p_args);
 
 /**
  * Continues the simulation for an additional number of turns, after an
@@ -156,7 +156,7 @@ void continue_simulation(int p_no_turns = 0);
  *
  * @param p_agent_id The id of the agent to be removed
  **/
-void remove(const std::string& p_agent_id);
+void remove(const AgentId& p_agent_id);
 
 /**
  * Sends a message from the outside of the multiagent system. Whenever
@@ -169,7 +169,7 @@ void remove(const std::string& p_agent_id);
  * @param p_length The message length
  * @param p_binary_format The message binary format
  **/
-void send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+void send(const AgentId& p_sender_id, const AgentId& p_receiver_id, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
 
 /**
  * Sends a message by name.
@@ -181,7 +181,7 @@ void send(const std::string& p_sender_id, const std::string& p_receiver_id, cons
  * @param p_first_only If true send to the first agent found
  * @param p_binary_format The message binary format
  **/
-void send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message, const size_t& p_length, bool p_is_fragment, bool p_first_only, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+void send_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message, const size_t& p_length, bool p_is_fragment, bool p_first_only, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
 
 /**
  * Send a new message to all agents.
@@ -190,7 +190,7 @@ void send_by_name(const std::string& p_sender_id, const std::string& p_receiver_
  * @param p_length The message length
  * @param p_binary_format The message binary format
  **/
-void broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+void broadcast(const AgentId& p_sender_id, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
 
 /**
  * Starts the simulation.
@@ -208,21 +208,21 @@ void broadcast(const std::string& p_sender_id, const uint8_t* p_message, const s
  * @param p_first_only if true the first found
  * @return All agents by name
  **/
-[[nodiscard]] std::vector<std::string> get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
+[[nodiscard]] std::vector<AgentId> get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
 
 /**
  * Get first agent by name
  * @param p_name the name of agent
  * @return All agents by name
  **/
-[[nodiscard]] std::optional<std::string> get_first_agent_by_name(const std::string& p_name) const;
+[[nodiscard]] std::optional<AgentId> get_first_agent_by_name(const std::string& p_name) const;
 
 /**
  * Get agent name by id
  * @param p_id the name of agent
  * @return Agents name
  **/
-[[nodiscard]] std::optional<std::string> get_agent_name(const std::string& p_id) const;
+[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 /**
  * Get all agents by fragment name
@@ -230,7 +230,7 @@ void broadcast(const std::string& p_sender_id, const uint8_t* p_message, const s
  * @param p_first_only if true the first found
  * @return All agents by fragment name
  **/
-[[nodiscard]] std::vector<std::string> get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
+[[nodiscard]] std::vector<AgentId> get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
 
 /**
  * A method that may be optionally overriden to perform additional
@@ -272,7 +272,7 @@ virtual ~Agent() = default;
  * Return id.
  * @return Id of the agent: 15 random base62 characters (environments and nodes use version 4 UUIDs)
  **/
-[[nodiscard]] const std::string& get_id() const;
+[[nodiscard]] const AgentId& get_id() const;
 
 /**
  * Return name.
@@ -344,8 +344,8 @@ void post(const MessagePointer& p_message);
  * @param p_message The message
  * @param p_length The message size
  **/
-void send(const std::string& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
-void send(const std::string& p_receiver_id, const json& p_message) const;
+void send(const AgentId& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
+void send(const AgentId& p_receiver_id, const json& p_message) const;
 
 /**
  * Send a new message by name.
@@ -429,13 +429,13 @@ Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, 
  * Get sender.
  * @return Sender.
  **/
-[[nodiscard]] const std::string& get_sender() const;
+[[nodiscard]] const AgentId& get_sender() const;
 
 /**
  * Get receiver.
  * @return Receiver.
  **/
-[[nodiscard]] const std::string& get_receiver() const;
+[[nodiscard]] const AgentId& get_receiver() const;
 
 /**
  * Get binary message.

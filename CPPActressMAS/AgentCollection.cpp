@@ -65,11 +65,11 @@ bool cam::AgentCollection::contains(const AgentPointer& p_agent) const {
 	return m_agents.contains(p_agent->get_id());
 }
 
-bool cam::AgentCollection::contains(const std::string& p_id) const {
+bool cam::AgentCollection::contains(const AgentId& p_id) const {
 	return m_agents.contains(p_id);
 }
 
-void cam::AgentCollection::remove(const std::string& p_id) {
+void cam::AgentCollection::remove(const AgentId& p_id) {
 	const auto l_it = m_agents.find(p_id);
 	if (l_it == m_agents.end()) {
 		return;
@@ -80,7 +80,7 @@ void cam::AgentCollection::remove(const std::string& p_id) {
 	m_agents.erase(l_it);
 }
 
-void cam::AgentCollection::remove_name(const std::string& p_name, const std::string& p_id) {
+void cam::AgentCollection::remove_name(const std::string& p_name, const AgentId& p_id) {
 	const auto [l_start, l_end] = m_agents_by_name.equal_range(p_name);
 	for (auto l_name_it = l_start; l_name_it != l_end; ++l_name_it) {
 		if (l_name_it->second == p_id) {
@@ -140,7 +140,7 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 		}
 	}
 	if (l_any_dead) {
-		erase_if(m_agents, [](const std::pair<std::string, AgentPointer>& p_entry) { return p_entry.second->is_dead(); });
+		erase_if(m_agents, [](const std::pair<AgentId, AgentPointer>& p_entry) { return p_entry.second->is_dead(); });
 	}
 
 	// Add new agents
@@ -156,18 +156,18 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 	return l_changes;
 }
 
-cam::AgentPointer cam::AgentCollection::get(const std::string& p_id) const {
+cam::AgentPointer cam::AgentCollection::get(const AgentId& p_id) const {
 	const auto& l_it = m_agents.find(p_id);
 	return l_it == m_agents.end() ? nullptr : l_it->second;
 }
 
-cam::Agent* cam::AgentCollection::find(const std::string& p_id) const {
+cam::Agent* cam::AgentCollection::find(const AgentId& p_id) const {
 	const auto& l_it = m_agents.find(p_id);
 	return l_it == m_agents.end() ? nullptr : l_it->second.get();
 }
 
-std::vector<std::string> cam::AgentCollection::get_ids(const bool p_alive_only) {
-	std::vector<std::string> l_result;
+std::vector<cam::AgentId> cam::AgentCollection::get_ids(const bool p_alive_only) {
+	std::vector<AgentId> l_result;
 	l_result.reserve(m_agents.size());
 
 	for (auto& [l_id, l_agent]: m_agents) {

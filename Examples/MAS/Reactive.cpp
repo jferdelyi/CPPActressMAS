@@ -160,7 +160,7 @@ std::ostream& operator<<(std::ostream& p_stream, const Message& p_message) {
 
 class PlanetAgent : public cam::Agent {
 private:
-	std::map<std::string, Position> m_explorer_positions;
+	std::map<cam::AgentId, Position> m_explorer_positions;
 	std::map<int, Position> m_resource_positions;
 
 public:
@@ -223,12 +223,12 @@ public:
 	}
 
 private:
-	void handle_position(const std::string& p_sender, const Position& p_position) {
+	void handle_position(const cam::AgentId& p_sender, const Position& p_position) {
 		m_explorer_positions.insert(std::make_pair(p_sender, p_position));
 		send(p_sender, json(Message(MessageAction::Move)));
 	}
 
-	void handle_change(const std::string& p_sender, const Position& p_position) {
+	void handle_change(const cam::AgentId& p_sender, const Position& p_position) {
 		m_explorer_positions[p_sender] = p_position;
 
 		for (const auto& l_key_value: m_explorer_positions) {
@@ -251,18 +251,18 @@ private:
 		send(p_sender, json(Message(MessageAction::Move)));
 	}
 
-	void handle_pick_up(const std::string& p_sender, const int p_resource_id) {
+	void handle_pick_up(const cam::AgentId& p_sender, const int p_resource_id) {
 		m_resource_positions[p_resource_id] = m_explorer_positions[p_sender];
 		send(p_sender, json(Message(MessageAction::Move)));
 	}
 
-	void handle_carry(const std::string& p_sender, const int p_resource_id, const Position& p_position) {
+	void handle_carry(const cam::AgentId& p_sender, const int p_resource_id, const Position& p_position) {
 		m_explorer_positions[p_sender] = p_position;
 		m_resource_positions[p_resource_id] = m_explorer_positions[p_sender];
 		send(p_sender, json(Message(MessageAction::Move)));
 	}
 
-	void handle_unload(const std::string& p_sender, const int p_resource_id) {
+	void handle_unload(const cam::AgentId& p_sender, const int p_resource_id) {
 		m_resource_positions.erase(p_resource_id);
 		send(p_sender, json(Message(MessageAction::Move)));
 	}

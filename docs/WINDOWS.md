@@ -54,6 +54,7 @@
   - Avec la bibliothèque en DLL, chaque module (DLL, exécutable) a ses propres caches. Un bloc pris dans un module et rendu dans un autre est donc libéré par l'`operator delete` de cet autre module : il faut le même CRT partout (`/MD`, ce que fait CMake par défaut).
   - `__STDCPP_DEFAULT_NEW_ALIGNMENT__` est défini par MSVC en `/std:c++17` et au-delà.
   - Sous AddressSanitizer (`/fsanitize=address`, qui définit `__SANITIZE_ADDRESS__`), les blocs ne sont pas recyclés, pour qu'ASan voie chaque libération ; les agents sur-alignés passent par `std::make_shared` (passe d'optimisation finale, D71).
+- **Identifiant d'agent** (`CPPActressMAS/AgentId.{h,cpp}`, D76) : un constructeur `consteval` depuis un littéral (MSVC 19.29 et suivants en `/std:c++20`), `std::hash` spécialisé, lecture des 16 octets par `std::memcpy` ; rien de propre à une plateforme.
 - **Non vérifié sous Windows** (D6).
 
 ## 3. Procédure de build proposée (à exécuter par toi, non vérifiée)
