@@ -89,11 +89,11 @@ namespace {
 TEST_SUITE("characterization") {
 
 	// ---------------------------------------------------------------- C7, C24
-	TEST_CASE("C7: continue_simulation inserts the agents added after start" * doctest::should_fail()) {
+	TEST_CASE("C7 (fixed in 3B): continue_simulation inserts the agents added after start") {
 		cam::Environment l_env(1, Mode::Sequential);
 		l_env.add<Plain>("a");
 		l_env.start();
-		l_env.add<Plain>("b");  // buffered; continue_simulation never calls process_buffers
+		l_env.add<Plain>("b");  // buffered; continue_simulation now opens with a turn boundary, as start()
 		REQUIRE(l_env.agents_count() == 1);
 		l_env.continue_simulation(2);
 		CHECK(l_env.agents_count() == 2);  // C#: Add is immediate

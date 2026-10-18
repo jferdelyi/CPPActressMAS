@@ -585,6 +585,12 @@ namespace cam {
 		 **/
 		void run_turn(int p_turn);
 
+		/**
+		 * Run the turns of start() or continue_simulation(), numbered from 0, with a turn boundary before each one.
+		 * @param p_no_turns The maximum number of turns, 0 for no limit
+		 **/
+		void run_turns(int p_no_turns);
+
 		//###############################################################
 		//	Transport handlers (simulation thread, turn boundary)
 		//###############################################################

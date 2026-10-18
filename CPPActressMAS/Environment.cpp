@@ -79,18 +79,7 @@ cam::AgentPointer cam::Environment::get(const AgentId& p_id) const {
 }
 
 void cam::Environment::continue_simulation(const int p_no_turns) {
-	int l_turn = 0;
-	while (true) {
-		run_turn(l_turn++);
-
-		if (p_no_turns != 0 && l_turn >= p_no_turns) {
-			break;
-		}
-		if (m_agent_collection.count() == 0) {
-			break;
-		}
-	}
-	simulation_finished();
+	run_turns(p_no_turns);
 }
 
 std::optional<cam::AgentId> cam::Environment::random_agent() const {
@@ -322,12 +311,17 @@ cam::Environment::enqueue_content(const transport::Address& p_address, const tra
 }
 
 void cam::Environment::start() {
-	int l_turn = 0;
+	run_turns(m_no_turns);
+}
 
+void cam::Environment::run_turns(const int p_no_turns) {
+	// A turn boundary before every turn, for start() and continue_simulation() alike: the agents added or stopped since
+	// the previous turn are applied first (C7)
+	int l_turn = 0;
 	process_buffers();
 	while (true) {
 		run_turn(l_turn++);
-		if (m_no_turns != 0 && l_turn >= m_no_turns) {
+		if (p_no_turns != 0 && l_turn >= p_no_turns) {
 			break;
 		}
 		process_buffers();
@@ -335,7 +329,6 @@ void cam::Environment::start() {
 			break;
 		}
 	}
-
 	simulation_finished();
 }
 
