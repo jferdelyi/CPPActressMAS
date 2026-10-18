@@ -20,7 +20,7 @@
 //
 // Usage: cam_approve [--sort] [--update] <expected file> <actual file> <command> [args...]
 //
-// Runs the command, captures its standard output, normalises it (UUIDs become <uuid>, durations such as
+// Runs the command, captures its standard output, normalises it (UUIDs and agent identifiers become <uuid>, durations such as
 // "245ms" or "245 ms" become <ms>, lines are sorted with --sort for programs whose line order depends on
 // the scheduling), writes the normalised output to <actual file> and compares it with <expected file>.
 // With --update the expected file is (re)written instead of compared. The expected files pin the
@@ -67,8 +67,11 @@ namespace {
 
 	std::string normalise(const std::string& p_text, const bool p_sort) {
 		static const std::regex s_uuid("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+		// Agent identifiers are 15 base62 characters since D58; they read as identifiers too
+		static const std::regex s_agent_id("\\b[0-9A-Za-z]{15}\\b");
 		static const std::regex s_duration("[0-9]+ ?ms\\b");
 		std::string l_text = std::regex_replace(p_text, s_uuid, "<uuid>");
+		l_text = std::regex_replace(l_text, s_agent_id, "<uuid>");
 		l_text = std::regex_replace(l_text, s_duration, "<ms>");
 
 		std::vector<std::string> l_lines;

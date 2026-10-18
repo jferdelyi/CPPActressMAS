@@ -57,7 +57,7 @@ namespace cam {
 
 	private:
 		/**
-		 * Unique ID.
+		 * Unique ID: 15 base62 characters (see generate_agent_id), never allocated when copied.
 		 **/
 		std::string m_id;
 

@@ -25,8 +25,8 @@
 #include <thread>
 
 #include <zenoh.hxx>
-#include <uuid/UUID.hpp>
 
+#include "../../Identifier.h"
 #include "../ProtobufCodec.h"
 
 #if defined(__SANITIZE_THREAD__)
@@ -133,7 +133,7 @@ namespace cam::transport {
 			m_config(std::move(p_config)),
 			m_options(std::move(p_options)),
 			m_codec(p_codec ? std::move(p_codec) : std::make_shared<ProtobufCodec>()),
-			m_node_id(UUID::generate_uuid()) {
+			m_node_id(cam::generate_uuid()) {
 	}
 
 	ZenohTransport::~ZenohTransport() {

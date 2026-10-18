@@ -20,9 +20,8 @@
 
 #include <thread>
 
-#include <uuid/UUID.hpp>
-
 #include "Agent.h"
+#include "Identifier.h"
 #include "transport/ContentCodec.h"
 #include "transport/Facade.h"
 
@@ -50,7 +49,7 @@ namespace {
 
 cam::Environment::Environment(const int p_no_turns, const EnvironmentMasMode& p_mode,
 							  const int p_delay_after_turn, const unsigned int p_seed) :
-		m_id(UUID::generate_uuid()),
+		m_id(generate_uuid()),
 		m_no_turns(p_no_turns),
 		m_delay_after_turn(p_delay_after_turn),
 		m_agent_collection(p_mode, p_seed),
@@ -723,7 +722,7 @@ void cam::Environment::process_move_requests() {
 
 		const Agent& l_agent_ref = *l_agent;
 		transport::AgentTransfer l_transfer;
-		l_transfer.m_transfer_id = UUID::generate_uuid();
+		l_transfer.m_transfer_id = generate_uuid();
 		l_transfer.m_type_name = m_agent_type_names.at(std::type_index(typeid(l_agent_ref)));
 		l_transfer.m_agent_id = l_agent->get_id();
 		l_transfer.m_agent_name = l_agent->get_name();

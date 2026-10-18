@@ -18,12 +18,11 @@
 
 #include "Agent.h"
 
-#include <uuid/UUID.hpp>
-
 #include "Environment.h"
+#include "Identifier.h"
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
-		m_id(UUID::generate_uuid()),
+		m_id(generate_agent_id()),
 		m_name(std::move(p_name)),
 		m_environment(nullptr),
 		m_is_setup(false),

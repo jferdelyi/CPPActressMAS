@@ -29,8 +29,8 @@
 
 #include <mosquitto.h>
 #include <mqtt_protocol.h>
-#include <uuid/UUID.hpp>
 
+#include "../../Identifier.h"
 #include "../ProtobufCodec.h"
 
 namespace cam::transport {
@@ -149,7 +149,7 @@ namespace cam::transport {
 			m_config(std::move(p_config)),
 			m_options(p_options),
 			m_codec(p_codec ? std::move(p_codec) : std::make_shared<ProtobufCodec>()),
-			m_node_id(UUID::generate_uuid()),
+			m_node_id(cam::generate_uuid()),
 			m_client_id("cam-" + m_config.m_namespace + "-" + m_node_id) {
 	}
 

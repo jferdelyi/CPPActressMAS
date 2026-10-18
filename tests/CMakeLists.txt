@@ -148,6 +148,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME unit.connect COMMAND cam_connect_tests)
 	set_tests_properties(unit.connect PROPERTIES LABELS unit TIMEOUT 300)
 
+	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
+	add_executable(cam_identifier_tests unit/identifier.cpp)
+	target_link_libraries(cam_identifier_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.identifier COMMAND cam_identifier_tests)
+	set_tests_properties(unit.identifier PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.identifier)
+
 	# Environments connected through the loopback transport, in memory and serializing.
 	add_executable(cam_loopback_tests integration/loopback.cpp)
 	target_link_libraries(cam_loopback_tests cam_doctest_main ${CAM_TEST_LIBRARY})
