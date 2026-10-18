@@ -228,7 +228,7 @@ namespace {
 	}
 
 	// ---------------------------------------------------------------- T7
-	void rng_two_threads() {  // two environments in two threads: same static mt19937, no lock
+	void rng_two_threads() {  // T7, fixed in 3B (one generator per environment): kept as a regression test
 		const auto l_run = [] {
 			cam::Environment l_env(200, Mode::SequentialRandom, 0, 1);
 			for (const char* l_name: {"A", "B", "C"}) {
@@ -240,7 +240,7 @@ namespace {
 		std::thread l_second(l_run);
 		l_first.join();
 		l_second.join();
-		std::cout << "done (verdict: TSan reports)\n";
+		std::cout << "OK no crash\n";
 	}
 
 	// ---------------------------------------------------------------- C16

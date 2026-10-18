@@ -20,9 +20,12 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
+#include <random>
 #include <vector>
 
 #include "Agent.h"
+#include "util/DotnetRandom.h"
 #include "util/RecyclingAllocator.hpp"
 #include "util/TurnPool.h"
 #include "tsl/ordered_map.h"
@@ -33,6 +36,8 @@
 namespace cam {
 
 	enum class EnvironmentMasMode;
+
+	enum class RandomEngine;
 
 	/**
 	 * A collection of agents
@@ -90,9 +95,18 @@ namespace cam {
 		EnvironmentMasMode m_environment_mas_mode;
 
 		/**
-		 * Random generator
+		 * Seed of the random generator
 		 **/
 		unsigned int m_seed;
+
+		/**
+		 * Random generator of this environment (random order, random_agent): mt19937 or DotnetRandom, as chosen by
+		 * m_random_engine, guarded by m_random_mutex since several threads of a Parallel turn may draw (C3, C18, T7)
+		 **/
+		RandomEngine m_random_engine;
+		mutable std::mt19937 m_mt19937;
+		mutable DotnetRandom m_dotnet_random;
+		mutable std::mutex m_random_mutex;
 
 	private:
 		/**
@@ -109,11 +123,18 @@ namespace cam {
 		 **/
 		void random_permutation(size_t p_number, std::vector<int>& p_numbers) const;
 
+		/**
+		 * Uniform index in [0, p_bound) from the generator of this environment; the caller holds m_random_mutex.
+		 * @param p_bound The exclusive bound, at least 1
+		 * @return The index
+		 **/
+		size_t next_index(size_t p_bound) const;
+
 	public:
 		/**
 		 * Initializes a new instance of a collection of agents
 		 **/
-		explicit AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, unsigned int p_seed);
+		explicit AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, unsigned int p_seed, RandomEngine p_random_engine);
 
 		/**
 		 * Nothing to delete
@@ -218,10 +239,10 @@ namespace cam {
 		std::vector<int> random_permutation(size_t p_number) const;
 
 		/**
-		 * Return random number
+		 * Return random number from the generator of this environment
 		 * @param p_min min value
 		 * @param p_max max value
-		 * @return random value between min and max
+		 * @return random value between min and max, both included
 		 **/
 		size_t get_random_value(const size_t& p_min, const size_t& p_max) const;
 

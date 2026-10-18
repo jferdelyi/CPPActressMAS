@@ -115,7 +115,7 @@ TEST_SUITE("characterization") {
 	}
 
 	// ---------------------------------------------------------------- C2, C3
-	TEST_CASE("C2: the random order of three agents reaches the six permutations" * doctest::should_fail()) {
+	TEST_CASE("C2 (fixed in 3B): the random order of three agents reaches the six permutations") {
 		g_order.clear();
 		cam::Environment l_env(2001, Mode::SequentialRandom, 0, 42);  // turn 0 = setup, then 2000 turns
 		for (const char* l_name: {"A", "B", "C"}) {
@@ -123,17 +123,17 @@ TEST_SUITE("characterization") {
 		}
 		l_env.start();
 		const auto l_histogram = histogram(g_order, 3);
-		CHECK(l_histogram.size() == 6);  // (n-1)! orders today: 2
+		CHECK(l_histogram.size() == 6);  // (n-1)! orders before the Fisher-Yates of the C#: 2
 		int l_last_is_c = 0;
 		for (const auto& [l_key, l_count]: l_histogram) {
 			if (l_key.back() == 'C') {
 				l_last_is_c += l_count;
 			}
 		}
-		CHECK(l_last_is_c > 0);  // the last inserted agent is never executed last today
+		CHECK(l_last_is_c > 0);  // the last inserted agent was never executed last before
 	}
 
-	TEST_CASE("C2: the random order of two agents changes" * doctest::should_fail()) {
+	TEST_CASE("C2 (fixed in 3B): the random order of two agents changes") {
 		g_order.clear();
 		cam::Environment l_env(1001, Mode::SequentialRandom, 0, 7);
 		l_env.add<Logger>("A");
@@ -142,7 +142,7 @@ TEST_SUITE("characterization") {
 		CHECK(histogram(g_order, 2).size() == 2);  // AB and BA
 	}
 
-	TEST_CASE("C3: two environments with the same seed produce the same order" * doctest::should_fail()) {
+	TEST_CASE("C3 (fixed in 3B): two environments with the same seed produce the same order") {
 		const auto l_run = [](const unsigned p_seed) {
 			g_order.clear();
 			cam::Environment l_env(6, Mode::SequentialRandom, 0, p_seed);
@@ -154,7 +154,7 @@ TEST_SUITE("characterization") {
 		};
 		const std::string l_first = l_run(1);
 		const std::string l_second = l_run(1);
-		CHECK(l_first == l_second);  // the generator is static and shared by the whole process
+		CHECK(l_first == l_second);  // the generator was static and shared by the whole process; one per environment now
 	}
 
 	// ---------------------------------------------------------------- C8

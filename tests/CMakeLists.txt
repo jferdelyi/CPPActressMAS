@@ -89,8 +89,9 @@ cam_add_crash_probe(observables_parallel T1 tsan "ThreadSanitizer: data race")
 # T2 (fixed in 3B, D80): stop() wrote the dead flag while send_by_name() read it from another thread; the flag is
 # now atomic. The probe stays as a regression test.
 cam_add_ok_probe(stop_and_send_parallel T2)
-# T7: static random generator shared by all environments of the process.
-cam_add_crash_probe(rng_two_threads T7 tsan "ThreadSanitizer: data race")
+# T7 (fixed in 3B, D82): the random generator was static and shared by all environments of the process; each
+# environment now has its own. The probe stays as a regression test.
+cam_add_ok_probe(rng_two_threads T7)
 
 # ---------------------------------------------------------------- approval of deterministic examples
 add_executable(cam_approve approval/approve.cpp)
@@ -196,6 +197,14 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME unit.dotnet_random COMMAND cam_dotnet_random_tests)
 	set_tests_properties(unit.dotnet_random PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.dotnet_random)
+
+	# Random order of the sequential modes (D82): C# traces with the DotNet generator, portable Mt19937, seeds.
+	add_executable(cam_random_order_tests unit/random_order.cpp)
+	target_link_libraries(cam_random_order_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	target_compile_definitions(cam_random_order_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")
+	add_test(NAME unit.random_order COMMAND cam_random_order_tests)
+	set_tests_properties(unit.random_order PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.random_order)
 
 	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 	add_executable(cam_identifier_tests unit/identifier.cpp)

@@ -23,6 +23,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <random>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -51,19 +52,30 @@ namespace cam {
 		SequentialRandom
 	};
 
+	/**
+	 * Generator of the random order and of random_agent (D82): Mt19937 draws the same numbers with every standard
+	 * library; DotNet draws as the seeded System.Random of .NET (seeded with the int value of the seed), so that a port
+	 * follows the order of the C# exactly.
+	 **/
+	enum class RandomEngine {
+		Mt19937,
+		DotNet
+	};
+
 	class Agent;
 
 	/**
 	 * Configuration of an environment, written with designated initializers (D82):
 	 * cam::Environment l_environment({.m_turns = 100, .m_mode = cam::EnvironmentMasMode::Sequential});
 	 * m_turns: maximum number of turns, 0 for no limit; m_delay_after_turn: in milliseconds; m_seed: seed of the
-	 * random order, drawn from std::random_device when absent.
+	 * random order, drawn from std::random_device when absent; m_random: its generator.
 	 **/
 	struct EnvironmentConfig {
 		int m_turns = 0;
 		EnvironmentMasMode m_mode = EnvironmentMasMode::Parallel;
 		int m_delay_after_turn = 0;
 		std::optional<unsigned int> m_seed;
+		RandomEngine m_random = RandomEngine::Mt19937;
 	};
 
 	/**
@@ -203,7 +215,7 @@ namespace cam {
 		 * repeatable experiments.
 		 **/
 		explicit Environment(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel,
-							 int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
+							 int p_delay_after_turn = 0, unsigned int p_seed = std::random_device()());
 
 		/**
 		 * Initializes a new instance of the Environment class from its configuration (D82), for instance
@@ -382,6 +394,12 @@ namespace cam {
 		 **/
 		[[nodiscard]] std::vector<AgentId>
 		get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
+
+		/**
+		 * Seed of the random generator of this environment (given, or drawn when absent).
+		 * @return The seed
+		 **/
+		[[nodiscard]] unsigned int seed() const { return m_agent_collection.m_seed; }
 
 		/**
 		 * Get the id of the environment (UUID), online or offline.

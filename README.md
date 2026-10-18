@@ -122,12 +122,14 @@ Benchmarks examples, to benchmark the library
  * @param p_seed A random number generator seed for non-deterministic but
  * repeatable experiments.
  **/
-explicit Environment(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel, int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
+explicit Environment(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel, int p_delay_after_turn = 0, unsigned int p_seed = std::random_device()());
 
 /**
  * Initializes a new instance of the Environment class from its configuration (D82), for instance
  * cam::Environment l_environment({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Sequential}).
- * EnvironmentConfig: m_turns, m_mode, m_delay_after_turn, m_seed (drawn from std::random_device when absent).
+ * EnvironmentConfig: m_turns, m_mode, m_delay_after_turn, m_seed (drawn from std::random_device when absent),
+ * m_random (RandomEngine::Mt19937, the same numbers with every standard library, or RandomEngine::DotNet, the draws of
+ * the seeded System.Random so that a port follows the random order of the C#). seed() returns the seed in use.
  * @param p_config The configuration
  **/
 explicit Environment(const EnvironmentConfig& p_config);

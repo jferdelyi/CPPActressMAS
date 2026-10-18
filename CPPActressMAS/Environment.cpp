@@ -51,16 +51,15 @@ namespace {
 
 cam::Environment::Environment(const int p_no_turns, const EnvironmentMasMode& p_mode,
 							  const int p_delay_after_turn, const unsigned int p_seed) :
-		m_id(generate_uuid()),
-		m_no_turns(p_no_turns),
-		m_delay_after_turn(p_delay_after_turn),
-		m_agent_collection(p_mode, p_seed),
-		m_boundary(0) {
+		Environment(EnvironmentConfig{.m_turns = p_no_turns, .m_mode = p_mode, .m_delay_after_turn = p_delay_after_turn, .m_seed = p_seed}) {
 }
 
 cam::Environment::Environment(const EnvironmentConfig& p_config) :
-		Environment(p_config.m_turns, p_config.m_mode, p_config.m_delay_after_turn,
-					p_config.m_seed.value_or(std::random_device()())) {
+		m_id(generate_uuid()),
+		m_no_turns(p_config.m_turns),
+		m_delay_after_turn(p_config.m_delay_after_turn),
+		m_agent_collection(p_config.m_mode, p_config.m_seed.value_or(std::random_device()()), p_config.m_random),
+		m_boundary(0) {
 }
 
 cam::Environment::~Environment() {

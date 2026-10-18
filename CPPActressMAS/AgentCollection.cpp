@@ -41,10 +41,14 @@ namespace {
 
 } // namespace
 
-cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, const unsigned int p_seed) :
+cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, const unsigned int p_seed,
+									   const RandomEngine p_random_engine) :
 		m_turn_pool(p_environment_mas_mode == EnvironmentMasMode::Parallel ? std::make_unique<TurnPool>(worker_count()) : nullptr),
 		m_environment_mas_mode(p_environment_mas_mode),
-		m_seed(p_seed) {
+		m_seed(p_seed),
+		m_random_engine(p_random_engine),
+		m_mt19937(p_seed),
+		m_dotnet_random(static_cast<std::int32_t>(p_seed)) {
 
 }
 
@@ -220,28 +224,36 @@ void cam::AgentCollection::random_permutation(const size_t p_number, std::vector
 		p_numbers[l_index] = static_cast<int>(l_index);
 	}
 
-	// Nothing to shuffle with fewer than two elements; without this guard p_number - 1 underflows
-	// for an empty collection (an empty turn in Parallel or SequentialRandom mode, C1).
-	if (p_number < 2) {
-		return;
-	}
-
-	size_t l_index = p_number - 1;
-	while (l_index > 1) {
-		const size_t l_k = get_random_value(0, l_index);
-		if (l_k == l_index) {
-			continue;
-		}
-		const int l_temp = p_numbers[l_index];
-		p_numbers[l_index] = p_numbers[l_k];
-		p_numbers[l_k] = l_temp;
-		l_index--;
+	// Fisher-Yates of the C# (EnvironmentMas.RandomPermutation): a draw in [0, n) for n from the count down to 2, then a
+	// swap with the last of the n; no draw with fewer than two elements (C1, C2)
+	const std::lock_guard<std::mutex> l_lock(m_random_mutex);
+	for (size_t l_count = p_number; l_count > 1;) {
+		const size_t l_k = next_index(l_count);
+		--l_count;
+		std::swap(p_numbers[l_count], p_numbers[l_k]);
 	}
 }
 
+size_t cam::AgentCollection::next_index(const size_t p_bound) const {
+	if (m_random_engine == RandomEngine::DotNet) {
+		return static_cast<size_t>(m_dotnet_random.next(static_cast<std::int32_t>(p_bound)));
+	}
+	// Bounded draw of Lemire with rejection: the same numbers with every standard library, unlike
+	// uniform_int_distribution (C18)
+	const auto l_bound = static_cast<std::uint32_t>(p_bound);
+	std::uint64_t l_product = static_cast<std::uint64_t>(static_cast<std::uint32_t>(m_mt19937())) * l_bound;
+	auto l_low = static_cast<std::uint32_t>(l_product);
+	if (l_low < l_bound) {
+		const std::uint32_t l_threshold = static_cast<std::uint32_t>(0U - l_bound) % l_bound;
+		while (l_low < l_threshold) {
+			l_product = static_cast<std::uint64_t>(static_cast<std::uint32_t>(m_mt19937())) * l_bound;
+			l_low = static_cast<std::uint32_t>(l_product);
+		}
+	}
+	return static_cast<size_t>(l_product >> 32);
+}
+
 size_t cam::AgentCollection::get_random_value(const size_t& p_min, const size_t& p_max) const {
-	static std::default_random_engine s_seeder(m_seed);
-	static std::mt19937 s_generator(s_seeder());
-	std::uniform_int_distribution<size_t> l_dist(p_min, p_max);
-	return l_dist(s_generator);
+	const std::lock_guard<std::mutex> l_lock(m_random_mutex);
+	return p_min + next_index(p_max - p_min + 1);
 }
