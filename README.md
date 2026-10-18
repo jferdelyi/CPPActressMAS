@@ -14,7 +14,7 @@ The project works on
 Dependencies:
  - cmake 3.22 (may work with lower versions)
  - C++20
- - nlohmann/json 3.11.3, tessil/ordered-map 1.2.0 and, for the tests, doctest 2.4.12: git submodules under `ThirdParty/` ([ThirdParty/README.md](ThirdParty/README.md))
+ - nlohmann/json 3.12.0, tessil/ordered-map 1.2.0 and, for the tests, doctest 2.5.3: git submodules under `ThirdParty/` ([ThirdParty/README.md](ThirdParty/README.md))
  - OpenSSL (development headers) only for the MQTT transport (`CAM_TRANSPORT_MQTT`); libmosquitto 2.0.22 (the Eclipse Mosquitto client library) is fetched and built by the project
  - zenoh-c and zenoh-cpp 1.7.1 only for the Zenoh transport (`CAM_TRANSPORT_ZENOH`), found with `find_package(zenohc)` and `find_package(zenohcxx)`
 
