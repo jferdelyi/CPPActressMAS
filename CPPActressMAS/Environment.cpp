@@ -183,27 +183,32 @@ bool cam::Environment::deliver_by_name(const std::string& p_sender_id, const std
 	// Each receiver is served once the next one is known: the last one takes the content without a copy
 	const std::string* l_last_id = nullptr;
 	AgentPointer l_last_agent;
-	auto l_filtered_elements =
-		m_agent_collection.m_agents_by_name | std::views::filter([p_is_fragment, p_receiver_name](auto& p_value) {
-		if (p_is_fragment) {
-			return p_value.first.find(p_receiver_name) != std::string::npos;
-		}
-		return p_value.first == p_receiver_name;
-			});
-
-	for (auto it = std::ranges::begin(l_filtered_elements); it != std::ranges::end(l_filtered_elements); ++it) {
-		const auto& [l_name, l_id] = *it;
-		AgentPointer l_agent = m_agent_collection.get(l_id);
+	// Visit a matching agent; false once the search is over (first_only)
+	const auto l_visit = [&](const std::string& p_id) {
+		AgentPointer l_agent = m_agent_collection.get(p_id);
 		if (l_agent->is_dead()) {
-			continue;
+			return true;
 		}
 		if (l_last_agent) {
 			l_last_agent->post(make_message(p_sender_id, *l_last_id, MessageContent(p_content), p_sender_environment));
 		}
-		l_last_id = &l_id;
+		l_last_id = &p_id;
 		l_last_agent = std::move(l_agent);
-		if (p_first_only) {
-			break;
+		return !p_first_only;
+	};
+	if (p_is_fragment) {
+		for (const auto& [l_name, l_id]: m_agent_collection.m_agents_by_name) {
+			if (l_name.find(p_receiver_name) != std::string::npos && !l_visit(l_id)) {
+				break;
+			}
+		}
+	} else {
+		// A name is a key of the index: no scan of every agent (P13)
+		const auto [l_begin, l_end] = m_agent_collection.m_agents_by_name.equal_range(p_receiver_name);
+		for (auto l_it = l_begin; l_it != l_end; ++l_it) {
+			if (!l_visit(l_it->second)) {
+				break;
+			}
 		}
 	}
 	if (!l_last_agent) {

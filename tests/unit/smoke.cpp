@@ -192,6 +192,24 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count_of("manager:\"by fragment\"") == 0);
 	}
 
+	TEST_CASE("send by name reaches its agents among many, by key, and by fragment (P13)") {
+		g_recorder.clear();
+		cam::Environment l_env(2, Mode::Sequential);
+		for (int i = 0; i < 1000; i++) {
+			l_env.add<Receiver>("n" + std::to_string(i));
+		}
+		for (int i = 0; i < 3; i++) {
+			l_env.add<Receiver>("target");
+		}
+		l_env.add<Addresser>("all", "name", "target", false);
+		l_env.add<Addresser>("one", "name", "target", true);
+		l_env.add<Addresser>("part", "fragment", "targ", false);
+		l_env.start();
+		CHECK(g_recorder.count_of("target:\"by name\"") == 4);
+		CHECK(g_recorder.count_of("target:\"by fragment\"") == 3);
+		CHECK(g_recorder.count() == 7);
+	}
+
 	TEST_CASE("broadcast reaches every other agent but not the sender") {
 		g_recorder.clear();
 		cam::Environment l_env(2, Mode::Sequential);
