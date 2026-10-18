@@ -21,6 +21,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <random>
 #include <vector>
 
@@ -160,10 +161,11 @@ namespace cam {
 		void insert(const AgentPointer& p_agent);
 
 		/**
-		 * Returns a randomly selected agent from the environment
-		 * @return Random agent
+		 * Returns a randomly selected agent: one draw in [0, number of agents) over the agents in their order, as
+		 * RandomAgent of the C#, one draw all the same when no agent is left
+		 * @return Random agent id, or nothing when no agent is left
 		 **/
-		[[nodiscard]] const AgentPointer& random_agent() const;
+		[[nodiscard]] std::optional<AgentId> random_agent() const;
 
 		/**
 		 * Return true if the agent exists

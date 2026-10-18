@@ -396,6 +396,13 @@ namespace cam {
 		get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
 
 		/**
+		 * Returns the id of a randomly selected agent from the environment: one draw of the generator of this
+		 * environment over the agents in their order, as RandomAgent of the C# (the stopped or removed ones excluded).
+		 * @return The id, or nothing when no agent is left (the C# throws)
+		 **/
+		[[nodiscard]] std::optional<AgentId> random_agent() const;
+
+		/**
 		 * Seed of the random generator of this environment (given, or drawn when absent).
 		 * @return The seed
 		 **/
@@ -564,12 +571,6 @@ namespace cam {
 		 * @param p_agent The agent to be removed
 		 **/
 		void remove(const AgentPointer& p_agent);
-
-		/**
-		 * Returns the id of a randomly selected agent from the environment
-		 * @retrun Randomly selected agent
-		 **/
-		[[nodiscard]] const AgentPointer& random_agent() const;
 
 		/**
 		 * Get an agent.

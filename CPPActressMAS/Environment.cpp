@@ -93,7 +93,7 @@ void cam::Environment::continue_simulation(const int p_no_turns) {
 	simulation_finished();
 }
 
-const cam::AgentPointer& cam::Environment::random_agent() const {
+std::optional<cam::AgentId> cam::Environment::random_agent() const {
 	return m_agent_collection.random_agent();
 }
 

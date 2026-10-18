@@ -74,8 +74,9 @@ cam_add_ok_probe(remove_unknown C5)
 cam_add_ok_probe(remove_buffered C5)
 # C6 (fixed in 1A): remove() left the name index behind, send_by_name() then dereferenced a null pointer.
 cam_add_ok_probe(remove_then_send_by_name C6)
-# C4: random_agent() includes the upper bound and dereferences end().
-cam_add_crash_probe(random_agent_bound C4 asan "container-overflow|misaligned address|AddressSanitizer: SEGV")
+# C4 (fixed in 3B, D82): random_agent() included the upper bound and dereferenced end(); it now draws once in
+# [0, number of agents) and returns an id. The probe stays as a regression test.
+cam_add_ok_probe(random_agent_bound C4)
 # C10 and C12 (fixed in 3B, D80): remove() during a Parallel or Sequential turn erased from the collection other
 # threads, or the range-for of run_turn(), were iterating; it now marks the agent and the turn boundary erases it.
 # The probes stay as regression tests.

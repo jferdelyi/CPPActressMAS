@@ -109,17 +109,17 @@ namespace {
 	}
 
 	// ---------------------------------------------------------------- C4
-	struct PickerEnvironment final : cam::Environment {  // random_agent() is protected
+	struct PickerEnvironment final : cam::Environment {  // random_agent() was protected and returned the agent
 		using cam::Environment::Environment;
-		[[nodiscard]] std::string pick() const { return random_agent()->get_name(); }
+		[[nodiscard]] std::string pick() const { return get_agent_name(*random_agent()).value_or("?"); }
 	};
 
-	void random_agent_bound() {
+	void random_agent_bound() {  // C4, fixed in 3B (one bounded draw, an id returned): kept as a regression test
 		PickerEnvironment l_env(1, Mode::Sequential, 0, 1);
 		l_env.add<Plain>("only");
 		l_env.start();
 		for (int i = 0; i < 20; ++i) {
-			std::cout << l_env.pick() << " ";  // inclusive bound: end() once every two draws on average
+			std::cout << l_env.pick() << " ";  // the inclusive bound used to reach end() once every two draws
 		}
 		std::cout << "\nOK no crash (20 draws)\n";
 	}

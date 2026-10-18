@@ -69,13 +69,26 @@ void cam::AgentCollection::insert(const AgentPointer& p_agent) {
 	}
 }
 
-const cam::AgentPointer& cam::AgentCollection::random_agent() const {
-	auto l_it = m_agents.begin();
-	do {
-
-		std::advance(l_it, get_random_value(0, m_agents.size()));
-	} while (l_it->second->is_dead());
-	return l_it->second;
+std::optional<cam::AgentId> cam::AgentCollection::random_agent() const {
+	// The living agents are copied first: a Parallel turn may stop one between the count and the pick (C4)
+	std::vector<AgentId> l_alive;
+	l_alive.reserve(m_agents.size());
+	for (const auto& [l_id, l_agent]: m_agents) {
+		if (!l_agent->is_dead()) {
+			l_alive.push_back(l_id);
+		}
+	}
+	const std::lock_guard<std::mutex> l_lock(m_random_mutex);
+	if (l_alive.empty()) {
+		// The C# draws Next(0) then throws: the draw is kept, the exception is not (ISO, D82)
+		if (m_random_engine == RandomEngine::DotNet) {
+			m_dotnet_random.next(0);
+		} else {
+			m_mt19937();
+		}
+		return {};
+	}
+	return l_alive[next_index(l_alive.size())];
 }
 
 bool cam::AgentCollection::contains(const AgentPointer& p_agent) const {

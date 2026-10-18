@@ -238,6 +238,13 @@ void broadcast(const AgentId& p_sender_id, const uint8_t* p_message, const size_
 [[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 /**
+ * Returns the id of a randomly selected agent from the environment: one draw of the generator of this
+ * environment over the agents in their order, as RandomAgent of the C# (the stopped or removed ones excluded).
+ * @return The id, or nothing when no agent is left (the C# throws)
+ **/
+[[nodiscard]] std::optional<AgentId> random_agent() const;
+
+/**
  * Get all agents by fragment name (the stopped or removed ones excluded)
  * @param p_fragment_name the fragment name of agent
  * @param p_first_only if true the first found

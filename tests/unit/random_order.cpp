@@ -29,6 +29,7 @@
 #include <vector>
 
 #include <Environment.h>
+#include <util/DotnetRandom.h>
 
 namespace {
 
@@ -148,6 +149,44 @@ TEST_SUITE("random_order") {
 				"turn 2: D C E B A",
 				"turn 3: D E C B A"};
 		CHECK(run({.m_turns = 4, .m_mode = Mode::SequentialRandom, .m_seed = 42}, false) == l_expected);
+	}
+
+	TEST_CASE("random_agent draws once over the agents in their order, as RandomAgent of the C# (C4, G5)") {
+		cam::Environment l_env({.m_turns = 1, .m_mode = Mode::Sequential, .m_seed = 5, .m_random = cam::RandomEngine::DotNet});
+		std::vector<cam::AgentId> l_ids;
+		for (const char* l_name: {"A", "B", "C", "D", "E"}) {
+			l_ids.push_back(l_env.add<NamedAgent>(l_name));
+		}
+		l_env.start();  // inserted; the fixed order draws nothing
+		cam::DotnetRandom l_witness(5);
+		for (int i = 0; i < 20; i++) {
+			CHECK(l_env.random_agent() == l_ids[static_cast<std::size_t>(l_witness.next(5))]);
+		}
+	}
+
+	TEST_CASE("random_agent returns nothing when no agent is left, after one draw as the C#") {
+		cam::Environment l_env({.m_turns = 1, .m_mode = Mode::Sequential, .m_seed = 5, .m_random = cam::RandomEngine::DotNet});
+		CHECK_FALSE(l_env.random_agent().has_value());
+		const cam::AgentId l_only = l_env.add<NamedAgent>("A");
+		l_env.start();
+		cam::DotnetRandom l_witness(5);
+		CHECK(l_witness.next(0) == 0);  // the draw of the empty environment
+		CHECK(l_env.random_agent() == l_only);
+		CHECK(l_witness.next(1) == 0);
+	}
+
+	TEST_CASE("random_agent never returns a stopped agent") {
+		g_turn.clear();
+		g_turns.clear();
+		TraceEnvironment l_env(2, Mode::Sequential);
+		l_env.add<NamedAgent>("A");
+		const cam::AgentId l_stopped = l_env.add<StoppingAgent>("B");
+		l_env.start();  // B stops at the last turn: still in the collection, no longer counted
+		for (int i = 0; i < 50; i++) {
+			const auto l_picked = l_env.random_agent();
+			REQUIRE(l_picked.has_value());
+			CHECK(*l_picked != l_stopped);
+		}
 	}
 
 	TEST_CASE("the seed in use is the given one, or a drawn one") {
