@@ -36,7 +36,17 @@ void cam::Agent::run_turn(const bool p_run_setup_separately) {
 	if (is_dead() || is_in_transit()) {
 		return;
 	}
+	run_phases(p_run_setup_separately);
+}
 
+void cam::Agent::run_parallel_turn() {
+	if (is_in_transit()) {
+		return;
+	}
+	run_phases(true);
+}
+
+void cam::Agent::run_phases(const bool p_run_setup_separately) {
 	// Once its turn has begun the agent runs every phase, even if it stops on the way, as the C# (C26, ISO m)
 	if (p_run_setup_separately) {
 		if (!is_setup()) {
@@ -77,7 +87,11 @@ void cam::Agent::internal_action() {
 }
 
 void cam::Agent::stop() {
-	m_is_dead = true;
+	if (m_environment) {
+		m_environment->retire(*this);
+	} else {
+		m_is_dead.store(true, std::memory_order_relaxed);  // stopped before being added (C11)
+	}
 }
 
 void cam::Agent::post(const MessagePointer& p_message) {
@@ -210,7 +224,7 @@ cam::Agent::broadcast(const uint8_t* p_message, const size_t& p_length, const tr
 
 void cam::Agent::reset() {
 	m_is_setup = false;
-	m_is_dead = false;
+	m_is_dead.store(false, std::memory_order_relaxed);
 }
 
 cam::transport::Result<void> cam::Agent::move(const std::string& p_environment_id, const transport::SendOptions& p_options) {

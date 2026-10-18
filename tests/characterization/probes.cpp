@@ -86,15 +86,15 @@ namespace {
 	}
 
 	// ---------------------------------------------------------------- C5, C6
-	void remove_unknown() {
+	void remove_unknown() {  // C5, fixed in 3B: kept as a regression test
 		cam::Environment l_env(1, Mode::Sequential);
-		l_env.remove("does-not-exist");  // get() -> nullptr, dereferenced (Environment.cpp:72)
+		l_env.remove("does-not-exist");  // used to dereference the null pointer of get(); now ignored
 		std::cout << "OK no crash\n";
 	}
 
-	void remove_buffered() {
+	void remove_buffered() {  // C5, fixed in 3B: kept as a regression test
 		cam::Environment l_env(1, Mode::Sequential);
-		const cam::AgentId l_id = l_env.add<Plain>("x");  // added, not inserted yet
+		const cam::AgentId l_id = l_env.add<Plain>("x");  // added, not inserted yet: ignored
 		l_env.remove(l_id);
 		std::cout << "OK no crash\n";
 	}
@@ -157,7 +157,7 @@ namespace {
 		std::cout << "done (verdict: TSan reports)\n";
 	}
 
-	struct Victim final : cam::Agent {  // writes m_is_dead (Agent.cpp:95) while handling a message
+	struct Victim final : cam::Agent {  // writes its dead flag while handling a message
 		Victim(const std::string& p_name, const int p_patience) : Agent(p_name), m_patience(p_patience) {}
 		int m_patience;  // messages accepted before stop(): the victims die at successive turns
 		int m_received = 0;
@@ -168,12 +168,12 @@ namespace {
 		}
 	};
 
-	struct Pinger final : cam::Agent {  // reads is_dead() of every victim (Environment.cpp:134) each turn
+	struct Pinger final : cam::Agent {  // reads is_dead() of every victim each turn
 		explicit Pinger(const std::string& p_name) : Agent(p_name) {}
 		void default_action() override { send_by_name("victim", json("ping"), false); }
 	};
 
-	void stop_and_send_parallel() {
+	void stop_and_send_parallel() {  // T2, fixed in 3B (atomic dead flag): kept as a regression test
 		cam::Environment l_env(10, Mode::Parallel);
 		for (int i = 0; i < 4; i++) {
 			l_env.add<Victim>("victim", 5 * i);
@@ -182,27 +182,27 @@ namespace {
 			l_env.add<Pinger>("pinger");
 		}
 		l_env.start();
-		std::cout << "done (verdict: TSan reports)\n";
+		std::cout << "OK no crash\n";
 	}
 
 	struct Remover final : cam::Agent {
 		explicit Remover(const std::string& p_name) : Agent(p_name) {}
 		void default_action() override {
-			const auto l_victims = get_agents_by_name("victim");  // everybody reads m_agents (Environment.cpp:201)
+			const auto l_victims = get_agents_by_name("victim");  // everybody reads the collection
 			if (get_name() == "killer" && !l_victims.empty()) {
-				get_environment()->remove(l_victims[l_victims.size() / 2]);  // immediate erase (AgentCollection.cpp:60)
+				get_environment()->remove(l_victims[l_victims.size() / 2]);  // used to erase at once; now marked
 			}
 		}
 	};
 
-	void remove_during_parallel_turn() {
+	void remove_during_parallel_turn() {  // C10, fixed in 3B: kept as a regression test
 		cam::Environment l_env(20, Mode::Parallel);
 		l_env.add<Remover>("killer");
 		for (int i = 0; i < 200; i++) {
 			l_env.add<Remover>("victim");
 		}
 		l_env.start();
-		std::cout << "done\n";
+		std::cout << "OK no crash\n";
 	}
 
 	struct SequentialKiller final : cam::Agent {
@@ -211,13 +211,13 @@ namespace {
 			if (get_name() == "killer") {
 				const auto l_victims = get_agents_by_name("victim");
 				if (!l_victims.empty()) {
-					get_environment()->remove(l_victims[0]);  // during the range-for of run_turn()
+					get_environment()->remove(l_victims[0]);  // during the range-for of run_turn(): now marked
 				}
 			}
 		}
 	};
 
-	void remove_during_sequential_turn() {
+	void remove_during_sequential_turn() {  // C12, fixed in 3B: kept as a regression test
 		cam::Environment l_env(2, Mode::Sequential);
 		l_env.add<SequentialKiller>("killer");
 		for (int i = 0; i < 6; i++) {

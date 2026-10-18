@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <cassert>
 #include <concepts>
 #include <memory>
@@ -35,6 +36,8 @@
  */
 namespace cam {
 	class Environment;
+
+	class TurnPool;
 
 	class Agent;
 
@@ -55,6 +58,7 @@ namespace cam {
 	 **/
 	class Agent {
 		friend Environment;
+		friend TurnPool;
 
 	private:
 		/**
@@ -78,9 +82,9 @@ namespace cam {
 		bool m_is_setup;
 
 		/**
-		 * True if dead.
+		 * True once stopped or removed: written and read by every thread of a Parallel turn (T2).
 		 **/
-		bool m_is_dead;
+		std::atomic<bool> m_is_dead;
 
 		/**
 		 * True while a migration of this agent is in progress: the agent does not run, its messages wait.
@@ -151,7 +155,7 @@ namespace cam {
 		 * True if is dead.
 		 * @return True if is dead
 		 **/
-		[[nodiscard]] bool is_dead() const { return m_is_dead; }
+		[[nodiscard]] bool is_dead() const { return m_is_dead.load(std::memory_order_relaxed); }
 
 		/**
 		 * True while a migration of this agent is in progress.
@@ -185,6 +189,8 @@ namespace cam {
 		 * Stops the execution of the agent and removes it from the environment.
 		 * Use the Stop method instead of Environment.
 		 * Remove when the decision to be stopped belongs to the agent itself.
+		 * The agent is no longer counted, found by name nor sent to; it finishes its current turn and is
+		 * destroyed at the turn boundary. Stopping twice does nothing.
 		 **/
 		void stop();
 
@@ -442,6 +448,18 @@ namespace cam {
 		 **/
 		transport::Result<void> broadcast_text(const Text& p_text, const transport::SendOptions& p_options) const;
 
+
+		/**
+		 * Run the phases of one turn (setup, see, action), without any check.
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise in the same turn as see/act
+		 **/
+		void run_phases(bool p_run_setup_separately);
+
+		/**
+		 * Run one turn of a Parallel snapshot (TurnPool only): the agent runs even if it was removed since the turn
+		 * began, as the C# (ISO s); nothing if it is in transit.
+		 **/
+		void run_parallel_turn();
 
 		/**
 		 * Set environment.

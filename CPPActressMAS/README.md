@@ -7,7 +7,7 @@ helpers that are not objects of the library live in [`util/`](util/README.md).
 | File | Role |
 |---|---|
 | `Environment.{h,cpp}` | The environment: adds and removes agents, runs the turns (`start`), delivers messages locally (by id, by name or fragment, broadcast), connects to a transport from a URL (`connect`) and handles agent migration. |
-| `AgentCollection.{h,cpp}` | The agents of one environment, in insertion order, with the name index and the agents added during a turn; runs one turn in the chosen mode (`Sequential`, `SequentialRandom`, `Parallel`) and removes the dead agents at the turn boundary. |
+| `AgentCollection.{h,cpp}` | The agents of one environment, in insertion order, with the name index and the agents added during a turn; runs one turn in the chosen mode (`Sequential`, `SequentialRandom`, `Parallel`) and removes the dead agents at the turn boundary: during a turn its collections never change, a stopped or removed agent is only marked, no longer counted (D80). |
 | `Agent.{h,cpp}` | Base class of the agents: `setup`, `see`, `action`, `default_action`; `send`, `send_by_name`, `send_by_fragment_name`, `broadcast`, `move`; the mailbox of incoming messages. |
 | `AgentId.{h,cpp}` | Identifier of an agent: at most 15 characters in 16 bytes, trivially copyable, hashed for the standard containers, written and read as a string (stream, JSON). |
 | `Message.{h,cpp}` | A message: sender, receiver and a typed content (text, JSON value or bytes), read with `kind`, `as_text`, `as_json`, `as_bytes`; `MessagePointer`, the pointer that shares it, its counter inside the message; `Text`, an optional immutable text shared by the messages that carry it (read as text). |

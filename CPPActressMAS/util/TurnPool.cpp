@@ -104,7 +104,7 @@ void cam::TurnPool::run_agents() {
 	for (std::size_t l_index = m_next.fetch_add(1, std::memory_order_relaxed); l_index < l_agents.size();
 		 l_index = m_next.fetch_add(1, std::memory_order_relaxed)) {
 		try {
-			l_agents[l_index]->run_turn();
+			l_agents[l_index]->run_parallel_turn();  // even if removed since the turn began (ISO s)
 		} catch (...) {
 			// Swallowed, as the futures of the former thread pool did (C14, D10 l)
 		}

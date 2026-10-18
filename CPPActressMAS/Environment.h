@@ -232,6 +232,9 @@ namespace cam {
 		 * environment. Use the Remove method instead of Agent.Stop when the decision
 		 * to stop an agent does not belong to the agent itself, but to some other
 		 * agent or to an external factor.
+		 * During a turn the agent is no longer counted, found by name nor sent to, and it is destroyed at the turn
+		 * boundary (in Parallel mode it still runs in this turn if it has not yet, as the C#); outside a turn it is
+		 * removed at once. An unknown id, or an agent added but not yet inserted, is ignored.
 		 *
 		 * @param p_agent_id The id of the agent to be removed
 		 **/
@@ -323,12 +326,12 @@ namespace cam {
 		void start();
 
 		/**
-		 * The number of agents in the environment
+		 * The number of agents in the environment, the stopped or removed ones excluded
 		 **/
 		[[nodiscard]] size_t agents_count() const;
 
 		/**
-		 * Get all agents by name
+		 * Get all agents by name (the stopped or removed ones excluded)
 		 * @param p_name the name of agent
 		 * @param p_first_only if true the first found
 		 * @return All agents by name
@@ -351,7 +354,7 @@ namespace cam {
 		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 		/**
-		 * Get all agents by fragment name
+		 * Get all agents by fragment name (the stopped or removed ones excluded)
 		 * @param p_fragment_name the fragment name of agent
 		 * @param p_first_only if true the first found
 		 * @return All agents by fragment name
@@ -517,7 +520,7 @@ namespace cam {
 		 * Stops the execution of the agent and removes it from the environment. Use
 		 * the Remove method instead of Agent.Stop when the decision to stop an agent
 		 * does not belong to the agent itself, but to some other agent or to an
-		 * external factor.
+		 * external factor. Same rules as remove(const AgentId&); a null agent is ignored.
 		 *
 		 * @param p_agent The agent to be removed
 		 **/
@@ -572,6 +575,13 @@ namespace cam {
 		virtual void on_delivery_failure(const transport::Error&) {}
 
 	private:
+
+		/**
+		 * Mark an agent dead (stop or removal), once: it is no longer counted, found by name nor sent to, and the turn
+		 * boundary erases it. Called from any thread of a turn.
+		 * @param p_agent The agent
+		 **/
+		void retire(Agent& p_agent);
 
 		/**
 		 * Make an agent: one block for the agent and its counter, recycled per thread, unless its type needs more than

@@ -93,11 +93,26 @@ const cam::AgentPointer& cam::Environment::random_agent() const {
 }
 
 void cam::Environment::remove(const AgentPointer& p_agent) {
+	if (!p_agent) {
+		return;  // unknown, or added but not yet inserted (C5)
+	}
+	// During a turn the collections do not change: the agent is marked, the boundary erases and announces it (C10)
+	if (m_agent_collection.is_turn_running()) {
+		retire(*p_agent);
+		return;
+	}
 	const AgentId l_id = p_agent->get_id();
 	const std::string l_name = p_agent->get_name();
 	m_agent_collection.remove(l_id);
 	if (m_endpoint) {
 		announce_agent(transport::DirectoryEventKind::AgentRemoved, l_id, l_name);
+	}
+}
+
+void cam::Environment::retire(Agent& p_agent) {
+	// Counted once, and only while the agent is in the collection (an agent not yet inserted is counted at insertion)
+	if (!p_agent.m_is_dead.exchange(true, std::memory_order_relaxed) && m_agent_collection.find(p_agent.get_id()) == &p_agent) {
+		m_agent_collection.m_retired.fetch_add(1, std::memory_order_relaxed);
 	}
 }
 
@@ -186,7 +201,7 @@ bool cam::Environment::deliver_by_name(const AgentId& p_sender_id, const std::st
 	// Visit a matching agent; false once the search is over (first_only)
 	const auto l_visit = [&](const AgentId& p_id) {
 		Agent* const l_agent = m_agent_collection.find(p_id);
-		if (l_agent->is_dead()) {
+		if (!l_agent || l_agent->is_dead()) {
 			return true;
 		}
 		if (l_last_agent) {
@@ -327,7 +342,7 @@ std::vector<cam::AgentId>
 cam::Environment::get_agents_by_name(const std::string& p_name, const bool p_first_only) const {
 	std::vector<AgentId> l_returned_agents;
 	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
-		if (l_agent->get_name() == p_name) {
+		if (l_agent->get_name() == p_name && !l_agent->is_dead()) {
 			l_returned_agents.push_back(l_id);
 			if (p_first_only) {
 				break;
@@ -357,7 +372,7 @@ std::vector<cam::AgentId>
 cam::Environment::get_filtered_agents(const std::string& p_fragment_name, const bool p_first_only) const {
 	std::vector<AgentId> l_returned_agents;
 	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
-		if (l_agent->get_name().find(p_fragment_name) != std::string::npos) {
+		if (l_agent->get_name().find(p_fragment_name) != std::string::npos && !l_agent->is_dead()) {
 			l_returned_agents.push_back(l_agent->get_id());
 			if (p_first_only) {
 				break;

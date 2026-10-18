@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <vector>
 
@@ -74,6 +75,16 @@ namespace cam {
 		std::vector<int> m_turn_order;
 
 		/**
+		 * Dead agents still in m_agents (stopped or removed during a turn, erased at the next boundary): not counted
+		 **/
+		std::atomic<size_t> m_retired{0};
+
+		/**
+		 * True while run_turn() runs the agents: a removal is then deferred to the turn boundary (C10)
+		 **/
+		std::atomic<bool> m_turn_running{false};
+
+		/**
 		 * Environment mode.
 		 **/
 		EnvironmentMasMode m_environment_mas_mode;
@@ -110,7 +121,7 @@ namespace cam {
 		~AgentCollection() = default;
 
 		/**
-		 * Return number of agents
+		 * Return number of agents, the stopped or removed ones excluded
 		 * @return Number of agents
 		 **/
 		[[nodiscard]] size_t count() const;
@@ -147,10 +158,16 @@ namespace cam {
 		[[nodiscard]] bool contains(const AgentId& p_id) const;
 
 		/**
-		 * Remove agent from the collection and from the name index; unknown ids are ignored
+		 * Remove agent from the collection and from the name index at once, outside any turn; unknown ids are ignored
 		 * @param p_id The agent id
 		 **/
 		void remove(const AgentId& p_id);
+
+		/**
+		 * True while the agents of a turn run (removals are deferred to the turn boundary)
+		 * @return True during a turn
+		 **/
+		[[nodiscard]] bool is_turn_running() const { return m_turn_running.load(std::memory_order_relaxed); }
 
 		/**
 		 * Get agent by id

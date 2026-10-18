@@ -99,14 +99,14 @@ TEST_SUITE("characterization") {
 		CHECK(l_env.agents_count() == 2);  // C#: Add is immediate
 	}
 
-	TEST_CASE("C24: an agent stopped during the last turn of start is removed" * doctest::should_fail()) {
+	TEST_CASE("C24 (fixed in 3B): an agent stopped during the last turn of start is removed") {
 		cam::Environment l_env(2, Mode::Sequential);
 		l_env.add<Quitter>("q");
-		l_env.start();  // q stops at the last turn: start() leaves before process_buffers
+		l_env.start();  // q stops at the last turn: no longer counted, destroyed at the next boundary
 		CHECK(l_env.agents_count() == 0);  // C#: Stop removes immediately
 	}
 
-	TEST_CASE("C7 C24: continue_simulation removes the agents stopped before it" * doctest::should_fail()) {
+	TEST_CASE("C7 C24 (fixed in 3B): continue_simulation removes the agents stopped before it") {
 		cam::Environment l_env(2, Mode::Sequential);
 		l_env.add<Quitter>("q");
 		l_env.start();
@@ -269,10 +269,10 @@ TEST_SUITE("characterization") {
 		explicit StillBorn(const std::string& p_name) : Agent(p_name) { stop(); }
 	};
 
-	TEST_CASE("C11: an agent stopped in its constructor is never inserted" * doctest::should_fail()) {
+	TEST_CASE("C11 (fixed in 3B): an agent stopped in its constructor is never inserted") {
 		cam::Environment l_env(1, Mode::Sequential);
 		l_env.add<StillBorn>("zombie");
-		l_env.start();  // process_buffers inserts the already dead agent
+		l_env.start();  // inserted already dead: neither counted nor found, never run, erased at the next boundary
 		CHECK(l_env.agents_count() == 0);
 		CHECK(l_env.get_agents_by_name("zombie").empty());
 	}

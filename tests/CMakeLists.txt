@@ -68,29 +68,27 @@ cam_add_ok_probe(empty_start_sequential C1)
 cam_add_ok_probe(empty_start_parallel C1)
 cam_add_ok_probe(empty_start_sequential_random C1)
 cam_add_ok_probe(continue_all_dead_parallel C1)
-# C5: remove() of an unknown or not yet inserted agent dereferences a null pointer.
-cam_add_crash_probe(remove_unknown C5 asan "member call on null pointer|AddressSanitizer: SEGV")
-cam_add_crash_probe(remove_buffered C5 asan "member call on null pointer|AddressSanitizer: SEGV")
+# C5 (fixed in 3B, D80): remove() of an unknown or not yet inserted agent dereferenced a null pointer; it is now
+# ignored. The probes stay as regression tests.
+cam_add_ok_probe(remove_unknown C5)
+cam_add_ok_probe(remove_buffered C5)
 # C6 (fixed in 1A): remove() left the name index behind, send_by_name() then dereferenced a null pointer.
 cam_add_ok_probe(remove_then_send_by_name C6)
 # C4: random_agent() includes the upper bound and dereferences end().
 cam_add_crash_probe(random_agent_bound C4 asan "container-overflow|misaligned address|AddressSanitizer: SEGV")
-# C10: remove() during a Parallel turn erases from the collection other threads are iterating.
-cam_add_crash_probe(remove_during_parallel_turn C10 asan "container-overflow|heap-buffer-overflow|member call on null pointer|AddressSanitizer: SEGV")
-cam_add_crash_probe(remove_during_parallel_turn C10 tsan "ThreadSanitizer: (data race|SEGV)")
-# Two threads crashing at once may hang the ThreadSanitizer report (once in 19 runs on Linux): fail in 2 minutes, not 15
-if (CAM_SANITIZER STREQUAL "tsan")
-	set_tests_properties(characterization.tsan.remove_during_parallel_turn PROPERTIES TIMEOUT 120)
-endif()
-# C12: remove() during a Sequential turn invalidates the range-for of run_turn().
-cam_add_crash_probe(remove_during_sequential_turn C12 asan "container-overflow|member call on null pointer|AddressSanitizer: SEGV")
+# C10 and C12 (fixed in 3B, D80): remove() during a Parallel or Sequential turn erased from the collection other
+# threads, or the range-for of run_turn(), were iterating; it now marks the agent and the turn boundary erases it.
+# The probes stay as regression tests.
+cam_add_ok_probe(remove_during_parallel_turn C10)
+cam_add_ok_probe(remove_during_sequential_turn C12)
 # C16 (fixed in 3B, D76): add<T>() returned a reference to the agent's id, dangling once the agent was destroyed;
 # it now returns the AgentId by value. The probe stays as a regression test.
 cam_add_ok_probe(dangling_add_ref C16)
 # T1: live observables map read by other agents while its owner writes it.
 cam_add_crash_probe(observables_parallel T1 tsan "ThreadSanitizer: data race")
-# T2: stop() writes m_is_dead while send_by_name() reads it from another thread.
-cam_add_crash_probe(stop_and_send_parallel T2 tsan "ThreadSanitizer: data race")
+# T2 (fixed in 3B, D80): stop() wrote the dead flag while send_by_name() read it from another thread; the flag is
+# now atomic. The probe stays as a regression test.
+cam_add_ok_probe(stop_and_send_parallel T2)
 # T7: static random generator shared by all environments of the process.
 cam_add_crash_probe(rng_two_threads T7 tsan "ThreadSanitizer: data race")
 
@@ -183,6 +181,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME unit.agent_id COMMAND cam_agent_id_tests)
 	set_tests_properties(unit.agent_id PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.agent_id)
+
+	# Removal of agents (C10, C12, C5, D80): deferred to the turn boundary during a turn, at once outside a turn.
+	add_executable(cam_removal_tests unit/removal.cpp)
+	target_link_libraries(cam_removal_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.removal COMMAND cam_removal_tests)
+	set_tests_properties(unit.removal PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.removal)
 
 	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 	add_executable(cam_identifier_tests unit/identifier.cpp)

@@ -153,6 +153,9 @@ void continue_simulation(int p_no_turns = 0);
  * environment. Use the Remove method instead of Agent.Stop when the decision
  * to stop an agent does not belong to the agent itself, but to some other
  * agent or to an external factor.
+ * During a turn the agent is no longer counted, found by name nor sent to, and it is destroyed at the turn
+ * boundary (in Parallel mode it still runs in this turn if it has not yet, as the C#); outside a turn it is
+ * removed at once. An unknown id, or an agent added but not yet inserted, is ignored.
  *
  * @param p_agent_id The id of the agent to be removed
  **/
@@ -198,12 +201,12 @@ void broadcast(const AgentId& p_sender_id, const uint8_t* p_message, const size_
  void start();
 
 /**
- * The number of agents in the environment
+ * The number of agents in the environment, the stopped or removed ones excluded
  **/
 [[nodiscard]] size_t agents_count() const;
 
 /**
- * Get all agents by name
+ * Get all agents by name (the stopped or removed ones excluded)
  * @param p_name the name of agent
  * @param p_first_only if true the first found
  * @return All agents by name
@@ -225,7 +228,7 @@ void broadcast(const AgentId& p_sender_id, const uint8_t* p_message, const size_
 [[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 /**
- * Get all agents by fragment name
+ * Get all agents by fragment name (the stopped or removed ones excluded)
  * @param p_fragment_name the fragment name of agent
  * @param p_first_only if true the first found
  * @return All agents by fragment name
@@ -329,6 +332,8 @@ void internal_action();
  * Stops the execution of the agent and removes it from the environment.
  * Use the Stop method instead of Environment.
  * Remove when the decision to be stopped belongs to the agent itself.
+ * The agent is no longer counted, found by name nor sent to; it finishes its current turn and is
+ * destroyed at the turn boundary. Stopping twice does nothing.
  **/
 void stop();
 
