@@ -18,6 +18,8 @@
 
 #include "Message.h"
 
+#include "util/Identifier.h"
+
 namespace {
 
 	const std::string s_no_text;
@@ -58,9 +60,10 @@ cam::Message::Message(std::string p_sender, std::string p_receiver, MessageConte
 
 cam::Message::Message(Key, const std::string& p_sender, const std::string& p_receiver, MessageContent&& p_content,
 					  const std::string& p_sender_environment) :
-		m_sender(p_sender),
+		// An agent identifier has a known length: copied with that constant length, the copy is inlined (P8)
+		m_sender(p_sender.size() == AGENT_ID_LENGTH ? std::string(p_sender.data(), AGENT_ID_LENGTH) : p_sender),
 		m_sender_environment(p_sender_environment),
-		m_receiver(p_receiver),
+		m_receiver(p_receiver.size() == AGENT_ID_LENGTH ? std::string(p_receiver.data(), AGENT_ID_LENGTH) : p_receiver),
 		m_content(std::move(p_content)) {
 }
 

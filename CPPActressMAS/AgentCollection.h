@@ -43,7 +43,7 @@ namespace cam {
 		/**
 		 * Agents: id, content
 		 **/
-		tsl::ordered_map<std::string, AgentPointer, AgentIdHash> m_agents;
+		tsl::ordered_map<std::string, AgentPointer, AgentIdHash, AgentIdEqual> m_agents;
 
 		/**
 		 * Agents: name, id

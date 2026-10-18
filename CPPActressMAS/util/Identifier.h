@@ -50,6 +50,31 @@ namespace cam {
 	[[nodiscard]] std::string generate_agent_id();
 
 	/**
+	 * Equality of the agent identifiers (P14): two identifiers of AGENT_ID_LENGTH characters are compared as two
+	 * overlapping 8-byte words; any other keys go to the string comparison.
+	 **/
+	struct AgentIdEqual {
+		/**
+		 * Compare two keys.
+		 * @param p_left A key, an agent identifier or any string
+		 * @param p_right Another key
+		 * @return True if both keys are equal
+		 **/
+		[[nodiscard]] bool operator()(const std::string& p_left, const std::string& p_right) const noexcept {
+			if (p_left.size() != AGENT_ID_LENGTH || p_right.size() != AGENT_ID_LENGTH) {
+				return p_left == p_right;
+			}
+			std::uint64_t l_left[2];
+			std::uint64_t l_right[2];
+			std::memcpy(&l_left[0], p_left.data(), sizeof(std::uint64_t));
+			std::memcpy(&l_left[1], p_left.data() + AGENT_ID_LENGTH - sizeof(std::uint64_t), sizeof(std::uint64_t));
+			std::memcpy(&l_right[0], p_right.data(), sizeof(std::uint64_t));
+			std::memcpy(&l_right[1], p_right.data() + AGENT_ID_LENGTH - sizeof(std::uint64_t), sizeof(std::uint64_t));
+			return l_left[0] == l_right[0] && l_left[1] == l_right[1];
+		}
+	};
+
+	/**
 	 * Hash of the agent identifiers (P14). An identifier of AGENT_ID_LENGTH characters is read as two overlapping
 	 * 8-byte words, mixed by multiplications and shifts so that every bit reaches the low bits the buckets use; any
 	 * other key goes to std::hash.

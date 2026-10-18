@@ -145,6 +145,29 @@ TEST_SUITE("unit") {
 		CHECK(l_agents.at(l_uuid) == -1);
 	}
 
+	TEST_CASE("agent identifiers compare like strings, whatever their length (P14)") {
+		const cam::AgentIdEqual l_equal;
+		for (int i = 0; i < 1000; i++) {
+			const std::string l_id = cam::generate_agent_id();
+			std::string l_copy = l_id;
+			CHECK(l_equal(l_id, l_copy));
+			// One character changed at each end and in the middle, where the two words overlap
+			for (const std::size_t l_index: {std::size_t{0}, std::size_t{7}, cam::AGENT_ID_LENGTH - 1}) {
+				l_copy = l_id;
+				l_copy[l_index] = l_copy[l_index] == 'a' ? 'b' : 'a';
+				CHECK_FALSE(l_equal(l_id, l_copy));
+			}
+		}
+		// Keys of another length, or of different lengths, compare as strings
+		CHECK(l_equal("abc", "abc"));
+		CHECK_FALSE(l_equal("abc", "abd"));
+		const std::string l_id = cam::generate_agent_id();
+		CHECK_FALSE(l_equal(l_id, l_id + "x"));
+		CHECK_FALSE(l_equal(l_id, l_id.substr(0, cam::AGENT_ID_LENGTH - 1)));
+		const std::string l_uuid = cam::generate_uuid();
+		CHECK(l_equal(l_uuid, std::string(l_uuid)));
+	}
+
 	TEST_CASE("an agent gets a short identifier, its environment a UUID") {
 		cam::Environment l_env(1, cam::EnvironmentMasMode::Sequential);
 		const std::string l_id = l_env.add<Idle>("idle");
