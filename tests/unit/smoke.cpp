@@ -309,6 +309,20 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count() == 0);
 	}
 
+	TEST_CASE("in Parallel mode every agent runs exactly once per turn (P2)") {
+		g_recorder.clear();
+		cam::Environment l_env(6, Mode::Parallel);
+		for (int i = 0; i < 50; i++) {
+			l_env.add<OrderedAgent>("p" + std::to_string(i), false, false);
+		}
+		l_env.start();
+		// Turn 0 runs the setups, turns 1 to 5 one action each
+		CHECK(g_recorder.count() == 250);
+		for (int i = 0; i < 50; i++) {
+			CHECK(g_recorder.count_of("4:p" + std::to_string(i)) == 1);
+		}
+	}
+
 	TEST_CASE("messages sent by id in Parallel mode are all delivered") {
 		g_recorder.clear();
 		cam::Environment l_env(3, Mode::Parallel);

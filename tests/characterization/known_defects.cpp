@@ -404,11 +404,11 @@ TEST_SUITE("characterization") {
 #endif
 	}
 
-	TEST_CASE("C23: a Sequential environment creates no thread" * doctest::should_fail()) {
+	TEST_CASE("C23 (fixed in 3B): a Sequential environment creates no thread") {
 		const int l_before = thread_count();
 		REQUIRE(l_before > 0);
 		cam::Environment l_env(1, Mode::Sequential);
-		CHECK(thread_count() == l_before);  // hardware_concurrency() pool threads per environment today
+		CHECK(thread_count() == l_before);  // the turn threads exist in Parallel mode only
 	}
 #endif
 

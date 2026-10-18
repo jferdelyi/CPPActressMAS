@@ -18,8 +18,11 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "Agent.h"
-#include "ThreadPool/ThreadPool.h"
+#include "TurnPool.h"
 #include "tsl/ordered_map.h"
 
 /**
@@ -52,9 +55,14 @@ namespace cam {
 		MPSCQueue<AgentPointer> m_new_agents;
 
 		/**
-		 * Thread pool for agents
+		 * Threads of a Parallel environment (none otherwise)
 		 **/
-		ThreadPool m_pool;
+		std::unique_ptr<TurnPool> m_turn_pool;
+
+		/**
+		 * Agents of the current Parallel turn (capacity kept from turn to turn)
+		 **/
+		std::vector<Agent*> m_turn_agents;
 
 		/**
 		 * Environment mode.

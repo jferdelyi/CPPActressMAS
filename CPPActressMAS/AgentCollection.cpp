@@ -18,13 +18,22 @@
 
 #include "AgentCollection.h"
 
-#include <future>
 #include <random>
 
 #include "Environment.h"
 
+namespace {
+
+	// Worker threads of a Parallel environment: one per core but the calling thread, which works too
+	std::size_t worker_count() {
+		const unsigned int l_cores = std::thread::hardware_concurrency();
+		return l_cores == 0 ? 7 : l_cores - 1;
+	}
+
+} // namespace
+
 cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, const unsigned int p_seed) :
-		m_pool(std::thread::hardware_concurrency() == 0 ? 8 : std::thread::hardware_concurrency()),
+		m_turn_pool(p_environment_mas_mode == EnvironmentMasMode::Parallel ? std::make_unique<TurnPool>(worker_count()) : nullptr),
 		m_environment_mas_mode(p_environment_mas_mode),
 		m_seed(p_seed) {
 
@@ -88,30 +97,23 @@ void cam::AgentCollection::run_turn() {
 			l_agent->run_turn();
 		}
 
-		// Random
+		// Parallel: every agent of the turn at once, without copy nor shuffle, as the C# does (Parallel.Invoke, P2)
+	} else if (m_environment_mas_mode == EnvironmentMasMode::Parallel) {
+		m_turn_agents.clear();
+		for (auto& [l_agent_id, l_agent]: m_agents) {
+			m_turn_agents.push_back(l_agent.get());
+		}
+		m_turn_pool->run(m_turn_agents);
+
+		// Sequential, in a random order drawn each turn
 	} else {
-		const auto m_parallel = m_environment_mas_mode == EnvironmentMasMode::Parallel;
-		std::vector<std::future<void>> l_asyncs;
 		const std::vector<std::string> l_agents = get_ids();
 		const auto l_count = l_agents.size();
 		const std::vector<int> l_agent_order = random_permutation(l_count);
-		size_t l_index = 0;
-
-		while (l_index < l_count) {
-			const std::string& l_agent_id = l_agents.at(l_agent_order.at(l_index++));
-			if (AgentPointer l_agent = get(l_agent_id); l_agent) {
-				if (m_parallel) {
-					l_asyncs.push_back(m_pool.addWorkFunc([l_agent] {
-						l_agent->run_turn();
-					}));
-				} else {
-					l_agent->run_turn();
-				}
-
+		for (size_t l_index = 0; l_index < l_count; l_index++) {
+			if (AgentPointer l_agent = get(l_agents.at(l_agent_order.at(l_index))); l_agent) {
+				l_agent->run_turn();
 			}
-		}
-		for (std::future<void>& l_async: l_asyncs) {
-			l_async.wait();
 		}
 	}
 }
