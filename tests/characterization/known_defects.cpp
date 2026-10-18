@@ -433,11 +433,11 @@ TEST_SUITE("characterization") {
 		void default_action() override { ++g_action_after_see_stop; }
 	};
 
-	TEST_CASE("C26: the action of an agent that stops in see still runs in that turn" * doctest::should_fail()) {
+	TEST_CASE("C26 (fixed in 3B): the action of an agent that stops in see still runs in that turn") {
 		g_action_after_see_stop = 0;
 		cam::Environment l_env(2, Mode::Sequential);
 		l_env.add<StopInSee>("v");
-		l_env.start();  // turn 1: v stops in see() -> action skipped (Agent.cpp:54-56); the C# runs Act
+		l_env.start();  // turn 1: v stops in see(), its action runs all the same, as the C# runs Act
 		CHECK(g_action_after_see_stop == 1);
 	}
 

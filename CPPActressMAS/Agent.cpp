@@ -37,6 +37,7 @@ void cam::Agent::run_turn(const bool p_run_setup_separately) {
 		return;
 	}
 
+	// Once its turn has begun the agent runs every phase, even if it stops on the way, as the C# (C26, ISO m)
 	if (p_run_setup_separately) {
 		if (!is_setup()) {
 			internal_setup();
@@ -44,22 +45,13 @@ void cam::Agent::run_turn(const bool p_run_setup_separately) {
 			if (is_using_observables()) {
 				internal_see();
 			}
-			if (is_dead()) {
-				return;
-			}
 			internal_action();
 		}
 
 	} else {
 		internal_setup();
-		if (is_dead()) {
-			return;
-		}
 		if (is_using_observables()) {
 			internal_see();
-		}
-		if (is_dead()) {
-			return;
 		}
 		internal_action();
 	}

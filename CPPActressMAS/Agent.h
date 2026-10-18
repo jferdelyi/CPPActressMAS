@@ -160,8 +160,9 @@ namespace cam {
 		[[nodiscard]] bool is_in_transit() const { return m_in_transit; }
 
 		/**
-		 * Run one turn (for one agent)
-		 * @param p_run_setup_separately If true, run setup in the same tick as see/act
+		 * Run one turn (for one agent): nothing if the agent is dead or in transit; once begun, every phase runs,
+		 * even if the agent stops on the way.
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise in the same turn as see/act
 		 **/
 		void run_turn(bool p_run_setup_separately = true);
 
