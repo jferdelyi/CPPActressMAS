@@ -6,18 +6,15 @@ set(CMAKE_CXX_STANDARD 20)
 include_directories(Externals)
 include_directories(CPPActressMAS)
 
-# The core has no network dependency: the transports are separate libraries behind options (D1, D22).
+# The core has no network dependency by default: each network transport joins the library behind its
+# option (D1, D22, D48), with its own dependencies, and Environment::connect(url) selects the schemes
+# compiled in (CAM_TRANSPORT_* definitions, no registry).
 file(GLOB SOURCES
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h**
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.hpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.cpp
-)
-# The facade knows which transports are compiled in: it is a library of its own (cam_transport).
-list(REMOVE_ITEM SOURCES
-		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.h
-		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.cpp
 )
 
 option(BUILD_STATIC "Enable building static library" ON)
@@ -60,28 +57,37 @@ else()
 	set(CAM_CORE_TARGET CPPActressMASStatic)
 endif()
 
+# Network transports: each subdirectory declares its sources, include directories and libraries
+# (CAM_<NAME>_SOURCES, CAM_<NAME>_INCLUDES, CAM_<NAME>_LIBRARIES, CAM_<NAME>_DEFINITIONS) and the core targets
+# take them.
+set(CAM_CORE_TARGETS)
+foreach (l_target IN ITEMS CPPActressMASStatic CPPActressMAS)
+	if (TARGET ${l_target})
+		list(APPEND CAM_CORE_TARGETS ${l_target})
+	endif()
+endforeach()
+function(cam_add_transport p_name p_define)
+	foreach (l_target IN LISTS CAM_CORE_TARGETS)
+		target_sources(${l_target} PRIVATE ${CAM_${p_name}_SOURCES})
+		if (CAM_${p_name}_INCLUDES)
+			target_include_directories(${l_target} SYSTEM PRIVATE ${CAM_${p_name}_INCLUDES})
+		endif()
+		target_link_libraries(${l_target} PRIVATE ${CAM_${p_name}_LIBRARIES})
+		target_compile_definitions(${l_target} PRIVATE ${p_define}=1 ${CAM_${p_name}_DEFINITIONS})
+	endforeach()
+endfunction()
 if (CAM_TRANSPORT_MQTT)
 	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/mqtt)
+	cam_add_transport(MQTT CAM_TRANSPORT_MQTT)
 endif()
 if (CAM_TRANSPORT_ZENOH)
 	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/zenoh)
+	cam_add_transport(ZENOH CAM_TRANSPORT_ZENOH)
 endif()
 
-# Facade: cam::transport::open(url) and cam::transport::connect(environment, url) over the transports
-# compiled in (loopback always, mqtt and mqtts with CAM_TRANSPORT_MQTT, zenoh with CAM_TRANSPORT_ZENOH).
-add_library(cam_transport STATIC
-		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.h
-		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/Facade.cpp
-)
-target_link_libraries(cam_transport PUBLIC ${CAM_CORE_TARGET})
-if (CAM_TRANSPORT_MQTT)
-	target_compile_definitions(cam_transport PRIVATE CAM_TRANSPORT_MQTT=1)
-	target_link_libraries(cam_transport PUBLIC cam_transport_mqtt)
-endif()
-if (CAM_TRANSPORT_ZENOH)
-	target_compile_definitions(cam_transport PRIVATE CAM_TRANSPORT_ZENOH=1)
-	target_link_libraries(cam_transport PUBLIC cam_transport_zenoh)
-endif()
+# Compatibility name of the former facade library (1C to 2B): the facade is part of the core now.
+add_library(cam_transport INTERFACE)
+target_link_libraries(cam_transport INTERFACE ${CAM_CORE_TARGET})
 
 if (BUILD_EXAMPLES)
 	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/Examples)

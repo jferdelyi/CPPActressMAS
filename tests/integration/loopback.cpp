@@ -229,7 +229,7 @@ TEST_SUITE("loopback") {
 		const auto l_again = l_env.connect(l_transport);
 		REQUIRE_FALSE(l_again);
 		CHECK(l_again.error().m_code == ErrorCode::AlreadyConnected);
-		CHECK_FALSE(l_env.connect(nullptr));
+		CHECK_FALSE(l_env.connect(std::shared_ptr<Transport>()));  // a null transport is refused
 		REQUIRE(l_env.disconnect());
 		CHECK_FALSE(l_env.is_connected());
 

@@ -1,4 +1,4 @@
-# Zenoh transport of CPPActressMAS (cam_transport_zenoh), behind CAM_TRANSPORT_ZENOH.
+# Zenoh transport of CPPActressMAS, behind CAM_TRANSPORT_ZENOH (sources joined to the core library).
 #
 # zenoh-c and zenoh-cpp come from the system at one exact pinned version (D22). On macOS the static zenoh-c
 # library is linked: the shared one installed here has a broken install name (ENV.md), and a static link keeps
@@ -20,6 +20,12 @@ else()
 	set(CAM_ZENOHC_TARGET zenohc::shared)
 endif()
 
-add_library(cam_transport_zenoh STATIC ${CMAKE_CURRENT_LIST_DIR}/ZenohTransport.cpp ${CMAKE_CURRENT_LIST_DIR}/ZenohTransport.h)
-target_link_libraries(cam_transport_zenoh PUBLIC ${CAM_CORE_TARGET} PRIVATE zenohcxx ${CAM_ZENOHC_TARGET})
-target_compile_definitions(cam_transport_zenoh PRIVATE ZENOHCXX_ZENOHC)
+# The imported targets of the packages are local to this directory: the core targets are defined in the parent one.
+set_target_properties(zenohcxx PROPERTIES IMPORTED_GLOBAL TRUE)
+
+# Sources and dependencies taken by the core targets (root CMakeLists.txt, cam_add_transport). The zenoh-cpp
+# headers need ZENOHCXX_ZENOHC; only the transport source includes them.
+set(CAM_ZENOH_SOURCES ${CMAKE_CURRENT_LIST_DIR}/ZenohTransport.cpp ${CMAKE_CURRENT_LIST_DIR}/ZenohTransport.h PARENT_SCOPE)
+set(CAM_ZENOH_INCLUDES "" PARENT_SCOPE)
+set(CAM_ZENOH_LIBRARIES zenohcxx ${CAM_ZENOHC_TARGET} PARENT_SCOPE)
+set(CAM_ZENOH_DEFINITIONS ZENOHCXX_ZENOHC PARENT_SCOPE)

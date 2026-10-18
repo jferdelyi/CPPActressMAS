@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
 	for (const auto& [l_environment, l_url] : {std::pair{&l_environment_c, l_url_c}, std::pair{&l_environment_b, l_url_ab},
 												std::pair{&l_environment_a, l_url_ab}}) {
 		l_environment->register_agent_type<MobileAgent>("MobileAgent");
-		if (const auto l_result = cam::transport::connect(*l_environment, l_url); !l_result) {
+		if (const auto l_result = l_environment->connect(l_url); !l_result) {
 			std::cerr << "Cannot connect to " << l_url << ": " << l_result.error().m_message << std::endl;
 			return 1;
 		}

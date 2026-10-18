@@ -68,14 +68,14 @@ add_executable(Serialization ${CMAKE_CURRENT_LIST_DIR}/Serialization/Serializati
 target_link_libraries(Serialization CPPActressMAS)
 apply_compile_options(Serialization)
 
-# The network examples go through the transport facade (cam::transport::connect): they need a build with
-# CAM_TRANSPORT_MQTT, otherwise they report that the mqtt scheme is missing.
+# The network examples connect their environments from a URL (Environment::connect): loopback without
+# argument, a network transport compiled in with a URL in argument.
 add_executable(Mobile ${CMAKE_CURRENT_LIST_DIR}/Mobiles/Mobile.cpp)
-target_link_libraries(Mobile cam_transport)
+target_link_libraries(Mobile CPPActressMAS)
 apply_compile_options(Mobile)
 
 add_executable(MobilePingPong ${CMAKE_CURRENT_LIST_DIR}/Mobiles/PingPong.cpp)
-target_link_libraries(MobilePingPong cam_transport)
+target_link_libraries(MobilePingPong CPPActressMAS)
 apply_compile_options(MobilePingPong)
 
 add_executable(Reactive ${CMAKE_CURRENT_LIST_DIR}/MAS/Reactive.cpp)

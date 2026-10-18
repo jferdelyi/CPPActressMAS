@@ -20,11 +20,11 @@ cam_add_bench(SkynetNumeric)
 # Micro-benchmark of the envelope codecs (encode, decode, bytes on the wire), linked to the core only.
 cam_add_bench(Envelope)
 
-# End-to-end transport benchmark: two environments, two nodes, round trips through the directory. Linked
-# to the facade (the transports compiled in: loopback always, mqtt and zenoh with their options).
+# End-to-end transport benchmark: two environments, two nodes, round trips through the directory, over the
+# transports compiled in the core (loopback always, mqtt and zenoh with their options).
 add_executable(bench_Transport ${CMAKE_CURRENT_LIST_DIR}/Transport.cpp)
 target_include_directories(bench_Transport PRIVATE ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(bench_Transport cam_transport)
+target_link_libraries(bench_Transport CPPActressMASStatic)
 
 # Smoke tests (label perf): the benchmarks run once and their invariant is checked. Not a measurement.
 if (CAM_BUILD_TESTS)

@@ -26,22 +26,22 @@ cmake --build --preset debug
 ctest --preset debug
 ```
 
-Options: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the project is the top-level project), `BUILD_BENCH` (ON in the `bench` preset only), `BUILD_STATIC` and `BUILD_SHARED` (ON), `CAM_TRANSPORT_MQTT` and `CAM_TRANSPORT_ZENOH` (OFF by default; ON in the `debug`, `release`, `asan` and `tsan` presets, OFF in `core` and `bench`). The core library (`CPPActressMAS`, `CPPActressMASStatic`) never depends on a network library; the transports are separate libraries behind the facade `cam_transport`.
+Options: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the project is the top-level project), `BUILD_BENCH` (ON in the `bench` preset only), `BUILD_STATIC` and `BUILD_SHARED` (ON), `CAM_TRANSPORT_MQTT` and `CAM_TRANSPORT_ZENOH` (OFF by default; ON in the `debug`, `release`, `asan` and `tsan` presets, OFF in `core` and `bench`). The library (`CPPActressMAS`, `CPPActressMASStatic`) depends on a network library only when its transport option is ON: the transports compiled in join the library itself, and `Environment::connect(url)` selects them by scheme (the former `cam_transport` target remains as an alias).
 
 ## Network
 
-An environment stays offline until it is connected to a transport. One line connects it, the scheme of the URL selects the transport among those compiled in (`loopback://` always, `zenoh://` with `CAM_TRANSPORT_ZENOH`, `mqtt://` and `mqtts://` with `CAM_TRANSPORT_MQTT`). Zenoh is the recommended transport: peers talk to each other without a broker, one of them listens and the others connect to it (or to a `zenohd` router):
+An environment stays offline until it is connected to a transport. It owns its transport URL: the scheme selects the transport among those compiled in the library (`loopback://` always, `zenoh://` with `CAM_TRANSPORT_ZENOH`, `mqtt://` and `mqtts://` with `CAM_TRANSPORT_MQTT`). Without a URL, `connect()` refuses. Zenoh is the recommended network transport: peers talk to each other without a broker, one of them listens and the others connect to it (or to a `zenohd` router):
 ``` cpp
-#include <transport/Facade.h>
-
 cam::Environment l_environment;
 l_environment.register_agent_type<MyMobileAgent>("MyMobileAgent");   // agents allowed to arrive here by migration
 // first peer of the simulation: listens on 127.0.0.1:7447
-if (const auto l_result = cam::transport::connect(l_environment, "zenoh://?listen=tcp/127.0.0.1:7447&ns=my-simulation"); !l_result) {
+if (const auto l_result = l_environment.connect("zenoh://?listen=tcp/127.0.0.1:7447&ns=my-simulation"); !l_result) {
 	std::cerr << l_result.error().m_message << std::endl;
 }
-// other peers: cam::transport::connect(l_other, "zenoh://127.0.0.1:7447/my-simulation")
-// MQTT broker instead: cam::transport::connect(l_other, "mqtt://127.0.0.1:1883/my-simulation")
+// other peers: l_other.connect("zenoh://127.0.0.1:7447/my-simulation")
+// MQTT broker instead: l_other.connect("mqtt://127.0.0.1:1883/my-simulation")
+// several environments of one process: l_a.connect("loopback://my-simulation"), l_b.connect("loopback://my-simulation")
+// or set the URL first and connect later: l_environment.set_transport_url(url); ... l_environment.connect();
 ```
 Zenoh options: `mode=peer|client`, `listen=tcp/host:port` (several, comma separated), `connect=tcp/host:port`, `scouting=multicast` (discovery by UDP multicast; off by default, so an environment only talks to the endpoints it was given). Presence relies on Zenoh liveliness: the death of a process takes its environments offline for everyone.
 
@@ -51,6 +51,30 @@ Zenoh options: `mode=peer|client`, `listen=tcp/host:port` (several, comma separa
 
 The examples `Mobile` and `MobilePingPong` run on the in-process `loopback://` transport without argument (available in every build) and take the URLs of their environments in argument to go through the network.
 Messages by id reach a remote agent through the directory of the connected environments; `send_by_name`, `send_by_fragment_name` and `broadcast` stay local unless the last parameter asks for the network scope (a `cam::transport::SendOptions` with `m_scope = cam::transport::Scope::Network`). Everything received from the network is applied at the turn boundary. An agent moves to another environment with `move(environment_id)`: its state (`save_state()`, `load_state()`), its observables and its pending messages travel with it, and it runs `setup()` again on arrival. Several environments of one process can share one transport (`cam::transport::open(url)`, then `environment.connect(transport)`): they then form one node with one connection. Statistics of the transport side: `environment.statistics()`; the other environments: `environment.environments()`.
+
+### Adding a transport
+
+A transport implements `cam::transport::Transport` (`CPPActressMAS/transport/Transport.h`): `open`, `close`, `attach`, `detach`, `publish`, `capabilities`, `config`, `node_id`, `codec`, `name`. The core asks little of it:
+- `publish(sender, address, envelope)` is called at the turn boundary for every envelope leaving an environment; `EndpointRegistry::deliver_locally` serves the environments of the same transport directly, the rest is encoded with `codec()` and sent to the address (`env/<id>/in`, `env/<id>/agent`, `env/<id>/presence`, `all/in`, see `Address::to_key`).
+- Whatever arrives is handed to the endpoint of the target environment with `Endpoint::deliver(address, bytes)` (or an already decoded `Envelope`), from any thread: the core applies it at its next turn boundary. Presences (`Presence` envelopes) make the other environments known; connection changes go through `Endpoint::push_event`.
+- `capabilities()` says honestly what the transport guarantees; the core only needs `pubsub` or a way to reach every known environment.
+
+Two ways to plug it in:
+- **In your program**, without touching the library: give the environment a factory that knows your scheme and falls back on the built-in ones, or hand it the transport directly.
+``` cpp
+l_environment.set_transport_factory([](const std::string& p_url, cam::transport::TransportConfig p_config)
+		-> cam::transport::Result<std::shared_ptr<cam::transport::Transport>> {
+	if (p_url.rfind("mine://", 0) == 0) {
+		auto l_transport = std::make_shared<MyTransport>(std::move(p_config));
+		if (const auto l_result = l_transport->open(); !l_result) return l_result.error();
+		return std::shared_ptr<cam::transport::Transport>(l_transport);
+	}
+	return cam::transport::open(p_url, std::move(p_config));   // loopback, mqtt, zenoh...
+});
+l_environment.connect("mine://somewhere");
+// or: l_environment.connect(std::make_shared<MyTransport>(...));
+```
+- **In the library**: a subdirectory `CPPActressMAS/transport/<name>/` whose `CMakeLists.txt` sets `CAM_<NAME>_SOURCES`, `CAM_<NAME>_INCLUDES`, `CAM_<NAME>_LIBRARIES` and `CAM_<NAME>_DEFINITIONS` for its parent; an option `CAM_TRANSPORT_<NAME>` and a `cam_add_transport(<NAME> CAM_TRANSPORT_<NAME>)` call in the root `CMakeLists.txt`; the scheme in `schemes()`, `parse_url` and `open` of `CPPActressMAS/transport/Facade.cpp` behind `#if CAM_TRANSPORT_<NAME>`; a network test with its CTest label that exits with code 77 when its server is missing. The transports of the library (`mqtt/`, `zenoh/`) are complete examples.
 
 ## Tests
 

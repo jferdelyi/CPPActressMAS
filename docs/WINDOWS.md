@@ -26,6 +26,8 @@
 
 ## 2 bis. Impact des changements de l'étape 1C (couche transport)
 
+- **Depuis 2C** : une seule bibliothèque (`CPPActressMAS` partagée, `CPPActressMASStatic` statique) ; les transports activés par leurs options y sont compilés avec leurs dépendances, il n'y a plus de `cam_transport`, `cam_transport_mqtt` ni `cam_transport_zenoh` à lier (`cam_transport` reste un alias). Une application se connecte par `environment.connect(url)`.
+
 - **Cœur sans réseau** : `CPPActressMAS/transport/` (types, enveloppe, codec `compact`, `Endpoint`, loopback) n'utilise que la bibliothèque standard ; `PahoWrapper.hpp` et cereal ont quitté le cœur (`Externals/cereal` reste pour `Examples/MAS/Reactive.cpp` et `Examples/Simples/SendingObjects.cpp`, qui l'incluent eux-mêmes).
 - **Transport MQTT** (`CPPActressMAS/transport/mqtt/`, option `CAM_TRANSPORT_MQTT`) : libmosquitto construite par le projet (W3), bibliothèque cliente seule (`WITH_BROKER=OFF`, `WITH_CLIENTS=OFF`, `WITH_APPS=OFF`, `WITH_PLUGINS=OFF`, `WITH_CJSON=OFF`, `DOCUMENTATION=OFF`, `WITH_LIB_CPP=OFF`), statique, `WITH_THREADING=ON` (pthreads4w sous Windows : `vcpkg install pthreads`), TLS par OpenSSL (`find_package(OpenSSL)` : `vcpkg install openssl`), `ws2_32` lié par libmosquitto. La première configuration télécharge une archive GitHub (≈ 2,2 Mo) ; `-DFETCHCONTENT_SOURCE_DIR_LIBMOSQUITTO=<dossier>` pointe une copie locale hors ligne.
 - **Threads** : `MqttTransport` possède le thread réseau de libmosquitto (`std::thread` qui exécute `mosquitto_loop_forever`, `std::condition_variable` pour les acquittements) ; les rappels arrivent sur ce thread ; rien de POSIX dans le projet (libmosquitto elle-même utilise pthreads4w sous Windows). `Environment::move` dépose sa demande sous `std::mutex`.

@@ -57,6 +57,14 @@ namespace cam {
 	class Environment {
 		friend Agent;
 
+	public:
+		/**
+		 * Builds a transport from a URL: the default one knows the schemes compiled in this build
+		 * (loopback://, and mqtt://, mqtts://, zenoh:// behind their CMake options); a custom one can
+		 * add schemes of its own and fall back on cam::transport::open for the others.
+		 **/
+		using TransportFactory = std::function<transport::Result<std::shared_ptr<transport::Transport>>(const std::string& p_url, transport::TransportConfig p_config)>;
+
 	private:
 		/**
 		 * A move asked by an agent during a turn, handled at the end of the turn.
@@ -123,6 +131,12 @@ namespace cam {
 		 * Side of this environment on its transport; null while offline.
 		 **/
 		std::unique_ptr<transport::Endpoint> m_endpoint;
+
+		/**
+		 * Transport URL of this environment (empty: none) and the factory that opens it (empty: default).
+		 **/
+		std::string m_transport_url;
+		TransportFactory m_transport_factory;
 
 		/**
 		 * Agent types allowed to arrive here, by wire name: factory from the agent name.
@@ -380,7 +394,42 @@ namespace cam {
 		//###############################################################
 
 		/**
-		 * Connect the environment to a transport: attach an endpoint, announce the
+		 * Remember the transport URL of this environment without connecting; connect() uses it.
+		 * @param p_url The URL ("loopback://sim", "zenoh://127.0.0.1:7447/sim", "mqtt://host:1883/sim"...)
+		 **/
+		void set_transport_url(std::string p_url) { m_transport_url = std::move(p_url); }
+
+		/**
+		 * The transport URL of this environment, empty when none was given.
+		 * @return The URL
+		 **/
+		[[nodiscard]] const std::string& transport_url() const { return m_transport_url; }
+
+		/**
+		 * Replace the factory that turns the transport URL into a transport (extension point: a
+		 * scheme of your own). An empty factory restores the default one.
+		 * @param p_factory The factory
+		 **/
+		void set_transport_factory(TransportFactory p_factory) { m_transport_factory = std::move(p_factory); }
+
+		/**
+		 * Connect the environment through its transport URL (set_transport_url). An environment stays
+		 * offline until this is called; without URL it refuses (InvalidConfiguration).
+		 * @return Success, or an error (no URL, unknown scheme, transport not compiled in, broker unreachable...)
+		 **/
+		transport::Result<void> connect();
+
+		/**
+		 * Remember the transport URL and connect through it. Called by the simulation thread, outside a
+		 * turn (before start() or in turn_finished()).
+		 * @param p_url The URL
+		 * @param p_config The endpoint configuration (name, capacities, delays)
+		 * @return Success, or an error
+		 **/
+		transport::Result<void> connect(const std::string& p_url, transport::EndpointConfig p_config = {});
+
+		/**
+		 * Connect the environment to a transport built elsewhere: attach an endpoint, announce the
 		 * presence of the environment and learn the environments already there.
 		 * Called by the simulation thread, outside a turn (before start() or in
 		 * turn_finished()). An environment stays offline until this is called.

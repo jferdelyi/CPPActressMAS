@@ -1,4 +1,4 @@
-# MQTT transport of CPPActressMAS (cam_transport_mqtt), behind CAM_TRANSPORT_MQTT.
+# MQTT transport of CPPActressMAS, behind CAM_TRANSPORT_MQTT (sources joined to the core library).
 #
 # libmosquitto is built by the project from a pinned archive (D22): Eclipse Mosquitto 2.0.22, client library
 # only (no broker, no clients, no cJSON, no C++ wrapper), static, threaded (the simulation thread publishes
@@ -35,7 +35,8 @@ set(WITH_UNIX_SOCKETS OFF CACHE BOOL "" FORCE)
 set(WITH_DLT OFF CACHE BOOL "" FORCE)
 add_subdirectory(${libmosquitto_SOURCE_DIR} ${libmosquitto_BINARY_DIR} EXCLUDE_FROM_ALL)
 
-add_library(cam_transport_mqtt STATIC ${CMAKE_CURRENT_LIST_DIR}/MqttTransport.cpp ${CMAKE_CURRENT_LIST_DIR}/MqttTransport.h)
-# libmosquitto headers are a dependency: system headers, their warnings are not the project's (D36).
-target_include_directories(cam_transport_mqtt SYSTEM PRIVATE ${libmosquitto_SOURCE_DIR}/include)
-target_link_libraries(cam_transport_mqtt PUBLIC ${CAM_CORE_TARGET} PRIVATE libmosquitto_static)
+# Sources and dependencies taken by the core targets (root CMakeLists.txt, cam_add_transport). libmosquitto
+# headers are a dependency: system headers, their warnings are not the project's (D36).
+set(CAM_MQTT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/MqttTransport.cpp ${CMAKE_CURRENT_LIST_DIR}/MqttTransport.h PARENT_SCOPE)
+set(CAM_MQTT_INCLUDES ${libmosquitto_SOURCE_DIR}/include PARENT_SCOPE)
+set(CAM_MQTT_LIBRARIES libmosquitto_static PARENT_SCOPE)

@@ -222,8 +222,7 @@ namespace {
 						 const std::string& p_query = {}) {
 		EndpointConfig l_config;
 		l_config.m_name = p_name;
-		return cam::transport::connect(p_environment, g_url + "/" + p_namespace + "-" + process_suffix() + (p_query.empty() ? "" : "?" + p_query),
-									   l_config);
+		return p_environment.connect(g_url + "/" + p_namespace + "-" + process_suffix() + (p_query.empty() ? "" : "?" + p_query), l_config);
 	}
 
 	// Runs the environments in threads until the condition holds or the deadline passes.

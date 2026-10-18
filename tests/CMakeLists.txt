@@ -140,6 +140,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	add_test(NAME unit.transport COMMAND cam_transport_tests)
 	set_tests_properties(unit.transport PROPERTIES LABELS unit TIMEOUT 300)
 
+	# Environment::connect(url): the URL kept by the environment, the default factory over the schemes compiled
+	# in, a custom factory, and the shared loopback of a namespace.
+	add_executable(cam_connect_tests unit/connect.cpp)
+	target_link_libraries(cam_connect_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.connect COMMAND cam_connect_tests)
+	set_tests_properties(unit.connect PROPERTIES LABELS unit TIMEOUT 300)
+
 	# Environments connected through the loopback transport, in memory and serializing.
 	add_executable(cam_loopback_tests integration/loopback.cpp)
 	target_link_libraries(cam_loopback_tests cam_doctest_main ${CAM_TEST_LIBRARY})
@@ -161,7 +168,7 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 
 	# Needs a broker: CAM_MQTT_HOST and CAM_MQTT_PORT in the environment, otherwise the test skips (exit 77).
 	add_executable(cam_network_tests network/network_tests.cpp)
-	target_link_libraries(cam_network_tests cam_test_support cam_transport)
+	target_link_libraries(cam_network_tests cam_test_support ${CAM_TEST_LIBRARY})
 	add_test(NAME mqtt.network COMMAND cam_network_tests)
 	set_tests_properties(mqtt.network PROPERTIES LABELS "mqtt;integration" SKIP_RETURN_CODE 77 TIMEOUT 120)
 	cam_apply_tsan_suppressions(mqtt.network)
@@ -169,7 +176,7 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	# Two Zenoh peers of the process on 127.0.0.1 (explicit endpoints, no multicast); skips (77) without the
 	# Zenoh transport. Opens sockets: excluded with -LE zenoh when the network must stay silent.
 	add_executable(cam_zenoh_tests network/zenoh_tests.cpp)
-	target_link_libraries(cam_zenoh_tests cam_test_support cam_transport)
+	target_link_libraries(cam_zenoh_tests cam_test_support ${CAM_TEST_LIBRARY})
 	add_test(NAME zenoh.network COMMAND cam_zenoh_tests)
 	set_tests_properties(zenoh.network PROPERTIES LABELS "zenoh;integration" SKIP_RETURN_CODE 77 TIMEOUT 180)
 	cam_apply_tsan_suppressions(zenoh.network)

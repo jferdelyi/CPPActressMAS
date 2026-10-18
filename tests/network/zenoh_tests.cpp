@@ -205,7 +205,7 @@ namespace {
 	Result<void> connect(cam::Environment& p_environment, const std::string& p_name, const std::string& p_url) {
 		EndpointConfig l_config;
 		l_config.m_name = p_name;
-		return cam::transport::connect(p_environment, p_url, l_config);
+		return p_environment.connect(p_url, l_config);
 	}
 
 	// Runs the environments in threads until the condition holds or the deadline passes.

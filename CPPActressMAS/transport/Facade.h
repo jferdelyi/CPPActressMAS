@@ -27,8 +27,8 @@
 #include "Transport.h"
 
 /**
- * CPPActressMAS transport layer: the one-line entry point. The transports compiled in are chosen by the
- * scheme of a URL:
+ * CPPActressMAS transport layer: the URL side of Environment::connect(url). The transports compiled in
+ * are chosen by the scheme of a URL (selected at configuration time, no registry):
  *   loopback://[namespace]                               in-process transport, shared by the environments of the process that name it
  *   mqtt://host[:port][/namespace][?options]             MQTT broker (CAM_TRANSPORT_MQTT)
  *   mqtts://host[:port][/namespace][?options]            MQTT over TLS
@@ -76,7 +76,8 @@ namespace cam::transport {
 	[[nodiscard]] Result<std::shared_ptr<Transport>> open(const std::string& p_url, TransportConfig p_config = {});
 
 	/**
-	 * Open a transport from a URL and connect an environment to it (one node per call).
+	 * Alias of Environment::connect(url, config), kept for the callers of the first steps; to be removed
+	 * at step 2D. Prefer p_environment.connect(p_url, p_config).
 	 * @param p_environment The environment
 	 * @param p_url The URL
 	 * @param p_config The endpoint configuration

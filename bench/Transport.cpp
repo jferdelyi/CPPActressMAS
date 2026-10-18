@@ -104,7 +104,7 @@ namespace {
 		if (p_settings.m_transport == "loopback") {
 			return p_environment.connect(p_loopback);
 		}
-		return cam::transport::connect(p_environment, p_url);
+		return p_environment.connect(p_url);
 	}
 
 	bool has_scheme(const std::string& p_scheme) {

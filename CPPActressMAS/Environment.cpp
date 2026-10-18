@@ -24,6 +24,7 @@
 
 #include "Agent.h"
 #include "transport/ContentCodec.h"
+#include "transport/Facade.h"
 
 namespace {
 
@@ -394,6 +395,25 @@ void cam::Environment::process_buffers() {
 //###############################################################
 //	Transport
 //###############################################################
+
+cam::transport::Result<void> cam::Environment::connect() {
+	if (m_transport_url.empty()) {
+		return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "no transport URL: call set_transport_url or connect(url)");
+	}
+	return connect(m_transport_url, transport::EndpointConfig{});
+}
+
+cam::transport::Result<void> cam::Environment::connect(const std::string& p_url, transport::EndpointConfig p_config) {
+	if (m_endpoint) {
+		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment already connected");
+	}
+	m_transport_url = p_url;
+	auto l_transport = m_transport_factory ? m_transport_factory(p_url, transport::TransportConfig{}) : transport::open(p_url);
+	if (!l_transport) {
+		return l_transport.error();
+	}
+	return connect(std::move(l_transport.value()), std::move(p_config));
+}
 
 cam::transport::Result<void>
 cam::Environment::connect(std::shared_ptr<transport::Transport> p_transport, transport::EndpointConfig p_config) {

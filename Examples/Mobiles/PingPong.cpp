@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
 	cam::Environment l_environment_b(10, cam::EnvironmentMasMode::Parallel, 100);
 	cam::Environment l_environment_a(10, cam::EnvironmentMasMode::Parallel, 100);
 	for (const auto& [l_environment, l_url] : {std::pair{&l_environment_b, l_url_pong}, std::pair{&l_environment_a, l_url_ping}}) {
-		if (const auto l_result = cam::transport::connect(*l_environment, l_url); !l_result) {
+		if (const auto l_result = l_environment->connect(l_url); !l_result) {
 			std::cerr << "Cannot connect to " << l_url << ": " << l_result.error().m_message << std::endl;
 			return 1;
 		}
