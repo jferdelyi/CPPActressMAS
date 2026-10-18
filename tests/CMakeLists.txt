@@ -189,6 +189,14 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.removal PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.removal)
 
+	# Generator of the seeded System.Random (D82), against the vectors produced by tools/csharp-ref.
+	add_executable(cam_dotnet_random_tests unit/dotnet_random.cpp)
+	target_link_libraries(cam_dotnet_random_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	target_compile_definitions(cam_dotnet_random_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")
+	add_test(NAME unit.dotnet_random COMMAND cam_dotnet_random_tests)
+	set_tests_properties(unit.dotnet_random PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.dotnet_random)
+
 	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 	add_executable(cam_identifier_tests unit/identifier.cpp)
 	target_link_libraries(cam_identifier_tests cam_doctest_main ${CAM_TEST_LIBRARY})

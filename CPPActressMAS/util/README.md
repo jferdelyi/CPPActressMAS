@@ -9,3 +9,4 @@ Helpers the library uses but which are not objects of the multi-agent model. Nam
 | `MPSCQueue.hpp` | Lock-free queue, several producers and one consumer: the messages of each agent, and the agents added during a turn. Its nodes come from `FreeBlocks`, so a warm queue allocates nothing. |
 | `RecyclingAllocator.hpp` | `FreeBlocks`: memory blocks of one size kept by each thread, reused at the next request, freed when the thread ends (the messages and the queue nodes take theirs from it); `RecyclingAllocator`, the allocator of the agents, the JSON contents and the name index. |
 | `Base64.{h,cpp}` | Base64 (RFC 4648) for the json and ActressMAS codecs. |
+| `DotnetRandom.{h,cpp}` | Generator drawing exactly as the seeded `System.Random` of .NET: an environment can use it so that its random order matches the C# draw for draw (D82). |
