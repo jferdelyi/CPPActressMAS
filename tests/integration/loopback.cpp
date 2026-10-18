@@ -23,6 +23,8 @@
 
 #include <doctest/doctest.h>
 
+#include <chrono>
+
 #include <Environment.h>
 #include <transport/codec/EnvelopeCodec.h>
 #include <transport/loopback/LoopbackTransport.h>
@@ -178,8 +180,10 @@ namespace {
 		return l_transport;
 	}
 
+	// These tests count turns: a generous flush budget keeps every envelope in its turn on a slow build (the json codec
+	// takes about 25 ms per envelope under gcc ASan with its fake stacks, against a budget of 50 ms by default).
 	EndpointConfig named(const std::string& p_name) {
-		return EndpointConfig{.m_name = p_name};
+		return EndpointConfig{.m_name = p_name, .m_flush_max_time = std::chrono::seconds(60)};
 	}
 
 	// Two environments, a receiver in B, a sender in A: the message crosses the transport.
