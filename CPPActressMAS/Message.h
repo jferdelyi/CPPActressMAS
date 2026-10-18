@@ -264,10 +264,30 @@ namespace cam {
 		[[nodiscard]] std::string to_string() const;
 
 		/**
-		 * Format message.
+		 * Format message: sender and receiver ids (Agent::format gives their names, as the C#).
 		 * @return string formated message
 		 **/
 		[[nodiscard]] /*virtual*/ std::string format() const;
+
+		/**
+		 * As Parse(out action, out List<string> parameters) of the C# (G2, D82): the content split at every white
+		 * space (Unicode, as String.Split() without argument), empty words kept; the first word is the action.
+		 * @return The action and the other words
+		 **/
+		[[nodiscard]] std::pair<std::string, std::vector<std::string>> parse() const;
+
+		/**
+		 * As Parse(out action, out string parameters) of the C#: the action and the other words joined by single spaces.
+		 * @return The action and the rest
+		 **/
+		[[nodiscard]] std::pair<std::string, std::string> parse_rest() const;
+
+		/**
+		 * As Parse1P(out action, out parameter) of the C#: the action and the second word.
+		 * @return The action and the parameter
+		 * @throw std::out_of_range If the content has a single word (IndexOutOfRangeException in C#)
+		 **/
+		[[nodiscard]] std::pair<std::string, std::string> parse_one() const;
 
 		// Delete copy constructor
 		Message(const Message&) = delete;

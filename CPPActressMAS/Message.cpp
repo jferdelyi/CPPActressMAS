@@ -18,7 +18,44 @@
 
 #include "Message.h"
 
+#include <stdexcept>
+
 #include "util/RecyclingAllocator.hpp"
+
+namespace {
+
+	// White space of Char.IsWhiteSpace: the separators of String.Split() without argument
+	bool is_white_space(const char32_t p_code) {
+		return (p_code >= 0x09 && p_code <= 0x0D) || p_code == 0x20 || p_code == 0x85 || p_code == 0xA0 || p_code == 0x1680 ||
+			   (p_code >= 0x2000 && p_code <= 0x200A) || p_code == 0x2028 || p_code == 0x2029 || p_code == 0x202F ||
+			   p_code == 0x205F || p_code == 0x3000;
+	}
+
+	// Words of a UTF-8 text split at every white space, empty words kept, as String.Split() (an invalid byte is one
+	// character, never a space)
+	std::vector<std::string> split_words(const std::string& p_text) {
+		std::vector<std::string> l_words(1);
+		for (std::size_t i = 0; i < p_text.size();) {
+			const auto l_lead = static_cast<unsigned char>(p_text[i]);
+			std::size_t l_length = l_lead < 0x80 ? 1 : (l_lead >> 5) == 0x6 ? 2 : (l_lead >> 4) == 0xE ? 3 : (l_lead >> 3) == 0x1E ? 4 : 1;
+			if (i + l_length > p_text.size()) {
+				l_length = 1;
+			}
+			char32_t l_code = l_length == 1 ? l_lead : static_cast<char32_t>(l_lead & (0xFF >> (l_length + 1)));
+			for (std::size_t k = 1; k < l_length; k++) {
+				l_code = (l_code << 6) | (static_cast<unsigned char>(p_text[i + k]) & 0x3F);
+			}
+			if (is_white_space(l_code)) {
+				l_words.emplace_back();
+			} else {
+				l_words.back().append(p_text, i, l_length);
+			}
+			i += l_length;
+		}
+		return l_words;
+	}
+
+} // namespace
 
 namespace {
 
@@ -135,6 +172,30 @@ std::string cam::Message::to_string() const {
 		case ContentKind::None:
 		default: return {};
 	}
+}
+
+std::pair<std::string, std::vector<std::string>> cam::Message::parse() const {
+	std::vector<std::string> l_words = split_words(to_string());
+	std::string l_action = std::move(l_words.front());
+	l_words.erase(l_words.begin());
+	return {std::move(l_action), std::move(l_words)};
+}
+
+std::pair<std::string, std::string> cam::Message::parse_rest() const {
+	const std::vector<std::string> l_words = split_words(to_string());
+	std::string l_rest;
+	for (std::size_t i = 1; i < l_words.size(); i++) {
+		l_rest += (i == 1 ? "" : " ") + l_words[i];
+	}
+	return {l_words.front(), std::move(l_rest)};
+}
+
+std::pair<std::string, std::string> cam::Message::parse_one() const {
+	const std::vector<std::string> l_words = split_words(to_string());
+	if (l_words.size() < 2) {
+		throw std::out_of_range("Message::parse_one: a single word in \"" + to_string() + "\"");
+	}
+	return {l_words[0], l_words[1]};
 }
 
 std::string cam::Message::format() const {

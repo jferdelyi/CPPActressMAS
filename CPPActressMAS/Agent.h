@@ -374,6 +374,14 @@ namespace cam {
 		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 		/**
+		 * As Format() of the C# message (G1, D82): "[sender -> receiver]: content" with the names of the agents of this
+		 * environment, the raw id otherwise ("env", an agent of another environment or already erased).
+		 * @param p_message The message
+		 * @return The text
+		 **/
+		[[nodiscard]] std::string format(const MessagePointer& p_message) const;
+
+		/**
 		 * Get all agents by fragment name
 		 * @param p_fragment_name the fragment name of agent
 		 * @param p_first_only if true the first found

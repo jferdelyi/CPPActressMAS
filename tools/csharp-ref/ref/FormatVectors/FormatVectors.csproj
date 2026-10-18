@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Vectors of the .NET number formatting and parsing used by the examples (D82): Double.ToString("F2"|"F3"|"F4"),
+       Double.ToString() and Convert.ToInt32(string), for Examples/Common/DotNet.hpp -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>FormatVectors</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+</Project>

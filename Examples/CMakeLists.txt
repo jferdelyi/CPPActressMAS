@@ -5,6 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Fonction pour appliquer les options de compilation
 function(apply_compile_options target)
+    # Floating point as the C#: no fused multiply-add contraction, in every build type (R4, D82); GCC and Clang only
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(${target} PRIVATE -ffp-contract=off)
+    endif()
+    # Helpers shared by the examples (Examples/Common: .NET number formatting and parsing)
+    target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/Common)
     if (CMAKE_BUILD_TYPE STREQUAL "Release")
         if (WIN32)
             target_compile_options(${target} PRIVATE /O2 /W4 /LTCG /arch:AVX2)

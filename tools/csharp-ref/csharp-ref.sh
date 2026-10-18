@@ -7,7 +7,8 @@
 #   WORKDIR : work folder outside the repository; ref/ (next to this script) is copied into WORKDIR/ref at each run,
 #             builds stay there. ActressMas/ is cloned there if missing, then only read.
 #             Must live under $HOME or /private/tmp: plain /tmp is NOT shared with the VM (podman: "statfs ...: no such file").
-#   ACTION  : build | rng | trace | bench | e00 | probe | mono | shimcheck | oracles | all
+#   ACTION  : build | rng | trace | format | bench | e00 | probe | mono | shimcheck | oracles | all
+#             format   : FormatVectors (number formatting and parsing of .NET), for tests/vectors/dotnet/format.txt
 #             shimcheck: RngVectors through the seed shim, must equal ref/expected/rng-vectors.txt (D82)
 #             oracles  : runs every project of ref/Oracles (seed shim, CAM_SEED or 0) into WORKDIR/logs/oracles/<Name>.txt,
 #                        the raw outputs to version in tests/iso/oracles/ (D82)
@@ -55,6 +56,7 @@ do_build() {
 }
 do_rng()   { dn dotnet "RngVectors/bin/Release/$TFM/RngVectors.dll" | tee "$W/logs/rng-$FLAVOR.txt"; }
 do_trace() { dn dotnet "TraceOrder/bin/Release/$TFM/TraceOrder.dll" | tee "$W/logs/trace-$FLAVOR.txt"; }
+do_format() { dn dotnet "FormatVectors/bin/Release/$TFM/FormatVectors.dll" | tr -d '\r' > "$W/logs/format-$FLAVOR.txt"; wc -l "$W/logs/format-$FLAVOR.txt"; }
 do_bench() {
   dn bash -c "TIMEFORMAT='process wall=%Rs user=%Us sys=%Ss'; echo nproc=\$(nproc);
     for b in Skynet SkynetNumeric PingPong; do echo \"== \$b\"; time dotnet \$b.Ref/bin/Release/$TFM/\$b.dll; done" 2>&1 \
@@ -155,9 +157,9 @@ do_e20mono() {  # runtime cross-check: shipped .NET Framework Server + MasMobile
   for f in mono-side dotnet-side c1 c2 c3 container2 container1; do echo "== $f"; cat "$W/logs/e20mono-$run/$f.txt" 2>/dev/null; done
 }
 case "$ACTION" in
-  build) do_build ;; rng) do_rng ;; trace) do_trace ;; bench) do_bench ;; e00) do_e00 ;; probe) do_probe ;; mono) do_mono ;;
+  build) do_build ;; rng) do_rng ;; trace) do_trace ;; format) do_format ;; bench) do_bench ;; e00) do_e00 ;; probe) do_probe ;; mono) do_mono ;;
   shimcheck) do_shimcheck ;; oracles) do_oracles ;;
   e20build) do_e20build ;; capture) do_capture ;; e20) do_e20 ;; e20mono) do_e20mono ;;
-  all) do_build; do_rng; do_trace; do_bench; do_e00; do_probe; do_shimcheck; do_oracles ;;
+  all) do_build; do_rng; do_trace; do_format; do_bench; do_e00; do_probe; do_shimcheck; do_oracles ;;
   *) echo "unknown action $ACTION" >&2; exit 2 ;;
 esac

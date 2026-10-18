@@ -207,6 +207,22 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.random_order PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.random_order)
 
+	# Text of a message as the C# reads it (G1, G2, D82): Parse, Parse1P, Format with names.
+	add_executable(cam_message_parse_tests unit/message_parse.cpp)
+	target_link_libraries(cam_message_parse_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.message_parse COMMAND cam_message_parse_tests)
+	set_tests_properties(unit.message_parse PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.message_parse)
+
+	# Number formatting and parsing of .NET for the examples (Examples/Common/DotNet.hpp, D82), against the C# vectors.
+	add_executable(cam_dotnet_format_tests unit/dotnet_format.cpp)
+	target_link_libraries(cam_dotnet_format_tests cam_doctest_main)
+	target_include_directories(cam_dotnet_format_tests PRIVATE ${CMAKE_SOURCE_DIR}/Examples/Common)
+	target_compile_definitions(cam_dotnet_format_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")
+	add_test(NAME unit.dotnet_format COMMAND cam_dotnet_format_tests)
+	set_tests_properties(unit.dotnet_format PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.dotnet_format)
+
 	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 	add_executable(cam_identifier_tests unit/identifier.cpp)
 	target_link_libraries(cam_identifier_tests cam_doctest_main ${CAM_TEST_LIBRARY})

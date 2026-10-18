@@ -427,6 +427,12 @@ virtual void action(const MessagePointer& p_message);
 virtual void default_action();
 
 // Delete copy constructor
+/**
+ * As Format() of the C# message (D82): "[sender -> receiver]: content" with the names of the agents of this
+ * environment, the raw id otherwise ("env", an agent of another environment or already erased).
+ **/
+[[nodiscard]] std::string format(const MessagePointer& p_message) const;
+
 Agent(const Agent& ) = delete;
 Agent& operator=(Agent& ) = delete;
 ```
@@ -476,6 +482,14 @@ Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, 
  * @return message JSON
  **/
 [[nodiscard]] json content() const;
+
+/**
+ * As Parse, Parse(out string) and Parse1P of the C# (D82): the content split at every white space as String.Split()
+ * (Unicode spaces, empty words kept); the first word is the action. parse_one throws std::out_of_range on a single word.
+ **/
+[[nodiscard]] std::pair<std::string, std::vector<std::string>> parse() const;
+[[nodiscard]] std::pair<std::string, std::string> parse_rest() const;
+[[nodiscard]] std::pair<std::string, std::string> parse_one() const;
 
 /**
  * Format message to string.

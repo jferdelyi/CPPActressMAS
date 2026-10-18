@@ -236,6 +236,11 @@ cam::transport::Result<void> cam::Agent::move(const std::string& p_environment_i
 	return l_result;
 }
 
+std::string cam::Agent::format(const MessagePointer& p_message) const {
+	const auto l_name = [this](const AgentId& p_id) { return get_agent_name(p_id).value_or(p_id.str()); };
+	return "[" + l_name(p_message->get_sender()) + " -> " + l_name(p_message->get_receiver()) + "]: " + p_message->to_string();
+}
+
 size_t cam::Agent::agents_count() const {
 	return get_environment()->agents_count();
 }
