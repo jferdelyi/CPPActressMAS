@@ -78,13 +78,13 @@ public:
 		m_x(p_x),
 		m_y(p_y){}
 
-	bool operator==(const Position& m_other) const {
-		return m_x == m_other.m_x && m_y == m_other.m_y;
+	bool operator==(const Position& p_other) const {
+		return m_x == p_other.m_x && m_y == p_other.m_y;
 	}
 
-	Position(const Position& m_other) = default;
+	Position(const Position& p_other) = default;
 
-	Position& operator=(const Position& m_other) = default;
+	Position& operator=(const Position& p_other) = default;
 };
 std::ostream& operator<<(std::ostream& p_stream, const Position& p_position) {
 	return p_stream << "[" << p_position.m_x << "; " << p_position.m_y << "]";
@@ -132,7 +132,9 @@ public:
 		return m_action == p_other.m_action && m_position == p_other.m_position && m_resource_id == p_other.m_resource_id;
 	}
 
-	Message& operator=(const Message& m_other) = default;
+	Message(const Message& p_other) = default;
+
+	Message& operator=(const Message& p_other) = default;
 
 };
 void to_json(json& p_json, const Message& p_message) {
