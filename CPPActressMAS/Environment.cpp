@@ -111,7 +111,7 @@ void cam::Environment::remove(const AgentPointer& p_agent) {
 
 void cam::Environment::retire(Agent& p_agent) {
 	// Counted once, and only while the agent is in the collection (an agent not yet inserted is counted at insertion)
-	if (!p_agent.m_is_dead.exchange(true, std::memory_order_relaxed) && m_agent_collection.find(p_agent.get_id()) == &p_agent) {
+	if (!p_agent.m_is_dead.exchange(true, std::memory_order_relaxed) && p_agent.m_is_inserted) {
 		m_agent_collection.m_retired.fetch_add(1, std::memory_order_relaxed);
 	}
 }

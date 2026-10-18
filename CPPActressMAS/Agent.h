@@ -39,6 +39,8 @@ namespace cam {
 
 	class TurnPool;
 
+	class AgentCollection;
+
 	class Agent;
 
 	template<typename T>
@@ -58,6 +60,7 @@ namespace cam {
 	 **/
 	class Agent {
 		friend Environment;
+		friend AgentCollection;
 		friend TurnPool;
 
 	private:
@@ -90,6 +93,12 @@ namespace cam {
 		 * True while a migration of this agent is in progress: the agent does not run, its messages wait.
 		 **/
 		bool m_in_transit;
+
+		/**
+		 * True while the agent is in the collection of its environment (written at the turn boundary only): a stop
+		 * is counted by the collection only then.
+		 **/
+		bool m_is_inserted;
 
 		/**
 		 * Messages arrived.

@@ -29,6 +29,7 @@ cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_is_setup(false),
 		m_is_dead(false),
 		m_in_transit(false),
+		m_is_inserted(false),
 		m_is_using_observables(p_using_observables),
 		m_observables(std::make_shared<Observables>()) {}
 

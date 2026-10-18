@@ -59,6 +59,7 @@ void cam::AgentCollection::add(const AgentPointer& p_agent) {
 void cam::AgentCollection::insert(const AgentPointer& p_agent) {
 	m_agents.insert(std::make_pair(p_agent->get_id(), p_agent));
 	m_agents_by_name.insert(std::make_pair(p_agent->get_name(), p_agent->get_id()));
+	p_agent->m_is_inserted = true;
 	if (p_agent->is_dead()) {
 		m_retired.fetch_add(1, std::memory_order_relaxed);
 	}
@@ -92,6 +93,7 @@ void cam::AgentCollection::remove(const AgentId& p_id) {
 	if (l_it->second->is_dead()) {
 		m_retired.fetch_sub(1, std::memory_order_relaxed);
 	}
+	l_it->second->m_is_inserted = false;
 	m_agents.erase(l_it);
 }
 
@@ -154,6 +156,7 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 	for (auto& [l_id, l_agent]: m_agents) {
 		if (l_agent->is_dead()) {
 			++l_dead;
+			l_agent->m_is_inserted = false;
 			remove_name(l_agent->get_name(), l_id);
 			if (p_track_changes) {
 				l_changes.m_removed.emplace_back(l_id, l_agent->get_name());
@@ -170,6 +173,7 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 		do {
 			m_agents.insert(std::make_pair(l_agent->get_id(), l_agent));
 			m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
+			l_agent->m_is_inserted = true;
 			if (l_agent->is_dead()) {
 				m_retired.fetch_add(1, std::memory_order_relaxed);  // stopped before its insertion (C11): never counted
 			}
