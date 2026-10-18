@@ -102,6 +102,28 @@ namespace {
 		}
 	};
 
+	// Records "<its turn>:<name>" at each action; at its first action it may stop, or add an agent named "<name>+".
+	struct OrderedAgent final : cam::Agent {
+		OrderedAgent(const std::string& p_name, const bool p_stop_first, const bool p_spawn_first) :
+				Agent(p_name),
+				m_stop_first(p_stop_first),
+				m_spawn_first(p_spawn_first) {}
+		void default_action() override {
+			g_recorder.record(std::to_string(m_turn) + ":" + get_name());
+			if (m_turn == 0 && m_spawn_first) {
+				get_environment()->add<OrderedAgent>(get_name() + "+", false, false);
+			}
+			if (m_turn == 0 && m_stop_first) {
+				stop();
+			}
+			m_turn++;
+		}
+	private:
+		bool m_stop_first;
+		bool m_spawn_first;
+		int m_turn = 0;
+	};
+
 	// Stops itself at its first action (turn 1).
 	struct Quitter final : cam::Agent {
 		explicit Quitter(const std::string& p_name) : Agent(p_name) {}
@@ -198,6 +220,19 @@ TEST_SUITE("unit") {
 			CHECK(g_recorder.count_of("worker:json:\"" + l_mode + " json\"") == 3);
 		}
 		CHECK(g_recorder.count() == 18);
+	}
+
+	TEST_CASE("in Sequential mode the agents run in insertion order, after removals and additions (P9)") {
+		// Locks the order kept by the one-pass removal of the dead agents
+		g_recorder.clear();
+		cam::Environment l_env(4, Mode::Sequential);
+		l_env.add<OrderedAgent>("a", false, true);
+		l_env.add<OrderedAgent>("b", true, false);
+		l_env.add<OrderedAgent>("c", true, false);
+		l_env.add<OrderedAgent>("d", false, false);
+		l_env.start();
+		const std::vector<std::string> l_expected = {"0:a", "0:b", "0:c", "0:d", "1:a", "1:d", "2:a", "2:d", "0:a+"};
+		CHECK(g_recorder.entries() == l_expected);
 	}
 
 	TEST_CASE("lookups by name, fragment and id after the first turn") {

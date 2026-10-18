@@ -66,6 +66,14 @@ namespace cam {
 		 **/
 		unsigned int m_seed;
 
+	private:
+		/**
+		 * Remove the (name, id) entry of an agent from the name index.
+		 * @param p_name The agent name
+		 * @param p_id The agent id
+		 **/
+		void remove_name(const std::string& p_name, const std::string& p_id);
+
 	public:
 		/**
 		 * Initializes a new instance of a collection of agents

@@ -67,14 +67,18 @@ void cam::AgentCollection::remove(const std::string& p_id) {
 	}
 	// Drop the (name, id) entry of the name index as well, otherwise a later send_by_name()
 	// dereferences a null pointer (C6).
-	const auto [l_start, l_end] = m_agents_by_name.equal_range(l_it->second->get_name());
+	remove_name(l_it->second->get_name(), p_id);
+	m_agents.erase(l_it);
+}
+
+void cam::AgentCollection::remove_name(const std::string& p_name, const std::string& p_id) {
+	const auto [l_start, l_end] = m_agents_by_name.equal_range(p_name);
 	for (auto l_name_it = l_start; l_name_it != l_end; ++l_name_it) {
 		if (l_name_it->second == p_id) {
 			m_agents_by_name.erase(l_name_it);
-			break;
+			return;
 		}
 	}
-	m_agents.erase(l_it);
 }
 
 void cam::AgentCollection::run_turn() {
@@ -115,20 +119,19 @@ void cam::AgentCollection::run_turn() {
 cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const bool p_track_changes) {
 	BufferChanges l_changes;
 
-	// Remove dead agents
-	std::vector<std::string> l_ids;
-	l_ids.reserve(m_agents.size());
+	// Remove dead agents in one pass that keeps the insertion order (P9: an erase per agent shifted the rest each time)
+	bool l_any_dead = false;
 	for (auto& [l_id, l_agent]: m_agents) {
 		if (l_agent->is_dead()) {
-			l_ids.push_back(l_id);
+			l_any_dead = true;
+			remove_name(l_agent->get_name(), l_id);
 			if (p_track_changes) {
 				l_changes.m_removed.emplace_back(l_id, l_agent->get_name());
 			}
 		}
 	}
-
-	for (const auto& l_id: l_ids) {
-		remove(l_id);
+	if (l_any_dead) {
+		erase_if(m_agents, [](const std::pair<std::string, AgentPointer>& p_entry) { return p_entry.second->is_dead(); });
 	}
 
 	// Add new agents
