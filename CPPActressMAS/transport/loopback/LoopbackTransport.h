@@ -22,7 +22,7 @@
 #include <map>
 #include <mutex>
 
-#include "Endpoint.h"
+#include "../Endpoint.h"
 
 /**
  * CPPActressMAS transport layer.

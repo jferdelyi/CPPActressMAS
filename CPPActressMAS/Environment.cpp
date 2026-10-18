@@ -21,7 +21,7 @@
 #include <thread>
 
 #include "Agent.h"
-#include "transport/ContentCodec.h"
+#include "transport/codec/ContentCodec.h"
 #include "transport/Facade.h"
 #include "util/Identifier.h"
 

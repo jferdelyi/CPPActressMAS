@@ -24,7 +24,7 @@
 #include <vector>
 
 #include "../Endpoint.h"
-#include "../PresenceCache.h"
+#include "../network/PresenceCache.h"
 
 /**
  * CPPActressMAS transport layer: MQTT (libmosquitto, built by the project). This header has no libmosquitto

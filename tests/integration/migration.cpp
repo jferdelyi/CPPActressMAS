@@ -28,7 +28,7 @@
 #include <thread>
 
 #include <Environment.h>
-#include <transport/LoopbackTransport.h>
+#include <transport/loopback/LoopbackTransport.h>
 
 #include "Recorder.hpp"
 

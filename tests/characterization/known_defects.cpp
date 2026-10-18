@@ -26,8 +26,8 @@
 #include <doctest/doctest.h>
 
 #include <Environment.h>
-#include <transport/ContentCodec.h>
-#include <transport/LoopbackTransport.h>
+#include <transport/codec/ContentCodec.h>
+#include <transport/loopback/LoopbackTransport.h>
 
 #include <map>
 #include <sstream>

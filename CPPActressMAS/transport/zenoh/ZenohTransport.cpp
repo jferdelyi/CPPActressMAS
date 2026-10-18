@@ -27,7 +27,7 @@
 #include <zenoh.hxx>
 
 #include "../../util/Identifier.h"
-#include "../ProtobufCodec.h"
+#include "../codec/ProtobufCodec.h"
 
 #if defined(__SANITIZE_THREAD__)
 #define CAM_THREAD_SANITIZER 1

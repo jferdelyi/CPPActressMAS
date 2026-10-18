@@ -15,6 +15,14 @@ file(GLOB SOURCES
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.cpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/actressmas/*.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/actressmas/*.cpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/codec/*.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/codec/*.cpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/loopback/*.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/loopback/*.cpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/network/*.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/network/*.cpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/util/*.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/util/*.hpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/util/*.cpp

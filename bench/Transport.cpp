@@ -32,7 +32,7 @@
 
 #include <Environment.h>
 #include <transport/Facade.h>
-#include <transport/LoopbackTransport.h>
+#include <transport/loopback/LoopbackTransport.h>
 
 #include "common.hpp"
 

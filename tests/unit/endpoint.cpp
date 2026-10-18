@@ -21,9 +21,9 @@
 
 #include <doctest/doctest.h>
 
-#include <transport/CompactCodec.h>
-#include <transport/ProtobufCodec.h>
-#include <transport/LoopbackTransport.h>
+#include <transport/codec/CompactCodec.h>
+#include <transport/codec/ProtobufCodec.h>
+#include <transport/loopback/LoopbackTransport.h>
 
 namespace {
 

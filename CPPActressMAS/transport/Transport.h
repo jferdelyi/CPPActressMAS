@@ -25,7 +25,7 @@
 #include <vector>
 
 #include "Envelope.h"
-#include "EnvelopeCodec.h"
+#include "codec/EnvelopeCodec.h"
 
 /**
  * CPPActressMAS transport layer: the interface every transport implements. The core never includes a

@@ -18,8 +18,8 @@
 
 #include "LoopbackTransport.h"
 
-#include "../util/Identifier.h"
-#include "ProtobufCodec.h"
+#include "../../util/Identifier.h"
+#include "../codec/ProtobufCodec.h"
 
 namespace cam::transport {
 

@@ -23,7 +23,7 @@
 #include <doctest/doctest.h>
 
 #include <Environment.h>
-#include <transport/ContentCodec.h>
+#include <transport/codec/ContentCodec.h>
 
 #include "Recorder.hpp"
 

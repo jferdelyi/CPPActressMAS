@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include "Endpoint.h"
+#include "../Endpoint.h"
 
 /**
  * CPPActressMAS transport layer.

@@ -24,8 +24,8 @@
 #include <vector>
 
 #include "../Endpoint.h"
-#include "../PresenceCache.h"
-#include "../Worker.h"
+#include "../network/PresenceCache.h"
+#include "../network/Worker.h"
 
 /**
  * CPPActressMAS transport layer: Zenoh (zenoh-c and zenoh-cpp 1.7). This header has no Zenoh include:

@@ -24,8 +24,8 @@
 #include <doctest/doctest.h>
 
 #include <Environment.h>
-#include <transport/EnvelopeCodec.h>
-#include <transport/LoopbackTransport.h>
+#include <transport/codec/EnvelopeCodec.h>
+#include <transport/loopback/LoopbackTransport.h>
 
 #include "Recorder.hpp"
 

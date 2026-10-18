@@ -26,10 +26,10 @@
 #include <fstream>
 #include <iterator>
 
-#include <transport/CompactCodec.h>
-#include <transport/EnvelopeCodec.h>
-#include <transport/JsonCodec.h>
-#include <transport/ProtobufCodec.h>
+#include <transport/codec/CompactCodec.h>
+#include <transport/codec/EnvelopeCodec.h>
+#include <transport/codec/JsonCodec.h>
+#include <transport/codec/ProtobufCodec.h>
 
 namespace {
 

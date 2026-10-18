@@ -25,7 +25,7 @@
 #include <string_view>
 #include <vector>
 
-#include "Envelope.h"
+#include "../Envelope.h"
 
 /**
  * CPPActressMAS transport layer: interchangeable envelope codec (D31). Every encoded envelope starts

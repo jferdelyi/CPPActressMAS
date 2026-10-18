@@ -21,8 +21,8 @@
 #include <span>
 #include <vector>
 
-#include "../Message.h"
-#include "Types.h"
+#include "../../Message.h"
+#include "../Types.h"
 
 /**
  * CPPActressMAS transport layer: encoding of a message content at the network boundary. A local message

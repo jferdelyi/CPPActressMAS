@@ -21,8 +21,8 @@
 #include <map>
 #include <mutex>
 
-#include "EnvelopeCodec.h"
-#include "LoopbackTransport.h"
+#include "codec/EnvelopeCodec.h"
+#include "loopback/LoopbackTransport.h"
 #if CAM_TRANSPORT_MQTT
 #include "mqtt/MqttTransport.h"
 #endif

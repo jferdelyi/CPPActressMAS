@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-#include <transport/EnvelopeCodec.h>
+#include <transport/codec/EnvelopeCodec.h>
 
 namespace {
 

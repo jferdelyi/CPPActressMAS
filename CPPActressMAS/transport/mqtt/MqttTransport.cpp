@@ -31,7 +31,7 @@
 #include <mqtt_protocol.h>
 
 #include "../../util/Identifier.h"
-#include "../ProtobufCodec.h"
+#include "../codec/ProtobufCodec.h"
 
 namespace cam::transport {
 
