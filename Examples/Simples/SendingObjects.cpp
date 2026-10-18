@@ -17,10 +17,6 @@
  **************************************************************************/
 
 #include <iostream>
-#include <sstream>
-
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/types/string.hpp>
 
 #include <Environment.h>
 
@@ -29,28 +25,20 @@ class ContentInfo {
 		int m_number;
 		std::string m_text;
 
-		explicit ContentInfo(const int l_number, std::string l_text) :
-			m_number(l_number),
-			m_text(std::move(l_text)) {}
-
-		explicit ContentInfo(std::stringstream& p_stream) :
-			m_number(0) {
-			cereal::PortableBinaryInputArchive l_input_archive(p_stream);
-			l_input_archive(*this);
-		}
-
-		[[nodiscard]] std::stringstream serialize_to_stream() const {
-			std::stringstream l_stream;
-			cereal::PortableBinaryOutputArchive l_output_archive(l_stream);
-			l_output_archive(*this);
-			return l_stream;
-		}
-
-		template<class Archive>
-		void serialize(Archive& p_archive) {
-			p_archive(m_number, m_text);
-		}
+		explicit ContentInfo(const int p_number = 0, std::string p_text = "") :
+			m_number(p_number),
+			m_text(std::move(p_text)) {}
 };
+
+// A content info travels as a JSON object: the receiver gets it as sent, without serialization while it stays local
+void to_json(json& p_json, const ContentInfo& p_content) {
+	p_json = json{{"number", p_content.m_number}, {"text", p_content.m_text}};
+}
+
+void from_json(const json& p_json, ContentInfo& p_content) {
+	p_json.at("number").get_to(p_content.m_number);
+	p_json.at("text").get_to(p_content.m_text);
+}
 
 class Agent1 final : public cam::Agent {
 	public:
@@ -59,16 +47,13 @@ class Agent1 final : public cam::Agent {
 		void setup() override {
 			for (int i = 0; i < 10; i++) {
 				std::cout << "[" + get_name() + "]: setup " << std::to_string(i + 1) << std::endl;
-				ContentInfo l_content(i + 1, "setup from a1*");
-				const std::string l_bytes = l_content.serialize_to_stream().str();
-				send_by_name("a2", reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
+				send_by_name("a2", json(ContentInfo(i + 1, "setup from a1*")));
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::stringstream l_stream = std::stringstream(std::string(p_message->as_bytes().begin(), p_message->as_bytes().end()));
-			const ContentInfo l_content(l_stream);
+			const auto l_content = p_message->as_json().get<ContentInfo>();
 			std::cout << "[" + get_name() + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
@@ -81,16 +66,13 @@ class Agent2 final : public cam::Agent {
 		void setup() override {
 			for (int i = 0; i < 3; i++) {
 				std::cout << "[" + get_name() + "]: setup " << std::to_string(i + 1) << std::endl;
-				ContentInfo l_content(i + 1, "setup from a2");
-				const std::string l_bytes = l_content.serialize_to_stream().str();
-				send(get_first_agent_by_name("a1*").value(), reinterpret_cast<const uint8_t*>(l_bytes.data()), l_bytes.size());
+				send(get_first_agent_by_name("a1*").value(), json(ContentInfo(i + 1, "setup from a2")));
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::stringstream l_stream = std::stringstream(std::string(p_message->as_bytes().begin(), p_message->as_bytes().end()));
-			const ContentInfo l_content(l_stream);
+			const auto l_content = p_message->as_json().get<ContentInfo>();
 			std::cout << "[" + get_name() + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
