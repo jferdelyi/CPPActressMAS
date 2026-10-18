@@ -18,9 +18,22 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <new>
+
+// AddressSanitizer must see every free to report a use after free or a double free: no recycling under it
+#if defined(__SANITIZE_ADDRESS__)
+#define CAM_RECYCLE_BLOCKS 0
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#define CAM_RECYCLE_BLOCKS 0
+#endif
+#endif
+#ifndef CAM_RECYCLE_BLOCKS
+#define CAM_RECYCLE_BLOCKS 1
+#endif
 
 /**
  * CPPActressMAS.
@@ -28,9 +41,15 @@
 namespace cam {
 
 	/**
+	 * True when the blocks are recycled; false under AddressSanitizer, where every block goes back to the allocator.
+	 **/
+	inline constexpr bool RECYCLE_BLOCKS = CAM_RECYCLE_BLOCKS != 0;
+
+	/**
 	 * Free memory blocks of one size, kept by each thread (P8). A block freed by a thread goes to that thread, which
 	 * hands it out again at its next request of that size: once warm, a thread that frees as much as it takes no longer
-	 * calls the allocator. Each thread keeps MAX_FREE_BLOCKS blocks at most and frees them when it ends.
+	 * calls the allocator. Each thread keeps MAX_FREE_BLOCKS blocks at most (about 1 MiB of them per size) and frees them
+	 * when it ends.
 	 **/
 	template<std::size_t SIZE>
 	class FreeBlocks final {
@@ -41,16 +60,6 @@ namespace cam {
 		struct Block {
 			Block* m_next;
 		};
-
-		/**
-		 * Size of a block, enough for the link.
-		 **/
-		static constexpr std::size_t BLOCK_SIZE = SIZE < sizeof(Block) ? sizeof(Block) : SIZE;
-
-		/**
-		 * Most free blocks kept by one thread; beyond them a block goes back to the allocator.
-		 **/
-		static constexpr std::size_t MAX_FREE_BLOCKS = 4096;
 
 		/**
 		 * Free blocks of the current thread (trivially destructible: usable until the thread ends).
@@ -83,17 +92,32 @@ namespace cam {
 
 	public:
 		/**
+		 * Size of a block, enough for the link.
+		 **/
+		static constexpr std::size_t BLOCK_SIZE = SIZE < sizeof(Block) ? sizeof(Block) : SIZE;
+
+		/**
+		 * Most free blocks kept by one thread, about 1 MiB of them, between 64 and 4096; beyond them a block goes back
+		 * to the allocator.
+		 **/
+		static constexpr std::size_t MAX_FREE_BLOCKS = std::min<std::size_t>(4096, std::max<std::size_t>(64, (std::size_t{1} << 20) / BLOCK_SIZE));
+
+		/**
 		 * Take a free block of the current thread, or a new one.
 		 * @return The block, BLOCK_SIZE bytes aligned for any standard type
 		 **/
 		static void* acquire() {
-			Block* l_block = s_free;
-			if (l_block == nullptr) {
+			if constexpr (!RECYCLE_BLOCKS) {
 				return ::operator new(BLOCK_SIZE);
+			} else {
+				Block* l_block = s_free;
+				if (l_block == nullptr) {
+					return ::operator new(BLOCK_SIZE);
+				}
+				s_free = l_block->m_next;
+				s_count--;
+				return l_block;
 			}
-			s_free = l_block->m_next;
-			s_count--;
-			return l_block;
 		}
 
 		/**
@@ -101,19 +125,23 @@ namespace cam {
 		 * @param p_block A block from acquire
 		 **/
 		static void release(void* p_block) {
-			if (s_closed || s_count >= MAX_FREE_BLOCKS) {
+			if constexpr (!RECYCLE_BLOCKS) {
 				::operator delete(p_block);
-				return;
+			} else {
+				if (s_closed || s_count >= MAX_FREE_BLOCKS) {
+					::operator delete(p_block);
+					return;
+				}
+				if (s_free == nullptr) {
+					// The first block kept by this thread makes sure the blocks are freed when the thread ends
+					static thread_local Owner s_owner;
+					(void) s_owner;
+				}
+				auto* l_block = static_cast<Block*>(p_block);
+				l_block->m_next = s_free;
+				s_free = l_block;
+				s_count++;
 			}
-			if (s_free == nullptr) {
-				// The first block kept by this thread makes sure the blocks are freed when the thread ends
-				static thread_local Owner s_owner;
-				(void) s_owner;
-			}
-			auto* l_block = static_cast<Block*>(p_block);
-			l_block->m_next = s_free;
-			s_free = l_block;
-			s_count++;
 		}
 	};
 

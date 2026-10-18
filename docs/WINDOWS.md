@@ -53,6 +53,7 @@
   - MSVC les accepte (C++17).
   - Avec la bibliothèque en DLL, chaque module (DLL, exécutable) a ses propres caches. Un bloc pris dans un module et rendu dans un autre est donc libéré par l'`operator delete` de cet autre module : il faut le même CRT partout (`/MD`, ce que fait CMake par défaut).
   - `__STDCPP_DEFAULT_NEW_ALIGNMENT__` est défini par MSVC en `/std:c++17` et au-delà.
+  - Sous AddressSanitizer (`/fsanitize=address`, qui définit `__SANITIZE_ADDRESS__`), les blocs ne sont pas recyclés, pour qu'ASan voie chaque libération ; les agents sur-alignés passent par `std::make_shared` (passe d'optimisation finale, D71).
 - **Non vérifié sous Windows** (D6).
 
 ## 3. Procédure de build proposée (à exécuter par toi, non vérifiée)

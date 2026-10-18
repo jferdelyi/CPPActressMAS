@@ -23,6 +23,7 @@
 
 #include "Agent.h"
 #include "util/Identifier.h"
+#include "util/RecyclingAllocator.hpp"
 #include "util/TurnPool.h"
 #include "tsl/ordered_map.h"
 
@@ -48,7 +49,8 @@ namespace cam {
 		/**
 		 * Agents: name, id
 		 **/
-		std::unordered_multimap<std::string, std::string> m_agents_by_name;
+		std::unordered_multimap<std::string, std::string, std::hash<std::string>, std::equal_to<std::string>,
+							   RecyclingAllocator<std::pair<const std::string, std::string>>> m_agents_by_name;
 
 		/**
 		 * New agent buffer

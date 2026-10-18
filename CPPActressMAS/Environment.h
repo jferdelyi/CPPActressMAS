@@ -34,6 +34,7 @@ using json = nlohmann::json;
 #include "Message.h"
 #include "Agent.h"
 #include "transport/Endpoint.h"
+#include "util/RecyclingAllocator.hpp"
 
 /**
  * CPPActressMAS
@@ -202,7 +203,7 @@ namespace cam {
 		 **/
 		template<ConceptAgent T>
 		const std::string& add(auto&& ... p_args) {
-			const auto& l_agent = AgentPointer(new T(std::forward<decltype(p_args)>(p_args)...));
+			const AgentPointer l_agent = make_agent<T>(std::forward<decltype(p_args)>(p_args)...);
 			l_agent->set_environment(this);
 			m_agent_collection.add(l_agent);
 			return l_agent->get_id();
@@ -473,7 +474,7 @@ namespace cam {
 		 **/
 		template<ConceptAgent T>
 		void register_agent_type(const std::string& p_type_name) {
-			m_agent_factories[p_type_name] = [](const std::string& p_name) { return AgentPointer(new T(p_name)); };
+			m_agent_factories[p_type_name] = [](const std::string& p_name) -> AgentPointer { return make_agent<T>(p_name); };
 			m_agent_type_names[std::type_index(typeid(T))] = p_type_name;
 		}
 
@@ -571,6 +572,21 @@ namespace cam {
 		virtual void on_delivery_failure(const transport::Error&) {}
 
 	private:
+
+		/**
+		 * Make an agent: one block for the agent and its counter, recycled per thread, unless its type needs more than
+		 * the default alignment of new (P8).
+		 * @param p_args Arguments of its constructor
+		 * @return The agent
+		 **/
+		template<ConceptAgent T>
+		static std::shared_ptr<T> make_agent(auto&& ... p_args) {
+			if constexpr (alignof(T) <= __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
+				return std::allocate_shared<T>(RecyclingAllocator<T>(), std::forward<decltype(p_args)>(p_args)...);
+			} else {
+				return std::make_shared<T>(std::forward<decltype(p_args)>(p_args)...);
+			}
+		}
 
 		/**
 		 * Turn boundary: apply what the transport delivered, then add the new agents

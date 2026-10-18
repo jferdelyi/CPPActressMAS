@@ -22,6 +22,7 @@
 
 #include <doctest/doctest.h>
 
+#include <cstdint>
 #include <type_traits>
 
 #include <Environment.h>
@@ -157,6 +158,45 @@ namespace {
 		}
 	};
 
+	// Reports its number to its parent at its first turn and stops, so it is removed at the next turn boundary.
+	struct Child final : cam::Agent {
+		Child(const std::string& p_name, std::string p_parent_id, const int p_number) :
+				Agent(p_name), m_parent_id(std::move(p_parent_id)), m_number(p_number) {}
+		void setup() override {
+			send(m_parent_id, json{{"child", m_number}});
+			stop();
+		}
+	private:
+		std::string m_parent_id;
+		int m_number;
+	};
+
+	// Adds a child at each action, five in all, and records the JSON reports of its children.
+	struct Parent final : cam::Agent {
+		explicit Parent(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			g_recorder.record("report:" + std::to_string(p_message->as_json().at("child").get<int>()));
+			spawn();
+		}
+		void default_action() override { spawn(); }
+	private:
+		void spawn() {
+			if (m_children < 5) {
+				m_children++;
+				get_environment()->add<Child>("child", get_id(), m_children);
+			}
+		}
+		int m_children = 0;
+	};
+
+	// Needs more than the default alignment of new; records whether it got it.
+	struct alignas(64) Aligned final : cam::Agent {
+		explicit Aligned(const std::string& p_name) : Agent(p_name) {}
+		void setup() override {
+			g_recorder.record(reinterpret_cast<std::uintptr_t>(this) % 64 == 0 ? "aligned" : "misaligned");
+		}
+	};
+
 	// Environment that records its turn and simulation hooks.
 	struct HookedEnvironment final : cam::Environment {
 		using cam::Environment::Environment;
@@ -279,6 +319,21 @@ TEST_SUITE("unit") {
 			CHECK(g_recorder.count_of("worker:json:\"" + l_mode + " json\"") == 3);
 		}
 		CHECK(g_recorder.count() == 18);
+	}
+
+	TEST_CASE("agents born and removed over the turns exchange JSON, and an over-aligned agent keeps its alignment (P8)") {
+		g_recorder.clear();
+		cam::Environment l_env(20, Mode::Sequential);
+		l_env.add<Parent>("parent");
+		l_env.add<Aligned>("aligned");
+		l_env.start();
+
+		for (int i = 1; i <= 5; i++) {
+			CHECK(g_recorder.count_of("report:" + std::to_string(i)) == 1);
+		}
+		CHECK(g_recorder.count_of("aligned") == 1);
+		CHECK(g_recorder.count_of("misaligned") == 0);
+		CHECK(l_env.agents_count() == 2);  // the children stopped and were removed
 	}
 
 	TEST_CASE("in Sequential mode the agents run in insertion order, after removals and additions (P9)") {

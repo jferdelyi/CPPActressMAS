@@ -19,6 +19,7 @@
 #include "Message.h"
 
 #include "util/Identifier.h"
+#include "util/RecyclingAllocator.hpp"
 
 namespace {
 
@@ -31,7 +32,7 @@ namespace {
 cam::Message::Message(std::string p_sender, std::string p_receiver, const json& p_message) :
 		m_sender(std::move(p_sender)),
 		m_receiver(std::move(p_receiver)),
-		m_content(std::make_shared<const json>(p_message)) {
+		m_content(std::shared_ptr<const json>(std::allocate_shared<json>(RecyclingAllocator<json>(), p_message))) {
 }
 
 cam::Message::Message(std::string p_sender, std::string p_receiver, std::shared_ptr<const json> p_message) :

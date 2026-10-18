@@ -20,6 +20,7 @@
 
 #include "Environment.h"
 #include "util/Identifier.h"
+#include "util/RecyclingAllocator.hpp"
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_id(generate_agent_id()),
@@ -29,7 +30,7 @@ cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_is_dead(false),
 		m_in_transit(false),
 		m_is_using_observables(p_using_observables),
-		m_observables(new Observables()) {}
+		m_observables(std::make_shared<Observables>()) {}
 
 void cam::Agent::run_turn(const bool p_run_setup_separately) {
 	if (is_dead() || is_in_transit()) {
@@ -102,7 +103,8 @@ namespace {
 	}
 
 	cam::MessageContent json_content(const json& p_message) {
-		return std::make_shared<const json>(p_message);
+		// The block of the value and its counter is recycled per thread (P8)
+		return std::shared_ptr<const json>(std::allocate_shared<json>(cam::RecyclingAllocator<json>(), p_message));
 	}
 
 	cam::MessageContent text_content(const char* p_text) {

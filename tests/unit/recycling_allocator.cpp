@@ -51,7 +51,10 @@ TEST_SUITE("unit") {
 		Probe<200>* l_first = l_allocator.allocate(1);
 		l_allocator.deallocate(l_first, 1);
 		Probe<200>* l_second = l_allocator.allocate(1);
-		CHECK(l_second == l_first);
+		// Under AddressSanitizer the blocks go back to the allocator, which sees every free (RECYCLE_BLOCKS)
+		if (cam::RECYCLE_BLOCKS) {
+			CHECK(l_second == l_first);
+		}
 		l_allocator.deallocate(l_second, 1);
 
 		std::vector<int, cam::RecyclingAllocator<int>> l_values;
@@ -59,6 +62,14 @@ TEST_SUITE("unit") {
 			l_values.push_back(i);
 		}
 		CHECK(std::accumulate(l_values.begin(), l_values.end(), 0) == 500500);
+	}
+
+	TEST_CASE("a thread keeps about 1 MiB of free blocks per size, between 64 and 4096 blocks") {
+		static_assert(cam::FreeBlocks<200>::MAX_FREE_BLOCKS == 4096);
+		static_assert(cam::FreeBlocks<1024>::MAX_FREE_BLOCKS == 1024);
+		static_assert(cam::FreeBlocks<64 * 1024>::MAX_FREE_BLOCKS == 64);
+		static_assert(cam::FreeBlocks<1>::BLOCK_SIZE == sizeof(void*));
+		CHECK(cam::FreeBlocks<1024>::MAX_FREE_BLOCKS * cam::FreeBlocks<1024>::BLOCK_SIZE == std::size_t{1} << 20);
 	}
 
 	TEST_CASE("objects made through std::allocate_shared are built once and destroyed once") {
