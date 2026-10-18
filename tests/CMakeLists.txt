@@ -155,6 +155,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.mpsc_queue PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.mpsc_queue)
 
+	# Blocks recycled per thread (P8): reuse, release from another thread, threads that end, arrays.
+	add_executable(cam_recycling_allocator_tests unit/recycling_allocator.cpp)
+	target_link_libraries(cam_recycling_allocator_tests cam_doctest_main ${CAM_TEST_LIBRARY})
+	add_test(NAME unit.recycling_allocator COMMAND cam_recycling_allocator_tests)
+	set_tests_properties(unit.recycling_allocator PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.recycling_allocator)
+
 	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 	add_executable(cam_identifier_tests unit/identifier.cpp)
 	target_link_libraries(cam_identifier_tests cam_doctest_main ${CAM_TEST_LIBRARY})

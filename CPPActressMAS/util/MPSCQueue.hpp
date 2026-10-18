@@ -19,7 +19,9 @@
 #pragma once
 
 #include <atomic>
-#include <cstddef>
+#include <new>
+
+#include "RecyclingAllocator.hpp"
 
 /**
  * CPPActressMAS
@@ -29,7 +31,7 @@ namespace cam {
 	/**
 	 * MPSC (Multiple Producer Single Consumer) lock free queue from CPP Benchmark
 	 * https://github.com/chronoxor/CppBenchmark/blob/master/examples/lockfree/mpsc-queue.hpp
-	 * The nodes are recycled through a cache per thread, so a warm queue allocates nothing (P8).
+	 * The nodes come from the free blocks of each thread (FreeBlocks), so a warm queue allocates nothing (P8).
 	 */
 	template<typename T>
 	class MPSCQueue {
@@ -43,70 +45,20 @@ namespace cam {
 		typedef char MPSCQueuePad[64];
 
 		/**
-		 * Most free nodes kept by one thread, beyond them a node is deleted
-		 */
-		static constexpr std::size_t MAX_FREE_NODES = 4096;
-
-		/**
-		 * Free nodes of the current thread, linked by next (trivially destructible: usable until the thread ends)
-		 */
-		static inline thread_local MPSCQueueNode* s_free_nodes = nullptr;
-
-		/**
-		 * Number of free nodes of the current thread
-		 */
-		static inline thread_local std::size_t s_free_count = 0;
-
-		/**
-		 * True once the free nodes of the current thread are deleted: the nodes released later are deleted at once
-		 */
-		static inline thread_local bool s_free_closed = false;
-
-		/**
-		 * Deletes the free nodes of a thread when it ends
-		 */
-		struct FreeNodesOwner {
-			~FreeNodesOwner() {
-				while (MPSCQueueNode* l_node = s_free_nodes) {
-					s_free_nodes = l_node->next.load(std::memory_order_relaxed);
-					delete l_node;
-				}
-				s_free_count = 0;
-				s_free_closed = true;
-			}
-		};
-
-		/**
-		 * Take a free node of the current thread, or a new one
+		 * A node from the free blocks of the current thread
 		 * @return The node
 		 */
 		static MPSCQueueNode* acquire_node() {
-			MPSCQueueNode* l_node = s_free_nodes;
-			if (l_node == nullptr) {
-				return new MPSCQueueNode;
-			}
-			s_free_nodes = l_node->next.load(std::memory_order_relaxed);
-			s_free_count--;
-			return l_node;
+			return new(FreeBlocks<sizeof(MPSCQueueNode)>::acquire()) MPSCQueueNode;
 		}
 
 		/**
-		 * Give a node back to the current thread, whose item was moved out
+		 * Give a node back to the free blocks of the current thread, whose item was moved out
 		 * @param p_node The node
 		 */
 		static void release_node(MPSCQueueNode* p_node) {
-			if (s_free_closed || s_free_count >= MAX_FREE_NODES) {
-				delete p_node;
-				return;
-			}
-			if (s_free_nodes == nullptr) {
-				// The first node kept by this thread makes sure the cache is deleted when the thread ends
-				static thread_local FreeNodesOwner s_owner;
-				(void) s_owner;
-			}
-			p_node->next.store(s_free_nodes, std::memory_order_relaxed);
-			s_free_nodes = p_node;
-			s_free_count++;
+			p_node->~MPSCQueueNode();
+			FreeBlocks<sizeof(MPSCQueueNode)>::release(p_node);
 		}
 
 		/**

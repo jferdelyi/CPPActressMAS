@@ -24,6 +24,7 @@
 #include "transport/codec/ContentCodec.h"
 #include "transport/Facade.h"
 #include "util/Identifier.h"
+#include "util/RecyclingAllocator.hpp"
 
 namespace {
 
@@ -141,7 +142,9 @@ cam::Environment::send(const std::string& p_sender_id, const std::string& p_rece
 
 cam::MessagePointer cam::Environment::make_message(const std::string& p_sender_id, const std::string& p_receiver_id,
 												   MessageContent&& p_content, const std::string& p_sender_environment) {
-	return std::make_shared<Message>(Message::Key(), p_sender_id, p_receiver_id, std::move(p_content), p_sender_environment);
+	// The block of the message and its counter is recycled by the thread that drops the last reference (P8)
+	return std::allocate_shared<Message>(RecyclingAllocator<Message>(), Message::Key(), p_sender_id, p_receiver_id, std::move(p_content),
+										 p_sender_environment);
 }
 
 bool cam::Environment::deliver_local(const std::string& p_sender_id, const std::string& p_receiver_id,

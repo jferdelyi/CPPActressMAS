@@ -49,6 +49,10 @@
   - `std::atomic::wait` et `notify_*` (C++20) : MSVC 19.28 et suivants, Windows 8 et suivants (`WaitOnAddress`) ;
   - attente active par `_mm_pause` sur x64 (`<immintrin.h>`). Sous ARM64 avec MSVC, aucune instruction de pause n'est émise : l'attente est seulement plus coûteuse en énergie ;
   - `Externals/ThreadPool` n'est plus utilisé.
+- **Blocs recyclés par fil** (`CPPActressMAS/util/RecyclingAllocator.hpp`, suite de 3B, lots 6 et 9) : membres `static inline thread_local` de modèles d'en-tête, pour les nœuds de `MPSCQueue` et les messages.
+  - MSVC les accepte (C++17).
+  - Avec la bibliothèque en DLL, chaque module (DLL, exécutable) a ses propres caches. Un bloc pris dans un module et rendu dans un autre est donc libéré par l'`operator delete` de cet autre module : il faut le même CRT partout (`/MD`, ce que fait CMake par défaut).
+  - `__STDCPP_DEFAULT_NEW_ALIGNMENT__` est défini par MSVC en `/std:c++17` et au-delà.
 - **Non vérifié sous Windows** (D6).
 
 ## 3. Procédure de build proposée (à exécuter par toi, non vérifiée)
