@@ -8,7 +8,7 @@ library at its best; a harness program reproduces the C#, line for line.
 | Path | Role |
 |---|---|
 | `ports/<Project>.cpp` | One program per C# project, named after it (`Agents1`, `BDI`, `PingPong`, ...): the C# original on the mechanics of the library, same agents, names, texts (typos included) and logic, its bugs kept. Built as `iso_<Project>` with the tests, examples or not. |
-| `oracles/<Oracle>.txt` | Raw output of the C# original, with a `#cam` header (C# commit, runtime, command, seed, and what replaces original code: form stubs, bounded number of turns, a scenario patch), produced by `tools/csharp-ref` in a container. The C++ tests never run .NET. |
+| `oracles/<Oracle>.txt` | Raw output of the C# original, with a `#cam` header (C# commit, runtime, command, seed, and what replaces original code: form stubs, bounded number of turns, a scenario patch), produced by `tests/tools/csharp-ref` in a container. The C++ tests never run .NET. |
 | `rules/<Oracle>.rules` | The facts of the output and how they are compared: exact sequence, multiset, order within a group, invariants (grammar at the top of `iso_check.cpp`). |
 | `iso_check.cpp` | The comparison tool: runs a program, extracts the facts of both outputs and compares them. |
 | `DotNet.hpp` | .NET behaviour the ports need: number formatting and parsing (`format_fixed` as `ToString("F2")`, `to_string` as `Double.ToString()`, `to_int32` as `Convert.ToInt32`, invariant culture), `write` and `write_line` (one piece per line, as `Console.WriteLine`), and the seeds of the oracles (`next_site_seed`). Checked by `unit.dotnet_format` and `unit.dotnet_site_seed` against vectors of the C#. |
@@ -23,7 +23,7 @@ are copied, with the arguments that match the oracle (the number of turns of an 
 - **Invariants**, for a parallel one: what does not depend on the interleaving, such as the lines of each agent in order, multisets, counts, sums and turn barriers (`Agents1`, `Agents3`, `Agents4`, `Agents5`, `MultipleMessages`, `SendingObjects`, `PingPong`, `Skynet`).
 
 **Random draws.** A C# example creates its `System.Random` without a seed; the oracle seeds each one from its call site
-(`tools/csharp-ref/README.md`), and the port draws from the same seed (`cam::dotnet::next_site_seed`). `CAM_SEED` in
+(`tests/tools/csharp-ref/README.md`), and the port draws from the same seed (`cam::dotnet::next_site_seed`). `CAM_SEED` in
 the environment changes them on both sides; with it set, a port reports its seeds on the error output as the oracle
 does (`#camrng`).
 

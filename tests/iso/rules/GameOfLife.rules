@@ -1,5 +1,5 @@
 # E13 Game of Life: sequential, fixed order, no random draw, so the C# guarantees the order of every line (exact
-# trace, level (a)). 60 turns, 30 generations (the oracle bounds noTurns, tools/csharp-ref), delay 0: the perception is
+# trace, level (a)). 60 turns, 30 generations (the oracle bounds noTurns, tests/tools/csharp-ref), delay 0: the perception is
 # O(n²) as in the C# (626 agents), and 120 turns took 240 s under TSan, too close to the time limit. Each "evolve" or
 # "update" line of the grid starts a section, followed by the 25 rows of the grid it shows: the rows are compared with
 # their section.

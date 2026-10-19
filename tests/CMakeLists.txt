@@ -1,6 +1,6 @@
 # Tests of CPPActressMAS.
 #
-# CTest labels: unit, characterization, iso (reserved), integration, mqtt, zenoh (reserved), perf (bench/).
+# CTest labels: unit, characterization, iso (reserved), integration, mqtt, zenoh (reserved), perf (tests/bench/).
 #
 # Characterization tests pin the behaviour of known defects (IDs from docs/port/00-analyse-initiale.md):
 #   - crash probes run one process per probe (cam_probes <name>); the expected failure is the sanitizer
@@ -133,7 +133,7 @@ add_custom_command(TARGET iso_GameOfLife POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/Examples/GameOfLife/patterns.txt $<TARGET_FILE_DIR:iso_GameOfLife>)
 
 # Runs the harness program of a C# project and compares its facts with the output of the C# original
-# (tests/iso/oracles/<oracle>.txt, produced by tools/csharp-ref) under tests/iso/rules/<oracle>.rules. The oracle is
+# (tests/iso/oracles/<oracle>.txt, produced by tests/tools/csharp-ref) under tests/iso/rules/<oracle>.rules. The oracle is
 # named after the project unless ORACLE names another one (a scenario of the same project), the test is iso.<oracle>
 # unless NAME says otherwise; the other arguments go to the program, which runs from its own folder, where its data
 # files are copied. Label iso.
@@ -322,7 +322,7 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.removal PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.removal)
 
-	# Generator of the seeded System.Random (D82), against the vectors produced by tools/csharp-ref.
+	# Generator of the seeded System.Random (D82), against the vectors produced by tests/tools/csharp-ref.
 	add_executable(cam_dotnet_random_tests unit/dotnet_random.cpp)
 	target_link_libraries(cam_dotnet_random_tests cam_doctest_main ${CAM_TEST_LIBRARY})
 	target_compile_definitions(cam_dotnet_random_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")

@@ -206,7 +206,7 @@ namespace cam::dotnet {
 
 	/**
 	 * Seed that the seed shim of the oracles gives to the k-th System.Random created at a call site of the C#
-	 * (tools/csharp-ref/README.md): the low 31 bits of SplitMix64(SplitMix64(base ^ FNV-1a("File.cs:line")) + k).
+	 * (tests/tools/csharp-ref/README.md): the low 31 bits of SplitMix64(SplitMix64(base ^ FNV-1a("File.cs:line")) + k).
 	 * @param p_site The call site, file name and line ("EnvironmentMas.cs:61")
 	 * @param p_instance The rank k of the instance at this site, from 0
 	 * @param p_base The base, CAM_SEED of the oracle

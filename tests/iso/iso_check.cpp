@@ -22,7 +22,7 @@
 //        iso_check <rules> <oracle> --actual <file>          compares a saved output (fixtures)
 //        iso_check --extract <rules> <file>                  prints the facts of an output
 //
-// The oracle is the raw output of the C# example (tests/iso/oracles/, produced by tools/csharp-ref); lines starting
+// The oracle is the raw output of the C# example (tests/iso/oracles/, produced by tests/tools/csharp-ref); lines starting
 // with "#cam" are its header. A rules file holds one rule per line ('#' starts a comment):
 //   fact NAME REGEX             each line matching REGEX (searched) gives a tuple: its groups, or the whole match
 //   section REGEX               a line matching REGEX starts a new section; every tuple then begins with its section

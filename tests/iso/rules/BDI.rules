@@ -1,5 +1,5 @@
 # E02 BDI Architecture: sequential, fixed order, no random draw, so the C# guarantees the order of every line (exact
-# trace, level (a)). 120 turns (the oracle bounds noTurns, tools/csharp-ref), delay 0. "order" checks how the kinds of
+# trace, level (a)). 120 turns (the oracle bounds noTurns, tests/tools/csharp-ref), delay 0. "order" checks how the kinds of
 # line interleave, the other facts their contents in sequence: together, the whole trace.
 cover all
 fact order ^(Starting|\t\[[\w-]+ -> [\w-]+\]|Adopting|GUI)

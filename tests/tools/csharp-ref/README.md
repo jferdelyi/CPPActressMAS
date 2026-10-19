@@ -10,7 +10,7 @@ The C++ tests never need .NET: the oracles are produced here once and versioned 
 ## Usage
 
 ```
-tools/csharp-ref/csharp-ref.sh WORKDIR ACTION [net10|net8]
+tests/tools/csharp-ref/csharp-ref.sh WORKDIR ACTION [net10|net8]
 ```
 
 - `WORKDIR`: a work folder outside the repository (under `$HOME`). `ref/` is copied into it at each run and every build

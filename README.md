@@ -92,11 +92,11 @@ cmake --preset asan && cmake --build --preset asan && ctest --preset asan -L cha
 
 ## Benchmarks
 
-`bench/` holds the measurement copies of the C# E30 benchmarks (PingPong, Skynet, SkynetNumeric), the end-to-end transport benchmark (`bench_Transport`) and the envelope codec micro-benchmark (`bench_Envelope`): same workloads and measured scope as the C# programs, atomic counters, `steady_clock`, a deterministic variant (`--sequential`), linked to the static library and built without `-march=native` nor `-flto`:
+`tests/bench/` holds the measurement copies of the C# E30 benchmarks (PingPong, Skynet, SkynetNumeric), the end-to-end transport benchmark (`bench_Transport`) and the envelope codec micro-benchmark (`bench_Envelope`): same workloads and measured scope as the C# programs, atomic counters, `steady_clock`, a deterministic variant (`--sequential`), linked to the static library and built without `-march=native` nor `-flto`:
 ``` bash
 cmake --preset bench && cmake --build --preset bench
-build/bench/bench/bench_Skynet
-build/bench/bench/bench_PingPong --sequential --trials 3
+build/bench/tests/bench/bench_Skynet
+build/bench/tests/bench/bench_PingPong --sequential --trials 3
 ```
 
 ## Exemples

@@ -5,7 +5,7 @@
 # Examples/Benchmarks/ stays the faithful port of the C# examples; these are the measurement copies.
 
 if (NOT TARGET CPPActressMASStatic)
-	message(FATAL_ERROR "bench/ links to CPPActressMASStatic: configure with -DBUILD_STATIC=ON")
+	message(FATAL_ERROR "tests/bench/ links to CPPActressMASStatic: configure with -DBUILD_STATIC=ON")
 endif()
 
 function(cam_add_bench p_name)
