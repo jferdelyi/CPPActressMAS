@@ -16,11 +16,11 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.NumberGame.
 // Port of the C# example E12 Simple Observables/NumberGame (ActressMAS v3.1): three agents publish a number between 0
 // and 30, written with two decimals; each sees the agents whose number is within 10 of its own, then draws another.
-// Sequential, fixed order, 10 turns; the numbers are drawn as the C# draws them (the seed of its oracle, D96).
+// Sequential, fixed order, 10 turns; the numbers are drawn as the C# draws them (the seed of its oracle).
 
 #include <cmath>
 #include <cstdlib>

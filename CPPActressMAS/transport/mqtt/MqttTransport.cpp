@@ -391,7 +391,7 @@ namespace cam::transport {
 		}
 		struct mosquitto* l_handle = m_client->m_handle;
 		mosquitto_int_option(l_handle, MOSQ_OPT_PROTOCOL_VERSION, m_options.m_mqtt5 ? MQTT_PROTOCOL_V5 : MQTT_PROTOCOL_V311);
-		mosquitto_int_option(l_handle, MOSQ_OPT_TCP_NODELAY, 1);  // small packets leave at once (N18)
+		mosquitto_int_option(l_handle, MOSQ_OPT_TCP_NODELAY, 1);  // small packets leave at once
 		mosquitto_reconnect_delay_set(l_handle, static_cast<unsigned int>(m_options.m_reconnect_min.count()),
 									  static_cast<unsigned int>(m_options.m_reconnect_max.count()), true);
 		mosquitto_connect_v5_callback_set(l_handle, &Client::on_connect);

@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, compared with its oracle by
+// Harness program of the oracle tests (tests/iso): the C# original as it is, compared with its oracle by
 // iso.Skynet.
 // Port of the C# benchmark E30 Benchmarks/Skynet (ActressMAS v3.1): each agent creates up to ten children, numbered
 // id * 10 + i below 10 000, in its setup; the leaves send their number to their parent, which adds the numbers of its

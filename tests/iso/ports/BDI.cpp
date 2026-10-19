@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.BDI.
 // Port of the C# example E02 BDI Architecture (ActressMAS v3.1): a patrol walks along a terrain of 15 cells and puts
 // out the fires that start on it, with water taken from the left end. The patrol is a BDI agent: beliefs revised from

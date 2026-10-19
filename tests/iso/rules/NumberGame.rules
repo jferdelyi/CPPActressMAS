@@ -1,4 +1,4 @@
-# E12 NumberGame: sequential, fixed order, numbers drawn by a static Random seeded as the oracle (D96) and written with
+# E12 NumberGame: sequential, fixed order, numbers drawn by a static Random seeded as the oracle and written with
 # two decimals (F2), so the C# fixes the order of every line (exact trace, level (a)). Each turn, each agent says the
 # agents whose number is within 10 of its own, then draws another.
 cover all

@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Identifiers (D58): version 4 UUIDs for environments, nodes and transfers; 15 base62 characters for agents,
+// Identifiers: version 4 UUIDs for environments, nodes and transfers; 15 base62 characters for agents,
 // short enough for the internal buffer of std::string. Unique over many draws and from several threads.
 
 #include <doctest/doctest.h>
@@ -116,7 +116,7 @@ TEST_SUITE("unit") {
 		CHECK(l_ids.size() == 2 * DRAWS);
 	}
 
-	TEST_CASE("agents are found by identifier through their hash, which spreads over the low bits (P14, D76)") {
+	TEST_CASE("agents are found by identifier through their hash, which spreads over the low bits") {
 		const std::hash<cam::AgentId> l_hash;
 		tsl::ordered_map<cam::AgentId, int> l_agents;
 		std::vector<cam::AgentId> l_ids;
@@ -144,7 +144,7 @@ TEST_SUITE("unit") {
 		CHECK(l_agents.at(l_short) == -1);
 	}
 
-	TEST_CASE("agent identifiers compare like their characters, whatever their length (P14, D76)") {
+	TEST_CASE("agent identifiers compare like their characters, whatever their length") {
 		for (int i = 0; i < 1000; i++) {
 			const std::string l_text = cam::generate_agent_id();
 			const cam::AgentId l_id(l_text);

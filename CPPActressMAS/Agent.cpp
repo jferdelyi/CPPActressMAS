@@ -48,7 +48,7 @@ void cam::Agent::run_parallel_turn() {
 }
 
 void cam::Agent::run_phases(const bool p_run_setup_separately) {
-	// Once its turn has begun the agent runs every phase, even if it stops on the way, as the C# (C26, ISO m)
+	// Once its turn has begun the agent runs every phase, even if it stops on the way, as the C#
 	if (p_run_setup_separately) {
 		if (!is_setup()) {
 			internal_setup();
@@ -91,7 +91,7 @@ void cam::Agent::stop() {
 	if (m_environment) {
 		m_environment->retire(*this);
 	} else {
-		m_is_dead.store(true, std::memory_order_relaxed);  // stopped before being added (C11)
+		m_is_dead.store(true, std::memory_order_relaxed);  // stopped before being added
 	}
 }
 
@@ -110,7 +110,7 @@ namespace {
 	}
 
 	cam::MessageContent json_content(const json& p_message) {
-		// The block of the value and its counter is recycled per thread (P8)
+		// The block of the value and its counter is recycled per thread
 		return std::shared_ptr<const json>(std::allocate_shared<json>(cam::RecyclingAllocator<json>(), p_message));
 	}
 

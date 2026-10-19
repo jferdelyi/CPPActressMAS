@@ -13,7 +13,7 @@ include_directories(ThirdParty/json/single_include ThirdParty/ordered-map/includ
 include_directories(CPPActressMAS)
 
 # The core has no network dependency by default: each network transport joins the library behind its
-# option (D1, D22, D48), with its own dependencies, and Environment::connect(url) selects the schemes
+# option, with its own dependencies, and Environment::connect(url) selects the schemes
 # compiled in (CAM_TRANSPORT_* definitions, no registry).
 file(GLOB SOURCES
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h**
@@ -61,7 +61,7 @@ if (BUILD_SHARED)
 			target_compile_options(CPPActressMAS PRIVATE /O2 /W4 /LTCG)
 		else()
 			target_compile_options(CPPActressMAS PRIVATE -march=native -O3 -flto -Wall -Wextra -Wpedantic)
-			# Objects compiled with -flto are LLVM bitcode under clang: GNU ld needs -flto at link time too (B18).
+			# Objects compiled with -flto are LLVM bitcode under clang: GNU ld needs -flto at link time too.
 			target_link_options(CPPActressMAS PRIVATE -flto)
 		endif()
 	endif()
@@ -102,7 +102,7 @@ if (CAM_TRANSPORT_ZENOH)
 	cam_add_transport(ZENOH CAM_TRANSPORT_ZENOH)
 endif()
 
-# Compatibility name of the former facade library (1C to 2B): the facade is part of the core now.
+# Compatibility name of the former facade library: the facade is part of the core now.
 add_library(cam_transport INTERFACE)
 target_link_libraries(cam_transport INTERFACE ${CAM_CORE_TARGET})
 

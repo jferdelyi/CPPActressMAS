@@ -16,11 +16,11 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.Agents1.
 // Port of the C# example E00 Simple Examples/Agents1 (ActressMAS v3.1): two agents send ten messages each to a
 // monitor during their setup, with random pauses of 10 to 99 ms; the monitor prints what it receives. Parallel,
-// 100 turns. The pauses come from the seed of the C# oracle (D96); both agents draw from one generator, as from the
+// 100 turns. The pauses come from the seed of the C# oracle; both agents draw from one generator, as from the
 // static Random of the C#, but under a lock: the C# draws without one, which C++ cannot do without undefined behaviour.
 
 #include <chrono>

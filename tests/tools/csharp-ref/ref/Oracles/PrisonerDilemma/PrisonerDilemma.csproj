@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Oracle of the C# example E10 Iterated Prisoner Dilemma (D82): original sources unchanged, see ../Oracle.props -->
+  <!-- Oracle of the C# example E10 Iterated Prisoner Dilemma: original sources unchanged, see ../Oracle.props -->
   <PropertyGroup>
     <OracleSources>$(AmasEx)E10 Iterated Prisoner Dilemma/</OracleSources>
   </PropertyGroup>

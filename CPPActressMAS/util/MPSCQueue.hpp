@@ -31,7 +31,7 @@ namespace cam {
 	/**
 	 * MPSC (Multiple Producer Single Consumer) lock free queue from CPP Benchmark
 	 * https://github.com/chronoxor/CppBenchmark/blob/master/examples/lockfree/mpsc-queue.hpp
-	 * The nodes come from the free blocks of each thread (FreeBlocks), so a warm queue allocates nothing (P8).
+	 * The nodes come from the free blocks of each thread (FreeBlocks), so a warm queue allocates nothing.
 	 */
 	template<typename T>
 	class MPSCQueue {
@@ -129,7 +129,7 @@ namespace cam {
 				return false;
 			}
 
-			// Moved out: the node that becomes the sentinel no longer keeps the item alive (C17)
+			// Moved out: the node that becomes the sentinel no longer keeps the item alive
 			p_output_item = std::move(l_next->data);
 			m_tail.store(l_next, std::memory_order_release);
 			release_node(l_tail);

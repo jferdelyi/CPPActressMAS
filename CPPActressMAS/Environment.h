@@ -55,7 +55,7 @@ namespace cam {
 	};
 
 	/**
-	 * Generator of the random order and of random_agent (D82): Mt19937 draws the same numbers with every standard
+	 * Generator of the random order and of random_agent: Mt19937 draws the same numbers with every standard
 	 * library; DotNet draws as the seeded System.Random of .NET (seeded with the int value of the seed), so that a port
 	 * follows the order of the C# exactly.
 	 **/
@@ -67,7 +67,7 @@ namespace cam {
 	class Agent;
 
 	/**
-	 * Configuration of an environment, written with designated initializers (D82):
+	 * Configuration of an environment, written with designated initializers:
 	 * cam::Environment l_environment({.m_turns = 100, .m_mode = cam::EnvironmentMasMode::Sequential});
 	 * m_turns: maximum number of turns, 0 for no limit; m_delay_after_turn: in milliseconds; m_seed: seed of the
 	 * random order, drawn from std::random_device when absent; m_random: its generator; m_url: transport URL, the
@@ -228,7 +228,7 @@ namespace cam {
 							 int p_delay_after_turn = 0, unsigned int p_seed = std::random_device()());
 
 		/**
-		 * Initializes a new instance of the Environment class from its configuration (D82), for instance
+		 * Initializes a new instance of the Environment class from its configuration, for instance
 		 * cam::Environment l_environment({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Sequential}).
 		 * @param p_config The configuration
 		 **/
@@ -242,7 +242,7 @@ namespace cam {
 		/**
 		 * Adds an agent to the environment.
 		 * @param p_args Argument to create a new agent
-		 * @return Id of the agent, a copy that stays valid after the agent is gone (C16)
+		 * @return Id of the agent, a copy that stays valid after the agent is gone
 		 **/
 		template<ConceptAgent T>
 		AgentId add(auto&& ... p_args) {
@@ -411,7 +411,7 @@ namespace cam {
 		 * Returns the id of a randomly selected agent from the environment: one draw of the generator of this
 		 * environment over the agents in their order, as RandomAgent of the C# (the stopped or removed ones excluded).
 		 * Any agent may come out, the one that calls included: a caller that wants another kind of agent draws again,
-		 * as the manager of the C# example E04 does (D85).
+		 * as the manager of the C# example E04 does.
 		 * @return The id, or nothing when no agent is left (the C# throws)
 		 **/
 		[[nodiscard]] std::optional<AgentId> random_agent() const;
@@ -529,7 +529,7 @@ namespace cam {
 		[[nodiscard]] transport::Statistics statistics() const;
 
 		/**
-		 * Give the agent type T a stable wire name in the catalogue of the process (AgentTypes, D82) and accept it here
+		 * Give the agent type T a stable wire name in the catalogue of the process (AgentTypes) and accept it here
 		 * when this environment has a list of accepted types. T is built as T(const std::string& name), then
 		 * load_state() restores it. Without it, add<T>() already names T automatically and CAM_AGENT_TYPE(T) gives a
 		 * stable name to a program that only receives T.
@@ -646,7 +646,7 @@ namespace cam {
 
 		/**
 		 * Make an agent: one block for the agent and its counter, recycled per thread, unless its type needs more than
-		 * the default alignment of new (P8).
+		 * the default alignment of new.
 		 * @param p_args Arguments of its constructor
 		 * @return The agent
 		 **/

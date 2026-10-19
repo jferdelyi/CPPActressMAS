@@ -67,7 +67,7 @@ namespace {
 
 	std::string normalise(const std::string& p_text, const bool p_sort) {
 		static const std::regex s_uuid("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
-		// Agent identifiers are 15 base62 characters since D58; they read as identifiers too
+		// Agent identifiers are 15 base62 characters; they read as identifiers too
 		static const std::regex s_agent_id("\\b[0-9A-Za-z]{15}\\b");
 		static const std::regex s_duration("[0-9]+ ?ms\\b");
 		std::string l_text = std::regex_replace(p_text, s_uuid, "<uuid>");

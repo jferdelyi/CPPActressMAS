@@ -16,12 +16,12 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.Agents3.
 // Port of the C# example E00 Simple Examples/Agents3 (ActressMAS v3.1): a monitor runs three start/done rounds with
 // four agents; the environment reports the end of each turn and of the simulation. Parallel, 10 turns, 100 ms after
 // each turn. The monitor addresses the agents in the order of the environment, the order of insertion in C++ (the C#
-// follows its ConcurrentDictionary, ISO e).
+// follows its ConcurrentDictionary).
 
 #include <algorithm>
 #include <map>

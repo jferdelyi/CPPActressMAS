@@ -85,7 +85,7 @@ namespace cam::transport {
 	};
 
 	/**
-	 * Wire format of the ActressMAS v3.1 ContainerServer, captured from the C# code (docs/port/22-actressmas-wire.md):
+	 * Wire format of the ActressMAS v3.1 ContainerServer, captured from the C# code:
 	 * a frame is a 38-byte header (01 FF, total length as a big-endian int32, two GUIDs never read, written as
 	 * zeros here) followed by UTF-16LE(Base64(MS-NRBF(ContainerMessage))). Only the records that BinaryFormatter
 	 * writes for a ContainerMessage and a Message are read and written, and the library must be the ActressMAS

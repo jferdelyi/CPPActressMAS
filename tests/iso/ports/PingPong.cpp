@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, compared with its oracle by
+// Harness program of the oracle tests (tests/iso): the C# original as it is, compared with its oracle by
 // iso.PingPong.
 // Port of the C# benchmark E30 Benchmarks/PingPong (ActressMAS v3.1): ten agents send a message to every other one, then
 // answer every message they receive, until 10 000 000 messages; five trials, a new environment for each. Parallel,

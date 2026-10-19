@@ -27,7 +27,7 @@ namespace {
 	constexpr std::string_view HEX_DIGITS = "0123456789abcdef";
 	constexpr std::string_view BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-	// One generator per thread, seeded once from the system entropy (P1: no random_device per character)
+	// One generator per thread, seeded once from the system entropy (no random_device per character)
 	std::mt19937_64& generator() {
 		thread_local std::mt19937_64 s_generator = [] {
 			std::random_device l_device;

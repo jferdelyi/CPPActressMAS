@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// End-to-end transport benchmark (docs/port/perf/PROTOCOLE.md): a ping agent in environment A and a
+// End-to-end transport benchmark: a ping agent in environment A and a
 // pong agent in environment B, each environment its own node of the transport, exchange round trips by
 // id through the directory. A round trip takes at least two turns (a remote message reaches its agent at
 // the turn after its reception), so the figure measures the transport path, not the local one.

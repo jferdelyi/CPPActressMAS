@@ -45,7 +45,7 @@ it (`#cam stub`, `#cam patch`):
   that the agents call and prints the state the form would draw, `ShowDialog` returns at once.
 - `<File>.cs.sed`: rewrites one line of the original `<File>.cs` into `WORKDIR/ref/Oracles/<Name>/Patched/<File>.cs`,
   compiled instead of the original: `noTurns` of an example that never stops (`Program.cs.sed`), or a scenario that
-  reaches a bug of the C# (`BDIAdjacent/TerrainAgent.cs.sed`, D89). The script stops if a rewrite does not change
+  reaches a bug of the C# (`BDIAdjacent/TerrainAgent.cs.sed`). The script stops if a rewrite does not change
   exactly one line.
 - `OracleData`: data files copied next to the program, which reads them from its working directory (`patterns.txt` of
   E13).

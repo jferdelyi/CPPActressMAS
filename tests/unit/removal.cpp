@@ -16,8 +16,8 @@
  *                                                                        *
  **************************************************************************/
 
-// Removal of agents (C10, C12, C5, D80): during a turn a removed agent is no longer counted, found by name nor sent to,
-// and the turn boundary destroys it; in Parallel mode it still runs in the turn if it has not yet, as the C# (ISO s);
+// Removal of agents: during a turn a removed agent is no longer counted, found by name nor sent to,
+// and the turn boundary destroys it; in Parallel mode it still runs in the turn if it has not yet, as the C#;
 // in the Sequential modes it is skipped if its turn has not come; outside a turn it is removed at once.
 // Agents record into a Recorder and never assert; the tests check after start().
 
@@ -110,7 +110,7 @@ TEST_SUITE("removal") {
 		for (int i = 0; i < 50; i++) {
 			l_env.add<Victim>("victim");
 		}
-		l_env.start();  // turn 0: setup; turn 1: the killer removes the victims, each of them runs in this turn (ISO s)
+		l_env.start();  // turn 0: setup; turn 1: the killer removes the victims, each of them runs in this turn, as in the C#
 		CHECK(g_recorder.count_of("victim:run") == 50);
 		CHECK(g_recorder.count_of("victim:got:late") == 0);  // sent after the removal: dropped, as the C#
 		CHECK(g_recorder.contains("killer:count:1"));

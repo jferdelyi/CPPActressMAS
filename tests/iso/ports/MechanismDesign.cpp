@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.MechanismDesign.
 // Port of the C# example E09 Mechanism Design (ActressMAS v3.1): a decision maker chooses how many street lights to
 // install from the net benefits the beneficiaries report, then taxes the pivotal ones (Clarke tax). The second run

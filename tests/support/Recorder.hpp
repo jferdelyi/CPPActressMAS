@@ -28,7 +28,7 @@ namespace cam::test {
 	/**
 	 * Thread-safe event log for tests.
 	 *
-	 * Agents never assert (an exception thrown by an agent is swallowed in Parallel mode, C14):
+	 * Agents never assert (an exception thrown by an agent is swallowed in Parallel mode):
 	 * they record what happens here and the test checks the entries after start() returns.
 	 **/
 	class Recorder final {

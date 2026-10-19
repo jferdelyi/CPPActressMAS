@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Deterministic variant of E30 PingPong for perf/PROTOCOLE.md (sequential, fixed order); the original is not modified -->
+  <!-- Deterministic variant of E30 PingPong for the performance comparison (sequential, fixed order); the original is not modified -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <AssemblyName>PingPongSeq</AssemblyName>

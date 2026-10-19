@@ -35,7 +35,7 @@ namespace cam::transport {
 
 	/**
 	 * Options of the Zenoh transport. Without multicast scouting, the session only reaches the
-	 * endpoints given here (an environment stays silent by default, D4).
+	 * endpoints given here (an environment stays silent by default).
 	 **/
 	struct ZenohOptions {
 		std::string m_mode = "peer";             ///< "peer" or "client"

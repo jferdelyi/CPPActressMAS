@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.GameOfLife.
 // Port of the C# example E13 Game of Life (ActressMAS v3.1): one agent per cell of a 25 x 25 grid, which sees the
 // observable state of its 8 neighbours, and a grid agent that makes the cells evolve, then update, turn after turn.

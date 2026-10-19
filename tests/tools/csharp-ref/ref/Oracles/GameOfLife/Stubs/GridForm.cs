@@ -1,4 +1,4 @@
-// Headless stand-in for the WinForms GridForm of E13 (D86): the oracle runs without any interface and prints, at each
+// Headless stand-in for the WinForms GridForm of E13: the oracle runs without any interface and prints, at each
 // refresh, the grid the form would draw: one line per row y, one character per column x (x living, . dead). SetOwner
 // only keeps the agent, ShowDialog returns at once.
 using System;

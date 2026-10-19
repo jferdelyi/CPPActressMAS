@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.SendingObjects.
 // Port of the C# example E00 Simple Examples/SendingObjects (ActressMAS v3.1): two agents send objects to each other
 // during their setup and print the objects they receive. Parallel, 10 turns. The C# sends the object itself

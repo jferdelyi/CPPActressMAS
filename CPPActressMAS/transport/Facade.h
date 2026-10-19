@@ -36,7 +36,7 @@
  * Common options: ns=, codec=protobuf|compact|json (protobuf by default). MQTT: mqtt=3.1.1, user=, password=, ca=,
  * cert=, key=, verify=0.
  * Zenoh: mode=peer|client, listen=tcp/host:port (repeatable, comma separated), scouting=multicast.
- * Without connect(), an environment stays offline (D4); a Zenoh URL needs a host, a listen option or
+ * Without connect(), an environment stays offline; a Zenoh URL needs a host, a listen option or
  * multicast scouting.
  */
 namespace cam::transport {
@@ -76,8 +76,8 @@ namespace cam::transport {
 	[[nodiscard]] Result<std::shared_ptr<Transport>> open(const std::string& p_url, TransportConfig p_config = {});
 
 	/**
-	 * Alias of Environment::connect(url, config), kept for the callers of the first steps; to be removed
-	 * at step 2D. Prefer p_environment.connect(p_url, p_config).
+	 * Alias of Environment::connect(url, config), kept for the former callers; to be removed.
+	 * Prefer p_environment.connect(p_url, p_config).
 	 * @param p_environment The environment
 	 * @param p_url The URL
 	 * @param p_config The endpoint configuration

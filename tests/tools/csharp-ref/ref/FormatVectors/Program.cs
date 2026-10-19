@@ -1,4 +1,4 @@
-// Vectors of the .NET number formatting and parsing used by the C# examples (D82), with the invariant culture of the
+// Vectors of the .NET number formatting and parsing used by the C# examples, with the invariant culture of the
 // harness (InvariantGlobalization). One line per case:
 //   D|<IEEE-754 bits>|<F2>|<F3>|<F4>|<ToString()>
 //   I|<UTF-16 code units of the input, hex>|<Convert.ToInt32 result, or the exception name>

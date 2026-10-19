@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.PrisonerDilemma.
 // Port of the C# example E10 Iterated Prisoner Dilemma (ActressMAS v3.1): two prisoners play ten rounds against the
 // police, which computes the outcome of each round; tit for tat cooperates first, then copies the other prisoner.

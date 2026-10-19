@@ -16,11 +16,11 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.ColorGame.
 // Port of the C# example E12 Simple Observables/ColorGame (ActressMAS v3.1): three agents publish a color; each sees
 // the agents whose color is the one it looks for (its perception filter), says what it saw, then draws a new color.
-// Sequential, fixed order, 10 turns; the colors are drawn as the C# draws them (the seed of its oracle, D96).
+// Sequential, fixed order, 10 turns; the colors are drawn as the C# draws them (the seed of its oracle).
 
 #include <cstdint>
 #include <iostream>

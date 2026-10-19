@@ -1,8 +1,8 @@
 # Oracle tests: ISO comparison with the C# originals
 
 The harness checks that the library behaves as ActressMAS v3.1 (C#): each C# example is ported as it is, its bugs
-included, and its output is compared with the output of the C# original by facts, never character by character
-(D74, D82, D98). These programs are not the examples of the library (`Examples/`): an example shows how to use the
+included, and its output is compared with the output of the C# original by facts, never character by character.
+These programs are not the examples of the library (`Examples/`): an example shows how to use the
 library at its best; a harness program reproduces the C#, line for line.
 
 | Path | Role |

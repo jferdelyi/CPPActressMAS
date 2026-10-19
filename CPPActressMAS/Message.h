@@ -55,7 +55,7 @@ namespace cam {
 	};
 
 	/**
-	 * Immutable text shared between messages, like a C# string (D76): sending it to many agents, or many times, copies a
+	 * Immutable text shared between messages, like a C# string: sending it to many agents, or many times, copies a
 	 * pointer instead of the characters. Optional: a std::string or a literal is sent as before.
 	 **/
 	class Text final {
@@ -143,7 +143,7 @@ namespace cam {
 		};
 
 		/**
-		 * Message built by the environment: identifiers copied once, content moved in (P8).
+		 * Message built by the environment: identifiers copied once, content moved in.
 		 * @param p_key Key of the environment.
 		 * @param p_sender Sender.
 		 * @param p_receiver Receiver.
@@ -270,7 +270,7 @@ namespace cam {
 		[[nodiscard]] /*virtual*/ std::string format() const;
 
 		/**
-		 * As Parse(out action, out List<string> parameters) of the C# (G2, D82): the content split at every white
+		 * As Parse(out action, out List<string> parameters) of the C#: the content split at every white
 		 * space (Unicode, as String.Split() without argument), empty words kept; the first word is the action.
 		 * @return The action and the other words
 		 **/
@@ -295,7 +295,7 @@ namespace cam {
 		Message& operator=(Message&) = delete;
 
 		/**
-		 * Memory of a message built on the heap, from the free blocks of the current thread (P8).
+		 * Memory of a message built on the heap, from the free blocks of the current thread.
 		 * @param p_size Size of the message
 		 * @return The memory
 		 **/
@@ -309,7 +309,7 @@ namespace cam {
 	};
 
 	/**
-	 * Shared pointer to a message, the counter inside the message (D76): a copy changes one atomic counter, and the
+	 * Shared pointer to a message, the counter inside the message: a copy changes one atomic counter, and the
 	 * message with its counter is one block, recycled per thread. Only the environment makes one; an agent receives,
 	 * copies, keeps and drops them.
 	 **/

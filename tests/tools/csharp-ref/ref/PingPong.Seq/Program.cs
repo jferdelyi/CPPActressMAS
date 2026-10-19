@@ -1,6 +1,6 @@
 // Copy of ActressMAS v3.1 E30 Benchmarks/PingPong/Program.cs for the CPPActressMAS performance protocol: the only
 // change is the environment, sequential in a fixed order (parallel: false, randomOrder: false), the deterministic
-// variant that perf/PROTOCOLE.md takes as the main comparison (the C++ counterpart is bench_PingPong --sequential).
+// variant that the performance comparison takes as the main one (the C++ counterpart is bench_PingPong --sequential).
 // The original program sets parallel: true and keeps an alternative line commented out with parallel: false.
 using ActressMas;
 using System;

@@ -102,7 +102,7 @@ namespace cam::transport {
 	};
 
 	/**
-	 * Per-message options. The defaults come from the environment (D19): local scope, encoding chosen by
+	 * Per-message options. The defaults come from the environment: local scope, encoding chosen by
 	 * the send overload, priority reserved (always 0 today).
 	 **/
 	struct SendOptions {
@@ -257,7 +257,7 @@ namespace cam::transport {
 
 	/**
 	 * Exception carrying a transport error, thrown where no Result can be returned: Environment::start() when the URL
-	 * of its configuration does not connect (D82).
+	 * of its configuration does not connect.
 	 **/
 	struct TransportError final : std::runtime_error {
 		Error m_error;

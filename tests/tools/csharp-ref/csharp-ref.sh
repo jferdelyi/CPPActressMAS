@@ -9,9 +9,9 @@
 #             Must live under $HOME or /private/tmp: plain /tmp is NOT shared with the VM (podman: "statfs ...: no such file").
 #   ACTION  : build | rng | trace | format | bench | e00 | probe | mono | shimcheck | oracles | all
 #             format   : FormatVectors (number formatting and parsing of .NET), for tests/iso/vectors/format.txt
-#             shimcheck: RngVectors through the seed shim, must equal ref/expected/rng-vectors.txt (D82)
+#             shimcheck: RngVectors through the seed shim, must equal ref/expected/rng-vectors.txt
 #             oracles  : runs every project of ref/Oracles (seed shim, CAM_SEED or 0) from its output folder into
-#                        WORKDIR/logs/oracles/<Name>.txt, the raw outputs to version in tests/iso/oracles/ (D82, D86)
+#                        WORKDIR/logs/oracles/<Name>.txt, the raw outputs to version in tests/iso/oracles/
 #             e20build | capture | e20 | e20mono   (ContainerServer harness, ref/E20; always net8: BinaryFormatter throws
 #             on net9+; e20mono adds the SHIPPED .NET Framework server and mobile containers under Mono, ref/mono/e20-mono.sh)
 #   flavor  : net10 (default, image mcr.microsoft.com/dotnet/sdk:10.0) or net8 (image mcr.microsoft.com/dotnet/sdk:8.0)
@@ -45,7 +45,7 @@ EX="$W/ActressMas/ActressMAS v3.1/Source Code and Examples/Examples"
 # example folder of an oracle project (its <OracleSources>, relative to Examples/)
 oracle_sources() { sed -n 's:.*<OracleSources>\$(AmasEx)\(.*\)</OracleSources>.*:\1:p' "$1"; }
 
-# Patched/<File>.cs of each <File>.cs.sed of an oracle project (D86, D91): the original file with one line rewritten
+# Patched/<File>.cs of each <File>.cs.sed of an oracle project: the original file with one line rewritten
 # (noTurns, a scenario that reaches a bug), written in WORKDIR/ref (never in the repository nor in the clone), compiled
 # instead of the original
 for sedf in "$W"/ref/Oracles/*/*.cs.sed; do
@@ -100,7 +100,7 @@ do_shimcheck() {
     echo "shim check: DIFFERENT from rng-vectors.txt" >&2; exit 1
   fi
 }
-do_oracles() {  # raw outputs of the oracle projects, CR removed, with a #cam header (D82)
+do_oracles() {  # raw outputs of the oracle projects, CR removed, with a #cam header
   local seed="${CAM_SEED:-0}" runtime
   mkdir -p "$W/logs/oracles"
   runtime="$(dn bash -c 'dotnet --list-runtimes | grep Microsoft.NETCore.App | tail -1' | tr -d '\r')"
@@ -123,7 +123,7 @@ do_oracles() {  # raw outputs of the oracle projects, CR removed, with a #cam he
         echo "#cam csharp ActressMas $REF_COMMIT, Examples/$sources (sources unchanged, seed shim)"
       fi
       echo "#cam runtime $runtime"
-      # what replaces original code, if anything: form stubs, bounded Program.cs (D86)
+      # what replaces original code, if anything: form stubs, bounded Program.cs
       for stub in "$stubs"*.cs; do [ -e "$stub" ] && echo "#cam stub $(basename "$stub") (form replaced, prints its state)"; done
       for sedf in "$dir"/*.cs.sed; do [ -e "$sedf" ] && sed "s/^/#cam patch $(basename "$sedf" .sed): /" "$sedf"; done
       echo "#cam command cd Oracles/$name/bin/Release/$TFM && dotnet $name.dll"

@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Oracle of the C# benchmark E30 Benchmarks/PingPong (D96, D98): original sources unchanged, see ../Oracle.props -->
+  <!-- Oracle of the C# benchmark E30 Benchmarks/PingPong: original sources unchanged, see ../Oracle.props -->
   <PropertyGroup>
     <OracleSources>$(AmasEx)E30 Benchmarks/PingPong/</OracleSources>
   </PropertyGroup>

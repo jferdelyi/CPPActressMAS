@@ -1,4 +1,4 @@
-// Seed shim of the C# oracles (CPPActressMAS, D82): every `new Random()` of an example or of the framework becomes a
+// Seed shim of the C# oracles (CPPActressMAS): every `new Random()` of an example or of the framework becomes a
 // System.Random seeded from its call site, so that an oracle run is reproducible and a C++ port can draw the same
 // numbers. GlobalUsings.cs maps the name Random to this class; the original sources are compiled unchanged.
 //

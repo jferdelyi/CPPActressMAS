@@ -40,7 +40,7 @@ namespace cam {
 	struct AgentTypeName {};
 
 	/**
-	 * Catalogue of the agent types of the process, for migration (Q27, D82): the wire name of each type, and a factory
+	 * Catalogue of the agent types of the process, for migration: the wire name of each type, and a factory
 	 * that builds an agent arriving under that name (T(const std::string& name), then load_state()). Filled by
 	 * Environment::add<T>() (automatic name), CAM_AGENT_TYPE(T) and Environment::register_agent_type<T>(name).
 	 * Thread-safe; one catalogue per process (a shared library holds it).
@@ -111,7 +111,7 @@ namespace cam {
 
 /**
  * Give the agent type T a stable wire name (its name as written) and put it in the catalogue of the process at start-up,
- * so that a program that only receives T by migration can build it (Q27, D82). At global scope, right after the class.
+ * so that a program that only receives T by migration can build it. At global scope, right after the class.
  * In a static library, a translation unit that only holds this line may be dropped by the linker.
  **/
 #define CAM_AGENT_TYPE(T) \

@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Number formatting and parsing of .NET for the harness programs (tests/iso/DotNet.hpp, D82): every case of
+// Number formatting and parsing of .NET for the harness programs (tests/iso/DotNet.hpp): every case of
 // tests/iso/vectors/format.txt, produced by tests/tools/csharp-ref (FormatVectors, .NET 10), is computed again.
 
 #include <doctest/doctest.h>

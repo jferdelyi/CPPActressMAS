@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Text of a message as the C# reads it (G1, G2, D82): Parse, Parse(out string) and Parse1P split the content at every
+// Text of a message as the C# reads it: Parse, Parse(out string) and Parse1P split the content at every
 // white space as String.Split() does (Unicode spaces, empty words kept), and Format names the sender and the receiver.
 // Agents record into a Recorder and never assert; the tests check after start().
 

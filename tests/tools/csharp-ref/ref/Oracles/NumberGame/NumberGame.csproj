@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Oracle of the C# example E12 Simple Observables/NumberGame (D96): original sources unchanged, see ../Oracle.props -->
+  <!-- Oracle of the C# example E12 Simple Observables/NumberGame: original sources unchanged, see ../Oracle.props -->
   <PropertyGroup>
     <OracleSources>$(AmasEx)E12 Simple Observables/NumberGame/</OracleSources>
   </PropertyGroup>

@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Queue of the agent messages (P8): items come out in arrival order, every item exactly once even when several threads
+// Queue of the agent messages: items come out in arrival order, every item exactly once even when several threads
 // enqueue while the consumer dequeues, and the nodes recycled by each thread are freed when the thread ends.
 
 #include <doctest/doctest.h>
@@ -43,7 +43,7 @@ TEST_SUITE("unit") {
 			for (int i = 0; i < 100; i++) {
 				REQUIRE(l_queue.dequeue(l_item));
 				CHECK(*l_item == i);
-				CHECK(l_item.use_count() == 1);  // moved out, no node holds it any more (C17)
+				CHECK(l_item.use_count() == 1);  // moved out, no node holds it any more
 			}
 			CHECK_FALSE(l_queue.dequeue(l_item));
 		}

@@ -29,7 +29,7 @@ namespace cam {
 	/**
 	 * Random generator drawing exactly as the seeded System.Random of .NET (the subtractive generator of Knuth, which
 	 * .NET 6 and later keep for a seeded instance): with the same seed and the same calls, a port draws the same numbers
-	 * as the C# (D18, D82). Not thread-safe.
+	 * as the C#. Not thread-safe.
 	 **/
 	class DotnetRandom final {
 		private:

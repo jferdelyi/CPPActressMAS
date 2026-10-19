@@ -85,7 +85,7 @@ namespace cam {
 		bool m_is_setup;
 
 		/**
-		 * True once stopped or removed: written and read by every thread of a Parallel turn (T2).
+		 * True once stopped or removed: written and read by every thread of a Parallel turn.
 		 **/
 		std::atomic<bool> m_is_dead;
 
@@ -232,7 +232,7 @@ namespace cam {
 		transport::Result<void> send(const AgentId& p_receiver_id, const char* p_text,
 									 const transport::SendOptions& p_options = {}) const;
 
-		// A shared text (D76). The overloads for Text are templates: a braced JSON list never takes them.
+		// A shared text. The overloads for Text are templates: a braced JSON list never takes them.
 		template<std::same_as<Text> T>
 		transport::Result<void> send(const AgentId& p_receiver_id, const T& p_text, const transport::SendOptions& p_options = {}) const {
 			return send_text(p_receiver_id, p_text, p_options);
@@ -375,7 +375,7 @@ namespace cam {
 		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 		/**
-		 * As Format() of the C# message (G1, D82): "[sender -> receiver]: content" with the names of the agents of this
+		 * As Format() of the C# message: "[sender -> receiver]: content" with the names of the agents of this
 		 * environment, the raw id otherwise ("env", an agent of another environment or already erased).
 		 * @param p_message The message
 		 * @return The text
@@ -475,7 +475,7 @@ namespace cam {
 
 		/**
 		 * Run one turn of a Parallel snapshot (TurnPool only): the agent runs even if it was removed since the turn
-		 * began, as the C# (ISO s); nothing if it is in transit.
+		 * began, as the C#; nothing if it is in transit.
 		 **/
 		void run_parallel_turn();
 
@@ -496,7 +496,7 @@ namespace cam {
 		}
 
 		/**
-		 * Receive a message built by the environment, moved in: no reference count change (P8).
+		 * Receive a message built by the environment, moved in: no reference count change.
 		 * @param p_message The new message
 		 **/
 		void receive(MessagePointer&& p_message);

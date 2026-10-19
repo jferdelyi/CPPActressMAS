@@ -127,7 +127,7 @@ Benchmarks examples, to benchmark the library
 explicit Environment(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel, int p_delay_after_turn = 0, unsigned int p_seed = std::random_device()());
 
 /**
- * Initializes a new instance of the Environment class from its configuration (D82), for instance
+ * Initializes a new instance of the Environment class from its configuration, for instance
  * cam::Environment l_environment({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Sequential}).
  * EnvironmentConfig: m_turns, m_mode, m_delay_after_turn, m_seed (drawn from std::random_device when absent),
  * m_random (RandomEngine::Mt19937, the same numbers with every standard library, or RandomEngine::DotNet, the draws of
@@ -436,7 +436,7 @@ virtual void default_action();
 
 // Delete copy constructor
 /**
- * As Format() of the C# message (D82): "[sender -> receiver]: content" with the names of the agents of this
+ * As Format() of the C# message: "[sender -> receiver]: content" with the names of the agents of this
  * environment, the raw id otherwise ("env", an agent of another environment or already erased).
  **/
 [[nodiscard]] std::string format(const MessagePointer& p_message) const;
@@ -492,7 +492,7 @@ Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, 
 [[nodiscard]] json content() const;
 
 /**
- * As Parse, Parse(out string) and Parse1P of the C# (D82): the content split at every white space as String.Split()
+ * As Parse, Parse(out string) and Parse1P of the C#: the content split at every white space as String.Split()
  * (Unicode spaces, empty words kept); the first word is the action. parse_one throws std::out_of_range on a single word.
  **/
 [[nodiscard]] std::pair<std::string, std::vector<std::string>> parse() const;

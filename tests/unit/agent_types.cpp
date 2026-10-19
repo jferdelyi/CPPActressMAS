@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Catalogue of the agent types of the process (Q27, D82): add<T>() names a type automatically, CAM_AGENT_TYPE(T) names
+// Catalogue of the agent types of the process: add<T>() names a type automatically, CAM_AGENT_TYPE(T) names
 // it for a program that only receives it, conflicting names are refused, and an agent moves between two environments
 // without any register_agent_type. Agents record into a Recorder and never assert; the tests check after start().
 

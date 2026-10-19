@@ -184,11 +184,11 @@ namespace cam::transport {
 			return l_parsed.error();
 		}
 		ParsedUrl& l_url = l_parsed.value();
-		const auto l_codec = make_codec(l_url.m_config.m_codec);  // one codec per transport, so per namespace (D31)
+		const auto l_codec = make_codec(l_url.m_config.m_codec);  // one codec per transport, so per namespace
 		std::shared_ptr<Transport> l_transport;
 		if (l_url.m_scheme == "loopback") {
 			// The environments of one process that name the same loopback namespace share one transport:
-			// that is what lets them see each other (D46). A reused one is already open.
+			// that is what lets them see each other. A reused one is already open.
 			static std::mutex s_mutex;
 			static std::map<std::string, std::weak_ptr<LoopbackTransport>> s_loopbacks;
 			const std::lock_guard<std::mutex> l_lock(s_mutex);
@@ -239,7 +239,7 @@ namespace cam::transport {
 	}
 
 	Result<void> connect(Environment& p_environment, const std::string& p_url, EndpointConfig p_config) {
-		// Kept for the callers of 1C and 2A: the environment owns its URL now (D48). Removed at step 2D.
+		// Kept for the former callers: the environment owns its URL now.
 		return p_environment.connect(p_url, std::move(p_config));
 	}
 

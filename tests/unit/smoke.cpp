@@ -231,7 +231,7 @@ namespace {
 
 TEST_SUITE("unit") {
 
-	TEST_CASE("an environment built from its configuration runs its turns in its mode (D82)") {
+	TEST_CASE("an environment built from its configuration runs its turns in its mode") {
 		g_recorder.clear();
 		HookedEnvironment l_env({.m_turns = 3, .m_mode = Mode::Sequential, .m_seed = 7});
 		l_env.add<Receiver>("r");
@@ -257,7 +257,7 @@ TEST_SUITE("unit") {
 		CHECK(l_env.agents_count() == 2);
 	}
 
-	TEST_CASE("a local message carries its sender, receiver and content, no origin, whatever the content (P8)") {
+	TEST_CASE("a local message carries its sender, receiver and content, no origin, whatever the content") {
 		// Only the environment can build a message in place
 		static_assert(!std::is_default_constructible_v<cam::Message::Key>);
 
@@ -274,7 +274,7 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count() == 3);
 	}
 
-	TEST_CASE("a shared text reaches every receiver as text, all of them reading the same characters (D76)") {
+	TEST_CASE("a shared text reaches every receiver as text, all of them reading the same characters") {
 		g_recorder.clear();
 		cam::Environment l_env(2, Mode::Sequential);
 		for (int i = 0; i < 3; i++) {
@@ -327,7 +327,7 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count_of("manager:\"by fragment\"") == 0);
 	}
 
-	TEST_CASE("send by name reaches its agents among many, by key, and by fragment (P13)") {
+	TEST_CASE("send by name reaches its agents among many, by key, and by fragment") {
 		g_recorder.clear();
 		cam::Environment l_env(2, Mode::Sequential);
 		for (int i = 0; i < 1000; i++) {
@@ -357,7 +357,7 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count() == 2);
 	}
 
-	TEST_CASE("every receiver of a send by name or a broadcast gets the whole content, text, JSON or bytes (P12)") {
+	TEST_CASE("every receiver of a send by name or a broadcast gets the whole content, text, JSON or bytes") {
 		// The content is copied for every receiver but the last, which takes it: none may get a moved-from value
 		g_recorder.clear();
 		cam::Environment l_env(2, Mode::Sequential);
@@ -375,7 +375,7 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count() == 18);
 	}
 
-	TEST_CASE("agents born and removed over the turns exchange JSON, and an over-aligned agent keeps its alignment (P8)") {
+	TEST_CASE("agents born and removed over the turns exchange JSON, and an over-aligned agent keeps its alignment") {
 		g_recorder.clear();
 		cam::Environment l_env(20, Mode::Sequential);
 		l_env.add<Parent>("parent");
@@ -390,7 +390,7 @@ TEST_SUITE("unit") {
 		CHECK(l_env.agents_count() == 2);  // the children stopped and were removed
 	}
 
-	TEST_CASE("in Sequential mode the agents run in insertion order, after removals and additions (P9)") {
+	TEST_CASE("in Sequential mode the agents run in insertion order, after removals and additions") {
 		// Locks the order kept by the one-pass removal of the dead agents
 		g_recorder.clear();
 		cam::Environment l_env(4, Mode::Sequential);
@@ -404,7 +404,7 @@ TEST_SUITE("unit") {
 	}
 
 	TEST_CASE("in SequentialRandom mode every alive agent runs once per turn, after removals and additions") {
-		// Same agents as in Sequential mode: only the order within a turn may differ (turn buffers reused, P8)
+		// Same agents as in Sequential mode: only the order within a turn may differ (turn buffers reused)
 		g_recorder.clear();
 		cam::Environment l_env(4, Mode::SequentialRandom);
 		l_env.add<OrderedAgent>("a", false, true);
@@ -448,7 +448,7 @@ TEST_SUITE("unit") {
 		CHECK(l_env.agents_count() == 0);
 	}
 
-	TEST_CASE("an empty environment runs one empty turn and finishes once, in every mode (C1 fixed in 1A)") {
+	TEST_CASE("an empty environment runs one empty turn and finishes once, in every mode") {
 		for (const auto l_mode: {Mode::Sequential, Mode::SequentialRandom, Mode::Parallel}) {
 			g_recorder.clear();
 			HookedEnvironment l_env(3, l_mode);
@@ -460,7 +460,7 @@ TEST_SUITE("unit") {
 		}
 	}
 
-	TEST_CASE("a removed agent is gone from the name index, send_by_name delivers nothing (C6 fixed in 1A)") {
+	TEST_CASE("a removed agent is gone from the name index, send_by_name delivers nothing") {
 		g_recorder.clear();
 		cam::Environment l_env(2, Mode::Sequential);
 		const cam::AgentId l_id = l_env.add<Receiver>("target");
@@ -475,7 +475,7 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count() == 0);
 	}
 
-	TEST_CASE("in Parallel mode every agent runs exactly once per turn (P2)") {
+	TEST_CASE("in Parallel mode every agent runs exactly once per turn") {
 		g_recorder.clear();
 		cam::Environment l_env(6, Mode::Parallel);
 		for (int i = 0; i < 50; i++) {

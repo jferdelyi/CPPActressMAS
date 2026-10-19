@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Oracle of the C# example E13 Game of Life (D86), see ../Oracle.props: the WinForms form is replaced by
+  <!-- Oracle of the C# example E13 Game of Life, see ../Oracle.props: the WinForms form is replaced by
        Stubs/GridForm.cs, which prints the grid it would draw; Program.cs.sed bounds noTurns; patterns.txt, shipped only
        next to the original binary, is copied next to this one (read from the working directory). -->
   <PropertyGroup>

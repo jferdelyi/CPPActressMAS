@@ -32,10 +32,10 @@ namespace cam {
 	class Agent;
 
 	/**
-	 * Persistent threads that run the agents of a Parallel turn (P2). Each turn wakes the threads once; they and
+	 * Persistent threads that run the agents of a Parallel turn. Each turn wakes the threads once; they and
 	 * the calling thread take the agents one by one through an atomic index, so no task, future or allocation is
 	 * made per agent. Between turns a thread spins briefly, turns being close to each other, then sleeps on an
-	 * atomic wait. An exception thrown by an agent is swallowed, as with the former thread pool (C14, D10 l).
+	 * atomic wait. An exception thrown by an agent is swallowed, as with the former thread pool.
 	 **/
 	class TurnPool final {
 	private:

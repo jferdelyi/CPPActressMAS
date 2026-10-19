@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Skynet benchmark, protocol of the C# v3.1 E30/Skynet example (docs/port/perf/PROTOCOLE.md):
+// Skynet benchmark, protocol of the C# v3.1 E30/Skynet example:
 // a tree of 10 000 agents (10 children per node) created during the simulation, each leaf sends its
 // identifier to its parent as text, each node sums and reports; expected "Sum = 49995000". Parallel
 // mode without a turn limit; the stopwatch covers the creation of the environment, the root and

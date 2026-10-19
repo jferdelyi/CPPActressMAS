@@ -70,7 +70,7 @@ void cam::AgentCollection::insert(const AgentPointer& p_agent) {
 }
 
 std::optional<cam::AgentId> cam::AgentCollection::random_agent() const {
-	// The living agents are copied first: a Parallel turn may stop one between the count and the pick (C4)
+	// The living agents are copied first: a Parallel turn may stop one between the count and the pick
 	std::vector<AgentId> l_alive;
 	l_alive.reserve(m_agents.size());
 	for (const auto& [l_id, l_agent]: m_agents) {
@@ -80,7 +80,7 @@ std::optional<cam::AgentId> cam::AgentCollection::random_agent() const {
 	}
 	const std::lock_guard<std::mutex> l_lock(m_random_mutex);
 	if (l_alive.empty()) {
-		// The C# draws Next(0) then throws: the draw is kept, the exception is not (ISO, D82)
+		// The C# draws Next(0) then throws: the draw is kept, the exception is not
 		if (m_random_engine == RandomEngine::DotNet) {
 			m_dotnet_random.next(0);
 		} else {
@@ -105,7 +105,7 @@ void cam::AgentCollection::remove(const AgentId& p_id) {
 		return;
 	}
 	// Drop the (name, id) entry of the name index as well, otherwise a later send_by_name()
-	// dereferences a null pointer (C6).
+	// dereferences a null pointer.
 	remove_name(l_it->second->get_name(), p_id);
 	if (l_it->second->is_dead()) {
 		m_retired.fetch_sub(1, std::memory_order_relaxed);
@@ -125,7 +125,7 @@ void cam::AgentCollection::remove_name(const std::string& p_name, const AgentId&
 }
 
 void cam::AgentCollection::run_turn() {
-	// The collections do not change during the turn: a removal marks the agent and the boundary erases it (C10, C12)
+	// The collections do not change during the turn: a removal marks the agent and the boundary erases it
 	const TurnGuard l_guard(m_turn_running);
 
 	// Sequential: an agent removed earlier in the turn is skipped by run_turn(), as the C# (ContainsKey)
@@ -135,7 +135,7 @@ void cam::AgentCollection::run_turn() {
 		}
 
 		// Parallel: every agent alive at the start of the turn at once, without copy nor shuffle, as the C# does
-		// (Parallel.Invoke, P2); an agent of this snapshot runs even if it is removed meanwhile (ISO s)
+		// (Parallel.Invoke); an agent of this snapshot runs even if it is removed meanwhile, as in the C#
 	} else if (m_environment_mas_mode == EnvironmentMasMode::Parallel) {
 		m_turn_agents.clear();
 		for (auto& [l_agent_id, l_agent]: m_agents) {
@@ -168,7 +168,7 @@ void cam::AgentCollection::run_turn() {
 cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const bool p_track_changes) {
 	BufferChanges l_changes;
 
-	// Remove dead agents in one pass that keeps the insertion order (P9: an erase per agent shifted the rest each time)
+	// Remove dead agents in one pass that keeps the insertion order (an erase per agent would shift the rest each time)
 	size_t l_dead = 0;
 	for (auto& [l_id, l_agent]: m_agents) {
 		if (l_agent->is_dead()) {
@@ -192,7 +192,7 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 			m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
 			l_agent->m_is_inserted = true;
 			if (l_agent->is_dead()) {
-				m_retired.fetch_add(1, std::memory_order_relaxed);  // stopped before its insertion (C11): never counted
+				m_retired.fetch_add(1, std::memory_order_relaxed);  // stopped before its insertion: never counted
 			}
 			if (p_track_changes) {
 				l_changes.m_added.emplace_back(l_agent->get_id(), l_agent->get_name());
@@ -238,7 +238,7 @@ void cam::AgentCollection::random_permutation(const size_t p_number, std::vector
 	}
 
 	// Fisher-Yates of the C# (EnvironmentMas.RandomPermutation): a draw in [0, n) for n from the count down to 2, then a
-	// swap with the last of the n; no draw with fewer than two elements (C1, C2)
+	// swap with the last of the n; no draw with fewer than two elements
 	const std::lock_guard<std::mutex> l_lock(m_random_mutex);
 	for (size_t l_count = p_number; l_count > 1;) {
 		const size_t l_k = next_index(l_count);
@@ -252,7 +252,7 @@ size_t cam::AgentCollection::next_index(const size_t p_bound) const {
 		return static_cast<size_t>(m_dotnet_random.next(static_cast<std::int32_t>(p_bound)));
 	}
 	// Bounded draw of Lemire with rejection: the same numbers with every standard library, unlike
-	// uniform_int_distribution (C18)
+	// uniform_int_distribution
 	const auto l_bound = static_cast<std::uint32_t>(p_bound);
 	std::uint64_t l_product = static_cast<std::uint64_t>(static_cast<std::uint32_t>(m_mt19937())) * l_bound;
 	auto l_low = static_cast<std::uint32_t>(l_product);

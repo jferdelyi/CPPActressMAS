@@ -16,11 +16,11 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.Agents4.
 // Port of the C# example E00 Simple Examples/Agents4 (ActressMAS v3.1): five agents write three messages per turn to a
 // writer, then stop. Parallel, 5 turns, one second after each turn.
-// As the C#, an agent stops at its fourth action and still sends three messages afterwards (X3); the writer prints the
+// As the C#, an agent stops at its fourth action and still sends three messages afterwards; the writer prints the
 // late messages it gets in the last turn: 45 to 60 lines.
 
 #include <string>
@@ -37,7 +37,7 @@ class MyAgent final : public cam::Agent {
 
 		void default_action() override {
 			if (m_turn > 3) {
-				stop();  // as the C#, the three messages below are still sent after the stop (X3)
+				stop();  // as the C#, the three messages below are still sent after the stop
 			}
 			for (int i = 1; i <= 3; i++) {
 				send_by_name("writer", "Agent " + get_name() + " turn " + std::to_string(m_turn) + " index " + std::to_string(i));

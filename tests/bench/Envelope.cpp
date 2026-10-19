@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Micro-benchmark of the envelope codecs (perf/PROTOCOLE.md): encoding and decoding of one message
+// Micro-benchmark of the envelope codecs: encoding and decoding of one message
 // envelope with a content of 0, 64 and 1 024 bytes, for every codec shipped. The decoded envelope is
 // touched to keep the compiler honest. Usage: bench_Envelope [--count N] [--codec name]
 // Output per codec and size: encode ns, decode ns, bytes on the wire.

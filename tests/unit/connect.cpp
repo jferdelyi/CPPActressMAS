@@ -18,7 +18,7 @@
 
 // Environment::connect(url): the URL belongs to the environment, the default factory knows the schemes
 // compiled in, a custom factory adds its own, and the environments of a process that name the same
-// loopback namespace share one transport (D46, D48). Loopback only: no network, no broker.
+// loopback namespace share one transport. Loopback only: no network, no broker.
 
 #include <doctest/doctest.h>
 
@@ -45,7 +45,7 @@ namespace {
 
 TEST_SUITE("connect") {
 
-	TEST_CASE("an environment configured with a URL connects at its first start (Q27, D82)") {
+	TEST_CASE("an environment configured with a URL connects at its first start") {
 		cam::Environment l_a({.m_turns = 1, .m_mode = cam::EnvironmentMasMode::Sequential, .m_url = "loopback://unit-connect-config",
 							  .m_endpoint = {.m_name = "A"}});
 		cam::Environment l_b({.m_turns = 1, .m_mode = cam::EnvironmentMasMode::Sequential, .m_url = "loopback://unit-connect-config",

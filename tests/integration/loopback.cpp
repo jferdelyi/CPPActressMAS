@@ -239,7 +239,7 @@ TEST_SUITE("loopback") {
 		CHECK_FALSE(l_env.is_connected());
 		CHECK(l_env.environments().empty());
 		CHECK(l_env.statistics().m_sent == 0);
-		CHECK(is_canonical_uuid(l_env.get_id()));  // the id exists offline (N3)
+		CHECK(is_canonical_uuid(l_env.get_id()));  // the id exists offline
 
 		const auto l_twice = l_env.disconnect();
 		REQUIRE_FALSE(l_twice);
@@ -431,7 +431,7 @@ TEST_SUITE("loopback") {
 		REQUIRE(l_b.disconnect());
 	}
 
-	TEST_CASE("a message whose sender identifier is longer than an AgentId is refused and counted (D76)") {
+	TEST_CASE("a message whose sender identifier is longer than an AgentId is refused and counted") {
 		g_recorder.clear();
 		auto l_transport = open_loopback();
 		TestEnvironment l_b("B");

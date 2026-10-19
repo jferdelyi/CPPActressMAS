@@ -16,11 +16,11 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.Agents2.
 // Port of the C# example E00 Simple Examples/Agents2 (ActressMAS v3.1): two agents exchange messages from their setup
 // and their action. Sequential in a random order, 100 turns: the order of each turn comes from the seed of the C#
-// oracle (D96), so the output is the one of the C#.
+// oracle, so the output is the one of the C#.
 
 #include <chrono>
 #include <string>

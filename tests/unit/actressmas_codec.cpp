@@ -40,7 +40,7 @@ namespace {
 
 	constexpr std::size_t MAX_BYTES = 1u << 20;
 
-	// Frames, and Message streams, captured from the C# code (see docs/port/22-actressmas-wire.md)
+	// Frames, and Message streams, captured from the C# code
 	const std::vector<std::string> FRAMES = {"request_register", "inform_containers", "inform_containers_empty", "inform_invalid_name",
 											 "send_remote_message", "send_remote_reply", "null_content", "request_move_agent_mono"};
 	const std::vector<std::string> MESSAGES = {"message_remote", "message_reply", "message_conversation", "message_empty_content",

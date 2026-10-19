@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Blocks recycled per thread (P8), the memory of the messages: a thread hands out again the blocks it freed, blocks
+// Blocks recycled per thread, the memory of the messages: a thread hands out again the blocks it freed, blocks
 // may be freed by another thread than the one that took them, and the blocks kept by a thread are freed when it ends.
 
 #include <doctest/doctest.h>

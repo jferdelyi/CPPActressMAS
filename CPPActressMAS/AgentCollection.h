@@ -86,7 +86,7 @@ namespace cam {
 		std::atomic<size_t> m_retired{0};
 
 		/**
-		 * True while run_turn() runs the agents: a removal is then deferred to the turn boundary (C10)
+		 * True while run_turn() runs the agents: a removal is then deferred to the turn boundary
 		 **/
 		std::atomic<bool> m_turn_running{false};
 
@@ -102,7 +102,7 @@ namespace cam {
 
 		/**
 		 * Random generator of this environment (random order, random_agent): mt19937 or DotnetRandom, as chosen by
-		 * m_random_engine, guarded by m_random_mutex since several threads of a Parallel turn may draw (C3, C18, T7)
+		 * m_random_engine, guarded by m_random_mutex since several threads of a Parallel turn may draw
 		 **/
 		RandomEngine m_random_engine;
 		mutable std::mt19937 m_mt19937;
@@ -200,7 +200,7 @@ namespace cam {
 		AgentPointer get(const AgentId& p_id) const;
 
 		/**
-		 * Agent by id, without sharing its ownership: valid until the next turn boundary, where agents are removed (P8)
+		 * Agent by id, without sharing its ownership: valid until the next turn boundary, where agents are removed
 		 * @param p_id The agent id
 		 * @return The agent, or nullptr
 		 **/

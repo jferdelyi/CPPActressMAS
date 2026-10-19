@@ -243,7 +243,7 @@ TEST_SUITE("endpoint") {
 	}
 
 	TEST_CASE("receiving: bytes are decoded with the transport codec at the turn boundary") {
-		const ProtobufCodec l_codec;  // the default codec of a transport (D30)
+		const ProtobufCodec l_codec;  // the default codec of a transport
 		Endpoint l_endpoint(ME, EndpointConfig{});
 		auto l_encoded = l_codec.encode(message(1, 1));
 		REQUIRE(l_encoded);

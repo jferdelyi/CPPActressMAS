@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Identifier of an agent (D76): 16 bytes, at most 15 characters, copied as bytes, compared and hashed as two words.
+// Identifier of an agent: 16 bytes, at most 15 characters, copied as bytes, compared and hashed as two words.
 
 #include <doctest/doctest.h>
 

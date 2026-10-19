@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Pointer to a message with the counter inside the message (D76): copies share, moves leave the source null, a kept
+// Pointer to a message with the counter inside the message: copies share, moves leave the source null, a kept
 // message stays valid after the action, and messages dropped by other threads than their sender's are released once.
 // Agents record into a Recorder and never assert; the tests check after start().
 

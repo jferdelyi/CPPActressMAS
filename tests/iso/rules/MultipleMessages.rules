@@ -1,6 +1,6 @@
 # E00 MultipleMessages: parallel, and each worker sends its request to another worker drawn at random, so names and
 # order vary; compared: who is started, who reports, the counts of requests and replies, one request per worker, and
-# the manager printing "reporting" right after each report. In legacy (X1, D89) the replies are never handled: no
+# the manager printing "reporting" right after each report. As in the C#, the replies are never handled: no
 # "replying".
 cover all
 fact start ^\[Manager -> (Worker\d)\]: start$

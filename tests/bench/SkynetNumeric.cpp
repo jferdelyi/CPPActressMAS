@@ -16,8 +16,8 @@
  *                                                                        *
  **************************************************************************/
 
-// SkynetNumeric benchmark, protocol of the C# v3.1 E30/SkynetNumeric example
-// (docs/port/perf/PROTOCOLE.md): Skynet with 20 000 agents, sequential random order, numeric message
+// SkynetNumeric benchmark, protocol of the C# v3.1 E30/SkynetNumeric example:
+// Skynet with 20 000 agents, sequential random order, numeric message
 // contents (a JSON integer stands for the C# ContentObj long); expected "Long Sum = 199990000".
 // Options: --parallel, --sequential (fixed order), --agents N, --csv.
 

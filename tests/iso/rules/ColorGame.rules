@@ -1,4 +1,4 @@
-# E12 ColorGame: sequential, fixed order, colors drawn by a static Random seeded as the oracle (D96), so the C# fixes
+# E12 ColorGame: sequential, fixed order, colors drawn by a static Random seeded as the oracle, so the C# fixes
 # the order of every line (exact trace, level (a)). Each turn, each agent looks around, says what it saw, then draws a
 # new color. "order" checks how the kinds of line interleave, the other facts their contents in sequence.
 cover all

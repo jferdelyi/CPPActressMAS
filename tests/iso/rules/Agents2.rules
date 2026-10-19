@@ -1,4 +1,4 @@
-# E00 Agents2: sequential in a random order drawn from the seed of the oracle (D96), so the C# fixes the order of every
+# E00 Agents2: sequential in a random order drawn from the seed of the oracle, so the C# fixes the order of every
 # line (exact trace, level (a)): the messages each agent prints, in sequence.
 cover all
 fact message ^\[(agent\d) -> (agent\d)\]: (.*)$

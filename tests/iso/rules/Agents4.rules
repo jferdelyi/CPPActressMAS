@@ -1,5 +1,5 @@
 # E00 Agents4: parallel; each agent writes 3 messages in each of turns 1 to 3, then stops in turn 4 and, in the C#,
-# still sends 3 messages (X3, kept in legacy, D89), which the writer prints only if they reach it before its last
+# still sends 3 messages (kept by the port), which the writer prints only if they reach it before its last
 # activation: 45 to 60 lines. Compared: the 45 messages of turns 1 to 3 (each agent in order), and the bounds of the late
 # ones (none in fixed).
 cover all

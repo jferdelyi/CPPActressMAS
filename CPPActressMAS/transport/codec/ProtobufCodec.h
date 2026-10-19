@@ -29,7 +29,7 @@ namespace cam::transport {
 	 * Protobuf codec (id 2, version 1): the proto3 wire format of envelope.proto, written and read
 	 * directly (varints, tags, length-delimited fields), without libprotobuf. Any proto3 implementation
 	 * fed with envelope.proto speaks it; unknown fields are skipped, defaults are omitted. The default
-	 * codec of the transports (D30).
+	 * codec of the transports.
 	 **/
 	class ProtobufCodec final : public EnvelopeCodec {
 	public:

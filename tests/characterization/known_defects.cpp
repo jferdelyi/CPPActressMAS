@@ -16,11 +16,11 @@
  *                                                                        *
  **************************************************************************/
 
-// Characterization of known defects whose symptom is a wrong value (IDs from
-// docs/port/00-analyse-initiale.md). Every case asserts the behaviour of ActressMAS C# v3.1 and is
+// Characterization of known defects whose symptom is a wrong value. Every case asserts the behaviour of ActressMAS C# v3.1 and is
 // marked should_fail(): it is expected to fail while the defect exists. Once the defect is fixed,
 // doctest reports that the case "should have failed" and the marker is removed; the assertions never
-// change. Cases without the marker are witnesses of behaviour that already matches the C#.
+// change. Then the case stays, named "fixed: ...", as a regression test: every defect found and fixed keeps its
+// test. Cases named "witness: ..." show behaviour that already matches the C#.
 // Defects whose symptom is a crash or a data race are separate processes in probes.cpp.
 
 #include <doctest/doctest.h>
@@ -88,8 +88,8 @@ namespace {
 
 TEST_SUITE("characterization") {
 
-	// ---------------------------------------------------------------- C7, C24
-	TEST_CASE("C7 (fixed in 3B): continue_simulation inserts the agents added after start") {
+	// ---------------------------------------------------------------- agents added or stopped around start
+	TEST_CASE("fixed: continue_simulation inserts the agents added after start") {
 		cam::Environment l_env(1, Mode::Sequential);
 		l_env.add<Plain>("a");
 		l_env.start();
@@ -99,14 +99,14 @@ TEST_SUITE("characterization") {
 		CHECK(l_env.agents_count() == 2);  // C#: Add is immediate
 	}
 
-	TEST_CASE("C24 (fixed in 3B): an agent stopped during the last turn of start is removed") {
+	TEST_CASE("fixed: an agent stopped during the last turn of start is removed") {
 		cam::Environment l_env(2, Mode::Sequential);
 		l_env.add<Quitter>("q");
 		l_env.start();  // q stops at the last turn: no longer counted, destroyed at the next boundary
 		CHECK(l_env.agents_count() == 0);  // C#: Stop removes immediately
 	}
 
-	TEST_CASE("C7 C24 (fixed in 3B): continue_simulation removes the agents stopped before it") {
+	TEST_CASE("fixed: continue_simulation removes the agents stopped before it") {
 		cam::Environment l_env(2, Mode::Sequential);
 		l_env.add<Quitter>("q");
 		l_env.start();
@@ -114,8 +114,8 @@ TEST_SUITE("characterization") {
 		CHECK(l_env.agents_count() == 0);
 	}
 
-	// ---------------------------------------------------------------- C2, C3
-	TEST_CASE("C2 (fixed in 3B): the random order of three agents reaches the six permutations") {
+	// ---------------------------------------------------------------- random order
+	TEST_CASE("fixed: the random order of three agents reaches the six permutations") {
 		g_order.clear();
 		cam::Environment l_env(2001, Mode::SequentialRandom, 0, 42);  // turn 0 = setup, then 2000 turns
 		for (const char* l_name: {"A", "B", "C"}) {
@@ -133,7 +133,7 @@ TEST_SUITE("characterization") {
 		CHECK(l_last_is_c > 0);  // the last inserted agent was never executed last before
 	}
 
-	TEST_CASE("C2 (fixed in 3B): the random order of two agents changes") {
+	TEST_CASE("fixed: the random order of two agents changes") {
 		g_order.clear();
 		cam::Environment l_env(1001, Mode::SequentialRandom, 0, 7);
 		l_env.add<Logger>("A");
@@ -142,7 +142,7 @@ TEST_SUITE("characterization") {
 		CHECK(histogram(g_order, 2).size() == 2);  // AB and BA
 	}
 
-	TEST_CASE("C3 (fixed in 3B): two environments with the same seed produce the same order") {
+	TEST_CASE("fixed: two environments with the same seed produce the same order") {
 		const auto l_run = [](const unsigned p_seed) {
 			g_order.clear();
 			cam::Environment l_env(6, Mode::SequentialRandom, 0, p_seed);
@@ -157,8 +157,8 @@ TEST_SUITE("characterization") {
 		CHECK(l_first == l_second);  // the generator was static and shared by the whole process; one per environment now
 	}
 
-	// ---------------------------------------------------------------- C8
-	TEST_CASE("C8: a message sent to an agent added but not yet inserted is delivered" * doctest::should_fail()) {
+	// ---------------------------------------------------------------- message to an agent not inserted yet
+	TEST_CASE("a message sent to an agent added but not yet inserted is delivered" * doctest::should_fail()) {
 		g_received = 0;
 		cam::Environment l_env(2, Mode::Sequential);
 		const cam::AgentId l_id = l_env.add<Inbox>("dest");
@@ -167,7 +167,7 @@ TEST_SUITE("characterization") {
 		CHECK(g_received == 1);  // C#: Add is immediate, the message is queued
 	}
 
-	// ---------------------------------------------------------------- N8, C17 (fixed in 1C)
+	// ---------------------------------------------------------------- migration while handling a message
 	// The migrated queue no longer carries the message being handled nor the last consumed one: the
 	// agent moves through the loopback transport (one turn per start(), see tests/integration/migration.cpp).
 	std::string g_away;
@@ -181,7 +181,7 @@ TEST_SUITE("characterization") {
 		}
 	};
 
-	TEST_CASE("N8 C17 (fixed in 1C): a copy moved while handling a message does not handle it again") {
+	TEST_CASE("fixed: a copy moved while handling a message does not handle it again") {
 		g_processed.clear();
 		auto l_transport = std::make_shared<cam::transport::LoopbackTransport>();
 		REQUIRE(l_transport->open());
@@ -218,7 +218,7 @@ TEST_SUITE("characterization") {
 		}
 	};
 
-	TEST_CASE("N8 C17 (fixed in 1C): a copy moved two turns after its last message handles nothing") {
+	TEST_CASE("fixed: a copy moved two turns after its last message handles nothing") {
 		g_processed.clear();
 		auto l_transport = std::make_shared<cam::transport::LoopbackTransport>();
 		REQUIRE(l_transport->open());
@@ -251,7 +251,7 @@ TEST_SUITE("characterization") {
 		void default_action() override { stop(); }
 	};
 
-	TEST_CASE("C17 (fixed in 3B): a removed agent is destroyed when it is removed") {
+	TEST_CASE("fixed: a removed agent is destroyed when it is removed") {
 		g_destroyed = 0;
 		{
 			cam::Environment l_env(3, Mode::Sequential);
@@ -264,12 +264,12 @@ TEST_SUITE("characterization") {
 		CHECK(g_destroyed == 2);
 	}
 
-	// ---------------------------------------------------------------- C11
+	// ---------------------------------------------------------------- agent stopped in its constructor
 	struct StillBorn final : cam::Agent {
 		explicit StillBorn(const std::string& p_name) : Agent(p_name) { stop(); }
 	};
 
-	TEST_CASE("C11 (fixed in 3B): an agent stopped in its constructor is never inserted") {
+	TEST_CASE("fixed: an agent stopped in its constructor is never inserted") {
 		cam::Environment l_env(1, Mode::Sequential);
 		l_env.add<StillBorn>("zombie");
 		l_env.start();  // inserted already dead: neither counted nor found, never run, erased at the next boundary
@@ -277,7 +277,7 @@ TEST_SUITE("characterization") {
 		CHECK(l_env.get_agents_by_name("zombie").empty());
 	}
 
-	// ---------------------------------------------------------------- C13
+	// ---------------------------------------------------------------- setup of run_turn
 	struct SetupCounter final : cam::Agent {
 		explicit SetupCounter(const std::string& p_name) : Agent(p_name) {}
 		int m_setups = 0;
@@ -286,8 +286,8 @@ TEST_SUITE("characterization") {
 		void default_action() override { ++m_defaults; }
 	};
 
-	TEST_CASE("C13: run_turn(false) runs the setup once, in the same turn as the action" * doctest::should_fail()) {
-		SetupCounter l_agent("same");  // Agent::run_turn is public (C25); no environment needed
+	TEST_CASE("run_turn(false) runs the setup once, in the same turn as the action" * doctest::should_fail()) {
+		SetupCounter l_agent("same");  // Agent::run_turn is public; no environment needed
 		for (int i = 0; i < 5; ++i) {
 			l_agent.run_turn(false);
 		}
@@ -295,7 +295,7 @@ TEST_SUITE("characterization") {
 		CHECK(l_agent.m_defaults == 5);
 	}
 
-	TEST_CASE("witness C13: run_turn(true) runs the setup alone at the first turn") {
+	TEST_CASE("witness: run_turn(true) runs the setup alone at the first turn") {
 		SetupCounter l_agent("separate");
 		for (int i = 0; i < 5; ++i) {
 			l_agent.run_turn(true);
@@ -304,29 +304,29 @@ TEST_SUITE("characterization") {
 		CHECK(l_agent.m_defaults == 4);
 	}
 
-	// ---------------------------------------------------------------- C14
+	// ---------------------------------------------------------------- exception thrown by an agent
 	struct Thrower final : cam::Agent {
 		explicit Thrower(const std::string& p_name) : Agent(p_name) {}
 		void default_action() override { throw std::runtime_error("boom from " + get_name()); }
 	};
 
-	TEST_CASE("C14: an exception thrown by an agent in Parallel mode propagates out of start" * doctest::should_fail()) {
+	TEST_CASE("an exception thrown by an agent in Parallel mode propagates out of start" * doctest::should_fail()) {
 		cam::Environment l_env(3, Mode::Parallel);
 		l_env.add<Thrower>("t");
 		CHECK_THROWS_AS(l_env.start(), std::exception);  // swallowed today: future::wait(), never get()
 	}
 
-	TEST_CASE("witness C14: an exception thrown by an agent in Sequential mode propagates out of start") {
+	TEST_CASE("witness: an exception thrown by an agent in Sequential mode propagates out of start") {
 		cam::Environment l_env(3, Mode::Sequential);
 		l_env.add<Thrower>("t");
 		CHECK_THROWS_AS(l_env.start(), std::runtime_error);
 	}
 
-	// C15 (default-constructed agents without identifier) left with the protected constructor
-	// Agent() in 1C: every agent now has a UUID from construction.
+	// Agents built without an identifier are gone with the protected constructor Agent(): every agent has an
+	// identifier from construction.
 
-	// ---------------------------------------------------------------- C19 (fixed in 2B)
-	TEST_CASE("C19: a message keeps its typed content locally and a JSON value refuses the RAW wire encoding") {
+	// ---------------------------------------------------------------- typed content of a message
+	TEST_CASE("fixed: a message keeps its typed content locally and a JSON value refuses the RAW wire encoding") {
 		const cam::Message l_message("s", "r", json("hello"));
 		CHECK(l_message.kind() == cam::ContentKind::Json);
 		CHECK(l_message.to_string() == "\"hello\"");
@@ -338,7 +338,7 @@ TEST_SUITE("characterization") {
 		CHECK_FALSE(l_refused);  // used to be silently encoded in MessagePack and tagged RAW
 	}
 
-	// ---------------------------------------------------------------- C20 (fixed in 1C)
+	// ---------------------------------------------------------------- move without a transport
 	std::vector<std::string> g_move_results;
 	struct Mover final : cam::Agent {
 		explicit Mover(const std::string& p_name) : Agent(p_name) {}
@@ -348,7 +348,7 @@ TEST_SUITE("characterization") {
 		}
 	};
 
-	TEST_CASE("C20 (fixed in 1C): move without a transport keeps the agent in its environment") {
+	TEST_CASE("fixed: move without a transport keeps the agent in its environment") {
 		g_move_results.clear();
 		cam::Environment l_env(3, Mode::Sequential);
 		l_env.add<Mover>("m");
@@ -357,14 +357,14 @@ TEST_SUITE("characterization") {
 		CHECK(g_move_results == std::vector<std::string>{"not connected", "not connected"});
 	}
 
-	// ---------------------------------------------------------------- C22
+	// ---------------------------------------------------------------- send by fragment
 	std::vector<cam::AgentId> g_receivers;
 	struct Named final : cam::Agent {
 		explicit Named(const std::string& p_name) : Agent(p_name) {}
 		void action(const cam::MessagePointer&) override { g_receivers.push_back(get_id()); }
 	};
 
-	TEST_CASE("C22: the first agent found by fragment is the first agent sent to" * doctest::should_fail()) {
+	TEST_CASE("the first agent found by fragment is the first agent sent to" * doctest::should_fail()) {
 		g_receivers.clear();
 		cam::Environment l_env(1, Mode::Sequential);
 		for (int i = 1; i <= 9; ++i) {
@@ -379,7 +379,7 @@ TEST_SUITE("characterization") {
 		CHECK(l_lookup[0] == g_receivers[0]);  // insertion order for the lookup, hash order for the send
 	}
 
-	// ---------------------------------------------------------------- C23
+	// ---------------------------------------------------------------- threads of a Sequential environment
 #if defined(__APPLE__) || defined(__linux__)
 	int thread_count() {
 #if defined(__APPLE__)
@@ -404,7 +404,7 @@ TEST_SUITE("characterization") {
 #endif
 	}
 
-	TEST_CASE("C23 (fixed in 3B): a Sequential environment creates no thread") {
+	TEST_CASE("fixed: a Sequential environment creates no thread") {
 		const int l_before = thread_count();
 		REQUIRE(l_before > 0);
 		cam::Environment l_env(1, Mode::Sequential);
@@ -412,7 +412,7 @@ TEST_SUITE("characterization") {
 	}
 #endif
 
-	// ---------------------------------------------------------------- C26 (and witness, ISO m)
+	// ---------------------------------------------------------------- stop during a turn
 	int g_after_stop = 0;
 	int g_action_after_see_stop = 0;
 	struct StopInAction final : cam::Agent {
@@ -433,7 +433,7 @@ TEST_SUITE("characterization") {
 		void default_action() override { ++g_action_after_see_stop; }
 	};
 
-	TEST_CASE("C26 (fixed in 3B): the action of an agent that stops in see still runs in that turn") {
+	TEST_CASE("fixed: the action of an agent that stops in see still runs in that turn") {
 		g_action_after_see_stop = 0;
 		cam::Environment l_env(2, Mode::Sequential);
 		l_env.add<StopInSee>("v");
@@ -441,7 +441,7 @@ TEST_SUITE("characterization") {
 		CHECK(g_action_after_see_stop == 1);
 	}
 
-	TEST_CASE("witness ISO m: the messages already queued are handled after stop in action") {
+	TEST_CASE("witness: the messages already queued are handled after stop in action") {
 		g_after_stop = 0;
 		cam::Environment l_env(2, Mode::Sequential);
 		const cam::AgentId l_id = l_env.add<StopInAction>("s");

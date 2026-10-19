@@ -28,7 +28,7 @@
 #include "../Envelope.h"
 
 /**
- * CPPActressMAS transport layer: interchangeable envelope codec (D31). Every encoded envelope starts
+ * CPPActressMAS transport layer: interchangeable envelope codec. Every encoded envelope starts
  * with a fixed 4-byte header: magic 0xCA, codec id, codec major version, reserved. One codec per
  * transport instance, never per message.
  */

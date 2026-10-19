@@ -16,11 +16,11 @@
  *                                                                        *
  **************************************************************************/
 
-// PingPong benchmark, protocol of the C# v3.1 E30/PingPong example (docs/port/perf/PROTOCOLE.md):
+// PingPong benchmark, protocol of the C# v3.1 E30/PingPong example:
 // 10 agents, 10 000 turns, 10 million messages at most, 5 trials, a new environment per trial, the
 // stopwatch covers the creation of the environment, the agents and start(). At setup every agent
 // sends "msg", a text like the C# string, by name to the 9 others and counts 9 messages; a reply goes
-// back to the sender (by id: the C++ sender of a message is its identifier, ISO a). The counter is
+// back to the sender (by id: the C++ sender of a message is its identifier, the C# one its name). The counter is
 // atomic (relaxed) and the throughput is computed from microseconds, so a trial cannot divide by zero.
 // Options: --sequential (Sequential mode, fixed order, no pool), --turns, --trials, --agents, --csv.
 

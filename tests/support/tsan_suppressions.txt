@@ -1,31 +1,25 @@
-# ThreadSanitizer suppressions for the ordinary tests (unit, integration, mqtt, zenoh) of CPPActressMAS.
+# ThreadSanitizer suppressions for the ordinary tests of CPPActressMAS: the races known inside the dependencies.
 # Format: https://github.com/google/sanitizers/wiki/ThreadSanitizerSuppressions
 #
-# Each entry documents a KNOWN race with its ID (docs/port/00-analyse-initiale.md) and is removed in the
-# mission that fixes it. The characterization crash probes never use this file: they must see these races.
-# Entries are added only once the race has been observed under the tsan preset.
-#
-# 1C removed the entries of T3 and T4 (Paho callbacks touching the agent collection and the container
-# set): the transport layer applies everything at the turn boundary.
+# Each entry documents a race observed under the tsan preset, and goes once the dependency fixes it. No entry hides a
+# race of CPPActressMAS itself. The probes of characterization/ never use this file: they must see every race.
 
-# T10 (dependency, 2A, Linux): zenoh-c embeds the Rust runtime (zenoh, tokio), which is not instrumented
-# and synchronises through futex calls that ThreadSanitizer does not see, so every memcpy, write, recv or
-# free issued from that code looks unsynchronised (237 reports on network.zenoh under gcc, both accesses
-# inside the Rust code every time, none in CPPActressMAS). The shared library is linked on Linux so that
-# this entry ignores the interceptors called from it and nothing else: a race between two CPPActressMAS
-# frames stays visible (T9 was found that way). Ignoring the library also hides the thread creations it
-# makes, so the hand-over of a closure to a Zenoh thread is marked in ZenohTransport.cpp with
-# __tsan_release / __tsan_acquire (release_to_callbacks, acquire_from_declarer). Inert on macOS, where
-# zenoh-c is linked statically and produced no report. Reported in docs/port/BACKLOG.md.
+# zenoh-c (Linux) embeds the Rust runtime (zenoh, tokio), which is not instrumented and synchronises through futex calls
+# that ThreadSanitizer does not see, so every memcpy, write, recv or free issued from that code looks unsynchronised
+# (237 reports on network.zenoh under gcc, both accesses inside the Rust code every time, none in CPPActressMAS). The
+# shared library is linked on Linux so that this entry ignores the interceptors called from it and nothing else: a race
+# between two CPPActressMAS frames stays visible (a race of the transport was found that way). Ignoring the library also
+# hides the thread creations it makes, so the hand-over of a closure to a Zenoh thread is marked in ZenohTransport.cpp
+# with __tsan_release / __tsan_acquire (release_to_callbacks, acquire_from_declarer). Inert on macOS, where zenoh-c is
+# linked statically and produced no report.
 called_from_lib:libzenohc.so
-# Still T10: zenoh-cpp allocates the closure object (into_context) inside the declare call, so the first
-# callback may run before the declaring thread reaches its release. Only the reports whose stack holds that
-# allocation are suppressed: a race on any other data stays visible.
+# zenoh-cpp allocates the closure object (into_context) inside the declare call, so the first callback may run before
+# the declaring thread reaches its release. Only the reports whose stack holds that allocation are suppressed: a race
+# on any other data stays visible.
 race:into_context
 
-# T11 (dependency, 2A-bis): libmosquitto 2.0.22 marks its callbacks with the plain bool mosq->in_callback
-# (written around every callback by the network thread, lib/handle_suback.c:112 and the other handle_*.c) and
-# packet__queue reads it (lib/packet_mosq.c:203) when another thread publishes or subscribes: a data race on
-# that flag, inside the library, both accesses in its own code. Reported in docs/port/BACKLOG.md; to drop with
-# a libmosquitto that makes the flag atomic.
+# libmosquitto 2.0.22 marks its callbacks with the plain bool mosq->in_callback (written around every callback by the
+# network thread, lib/handle_suback.c:112 and the other handle_*.c) and packet__queue reads it (lib/packet_mosq.c:203)
+# when another thread publishes or subscribes: a data race on that flag, inside the library, both accesses in its own
+# code. To drop with a libmosquitto that makes the flag atomic.
 race:packet__queue

@@ -99,9 +99,9 @@ std::optional<cam::AgentId> cam::Environment::random_agent() const {
 
 void cam::Environment::remove(const AgentPointer& p_agent) {
 	if (!p_agent) {
-		return;  // unknown, or added but not yet inserted (C5)
+		return;  // unknown, or added but not yet inserted
 	}
-	// During a turn the collections do not change: the agent is marked, the boundary erases and announces it (C10)
+	// During a turn the collections do not change: the agent is marked, the boundary erases and announces it
 	if (m_agent_collection.is_turn_running()) {
 		retire(*p_agent);
 		return;
@@ -150,7 +150,7 @@ cam::Environment::send_content(const AgentId& p_sender_id, const AgentId& p_rece
 cam::transport::Result<void>
 cam::Environment::send(const AgentId& p_sender_id, const AgentId& p_receiver_id, const uint8_t* p_message,
 					   const size_t& p_length, const transport::SendOptions& p_options) const {
-	// A local receiver gets a message whose content is built once from the bytes (P8, P12)
+	// A local receiver gets a message whose content is built once from the bytes
 	if (Agent* const l_agent = m_agent_collection.find(p_receiver_id)) {
 		if (!l_agent->is_dead()) {
 			l_agent->receive(make_message(p_sender_id, p_receiver_id, make_content(p_message, p_length), {}));
@@ -162,7 +162,7 @@ cam::Environment::send(const AgentId& p_sender_id, const AgentId& p_receiver_id,
 
 cam::MessagePointer cam::Environment::make_message(const AgentId& p_sender_id, const AgentId& p_receiver_id,
 												   MessageContent&& p_content, const std::string& p_sender_environment) {
-	// The message carries its counter, and its block is recycled by the thread that drops the last pointer (P8, D76)
+	// The message carries its counter, and its block is recycled by the thread that drops the last pointer
 	return MessagePointer(new Message(Message::Key(), p_sender_id, p_receiver_id, std::move(p_content), p_sender_environment));
 }
 
@@ -223,7 +223,7 @@ bool cam::Environment::deliver_by_name(const AgentId& p_sender_id, const std::st
 			}
 		}
 	} else {
-		// A name is a key of the index: no scan of every agent (P13)
+		// A name is a key of the index: no scan of every agent
 		const auto [l_begin, l_end] = m_agent_collection.m_agents_by_name.equal_range(p_receiver_name);
 		for (auto l_it = l_begin; l_it != l_end; ++l_it) {
 			if (!l_visit(l_it->second)) {
@@ -333,7 +333,7 @@ void cam::Environment::start() {
 
 void cam::Environment::run_turns(const int p_no_turns) {
 	// A turn boundary before every turn, for start() and continue_simulation() alike: the agents added or stopped since
-	// the previous turn are applied first (C7)
+	// the previous turn are applied first
 	int l_turn = 0;
 	process_buffers();
 	while (true) {
@@ -439,7 +439,7 @@ void cam::Environment::process_buffers() {
 	}
 	for (const auto l_event: m_endpoint->take_events()) {
 		if (l_event == transport::TransportEvent::Reconnected) {
-			// The broker may have lost the retained presences: announce this environment again (N15).
+			// The broker may have lost the retained presences: announce this environment again.
 			announce_presence(true);
 		}
 		on_transport_event(l_event);
@@ -599,7 +599,7 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 	switch (p_envelope.m_kind) {
 		case EnvelopeKind::Message: {
 			const std::string& l_origin = p_envelope.effective_sender_environment();
-			// No agent identifier here is longer than AgentId::CAPACITY: such a message is refused and counted (D76)
+			// No agent identifier here is longer than AgentId::CAPACITY: such a message is refused and counted
 			const auto l_sender = AgentId::parse(p_envelope.m_sender_agent);
 			const auto l_target = AgentId::parse(p_envelope.m_target_id);
 			if (!l_sender || !l_target) {
@@ -710,7 +710,7 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 			apply_agent_control(p_envelope);
 			break;
 		default:
-			// Queries and replies belong to transports with request/reply (mission 2).
+			// Queries and replies belong to transports with request/reply.
 			m_endpoint->count_rejected();
 			break;
 	}
@@ -895,7 +895,7 @@ void cam::Environment::apply_agent_offer(const transport::Envelope& p_envelope) 
 		return;
 	}
 	const std::string& l_origin = p_envelope.m_sender_environment;
-	// No agent identifier here is longer than AgentId::CAPACITY: such a transfer is refused (D76)
+	// No agent identifier here is longer than AgentId::CAPACITY: such a transfer is refused
 	const auto l_agent_id = AgentId::parse(l_transfer->m_agent_id);
 	if (!l_agent_id) {
 		send_control(transport::EnvelopeKind::AgentReject, l_origin, l_transfer->m_transfer_id, AgentId(), false,

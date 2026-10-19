@@ -33,8 +33,8 @@
 
 /**
  * Number formatting and parsing of .NET, as the C# examples print and read numbers, so that a port prints the same text
- * as its original (D82). Invariant culture, checked against tests/iso/vectors/format.txt (FormatVectors, .NET 10).
- * Seeds of the C# oracles: a port draws from the same seeds as its oracle under the seed shim (D96).
+ * as its original. Invariant culture, checked against tests/iso/vectors/format.txt (FormatVectors, .NET 10).
+ * Seeds of the C# oracles: a port draws from the same seeds as its oracle under the seed shim.
  **/
 namespace cam::dotnet {
 

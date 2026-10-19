@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.Agents5.
 // Port of the C# example E00 Simple Examples/Agents5 (ActressMAS v3.1): long setups, then actions, and each agent stops
 // as soon as its mailbox is empty. Parallel, no turn limit: the simulation ends when no agent is left.

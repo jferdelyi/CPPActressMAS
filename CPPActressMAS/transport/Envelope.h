@@ -29,7 +29,7 @@
 
 /**
  * CPPActressMAS transport layer: the envelope carried between environments. The structure is the
- * contract; an EnvelopeCodec gives it a form on the wire (docs/port/10-transport.md, section 5).
+ * contract; an EnvelopeCodec gives it a form on the wire.
  */
 namespace cam::transport {
 

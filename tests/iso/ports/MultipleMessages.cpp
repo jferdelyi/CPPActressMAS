@@ -16,13 +16,13 @@
  *                                                                        *
  **************************************************************************/
 
-// Harness program of the oracle tests (tests/iso, D98): the C# original as it is, its bugs included, compared with its
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
 // oracle by iso.MultipleMessages.
 // Port of the C# example E00 Simple Examples/MultipleMessages (ActressMAS v3.1): a manager starts five workers; each
 // reports to the manager and sends a request to another worker, drawn at random, which replies. Parallel, 20 turns.
-// As the C#, the reply is handled under the label "request_reply", which no message carries (X1): the reply is never
+// As the C#, the reply is handled under the label "request_reply", which no message carries: the reply is never
 // handled and the exchange stops there.
-// The workers draw from one generator, as from the static Random of the C#, with the seed of its oracle (D96), but
+// The workers draw from one generator, as from the static Random of the C#, with the seed of its oracle, but
 // under a lock: the C# draws without one, which C++ cannot do without undefined behaviour.
 
 #include <cstdint>
@@ -81,7 +81,7 @@ class WorkerAgent final : public cam::Agent {
 				send_by_name(next_worker(), "request");
 			} else if (l_action == "request") {
 				send(p_message->get_sender(), "reply");
-			} else if (l_action == "request_reply") {  // as the C#: no message carries this label (X1)
+			} else if (l_action == "request_reply") {  // as the C#: no message carries this label
 				send_by_name("Manager", "reply");
 				send_by_name(next_worker(), "request");
 			}

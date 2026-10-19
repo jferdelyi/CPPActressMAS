@@ -18,11 +18,11 @@
 
 // Characterization crash probes.
 //
-// Each probe reproduces a known defect of the core (IDs from docs/port/00-analyse-initiale.md) whose
-// symptom is a crash, undefined behaviour or a data race, so it never runs inside the test process:
+// Each probe reproduces a known defect of the core whose symptom is a crash, undefined behaviour or a data race, so it never runs inside the test process:
 // CTest launches one process per probe (cam_probes <name>) and the expected failure is the sanitizer
 // signature (tests/characterization/CMakeLists.txt, PASS_REGULAR_EXPRESSION). A probe that runs to completion prints
-// "OK no crash". Memory probes have a verdict under ASan + UBSan only, race probes under TSan only.
+// "OK no crash". Memory probes have a verdict under ASan + UBSan only, race probes under TSan only. A fixed defect
+// keeps its probe as a regression test, which must run to completion without any sanitizer report.
 // Defects whose symptom is a wrong value are doctest cases in known_defects.cpp.
 //
 // Usage: cam_probes            lists the probes (exit 0)
@@ -55,7 +55,7 @@ namespace {
 		void default_action() override { stop(); }
 	};
 
-	// ---------------------------------------------------------------- C1 (fixed in 1A) and witness
+	// ---------------------------------------------------------------- empty turn (fixed)
 	// random_permutation(0) computed p_number - 1 in size_t and read out of bounds; the probes stay as
 	// regression tests (an empty environment runs one empty turn and finishes, as the C# does).
 	void empty_start_parallel() {
@@ -79,27 +79,27 @@ namespace {
 	void continue_all_dead_parallel() {
 		cam::Environment l_env(2, Mode::Parallel);
 		l_env.add<Quitter>("q");
-		l_env.start();  // turn 1: stop(); start() leaves before process_buffers (C24)
+		l_env.start();  // turn 1: stop(); start() leaves before process_buffers
 		std::cout << "count after start=" << l_env.agents_count() << " (dead agent still counted)\n";
 		l_env.continue_simulation(2);  // get_ids(alive) is empty -> random_permutation(0)
 		std::cout << "OK no crash\n";
 	}
 
-	// ---------------------------------------------------------------- C5, C6
-	void remove_unknown() {  // C5, fixed in 3B: kept as a regression test
+	// ---------------------------------------------------------------- removal (fixed)
+	void remove_unknown() {
 		cam::Environment l_env(1, Mode::Sequential);
 		l_env.remove("does-not-exist");  // used to dereference the null pointer of get(); now ignored
 		std::cout << "OK no crash\n";
 	}
 
-	void remove_buffered() {  // C5, fixed in 3B: kept as a regression test
+	void remove_buffered() {
 		cam::Environment l_env(1, Mode::Sequential);
 		const cam::AgentId l_id = l_env.add<Plain>("x");  // added, not inserted yet: ignored
 		l_env.remove(l_id);
 		std::cout << "OK no crash\n";
 	}
 
-	void remove_then_send_by_name() {  // C6, fixed in 1A: kept as a regression test
+	void remove_then_send_by_name() {
 		cam::Environment l_env(2, Mode::Sequential);
 		const cam::AgentId l_id = l_env.add<Plain>("target");
 		l_env.start();       // agent inserted
@@ -108,13 +108,13 @@ namespace {
 		std::cout << "OK no crash\n";
 	}
 
-	// ---------------------------------------------------------------- C4
+	// ---------------------------------------------------------------- random agent (fixed)
 	struct PickerEnvironment final : cam::Environment {  // random_agent() was protected and returned the agent
 		using cam::Environment::Environment;
 		[[nodiscard]] std::string pick() const { return get_agent_name(*random_agent()).value_or("?"); }
 	};
 
-	void random_agent_bound() {  // C4, fixed in 3B (one bounded draw, an id returned): kept as a regression test
+	void random_agent_bound() {  // one bounded draw, an id returned
 		PickerEnvironment l_env(1, Mode::Sequential, 0, 1);
 		l_env.add<Plain>("only");
 		l_env.start();
@@ -124,7 +124,7 @@ namespace {
 		std::cout << "\nOK no crash (20 draws)\n";
 	}
 
-	// ---------------------------------------------------------------- T1, T2, C10, C12
+	// ---------------------------------------------------------------- Parallel turns
 	struct Watcher final : cam::Agent {
 		explicit Watcher(const std::string& p_name) : Agent(p_name, true) {}
 		int m_key = 0;
@@ -173,7 +173,7 @@ namespace {
 		void default_action() override { send_by_name("victim", json("ping"), false); }
 	};
 
-	void stop_and_send_parallel() {  // T2, fixed in 3B (atomic dead flag): kept as a regression test
+	void stop_and_send_parallel() {  // fixed: atomic dead flag
 		cam::Environment l_env(10, Mode::Parallel);
 		for (int i = 0; i < 4; i++) {
 			l_env.add<Victim>("victim", 5 * i);
@@ -195,7 +195,7 @@ namespace {
 		}
 	};
 
-	void remove_during_parallel_turn() {  // C10, fixed in 3B: kept as a regression test
+	void remove_during_parallel_turn() {  // fixed
 		cam::Environment l_env(20, Mode::Parallel);
 		l_env.add<Remover>("killer");
 		for (int i = 0; i < 200; i++) {
@@ -217,7 +217,7 @@ namespace {
 		}
 	};
 
-	void remove_during_sequential_turn() {  // C12, fixed in 3B: kept as a regression test
+	void remove_during_sequential_turn() {  // fixed
 		cam::Environment l_env(2, Mode::Sequential);
 		l_env.add<SequentialKiller>("killer");
 		for (int i = 0; i < 6; i++) {
@@ -227,8 +227,8 @@ namespace {
 		std::cout << "OK no crash\n";
 	}
 
-	// ---------------------------------------------------------------- T7
-	void rng_two_threads() {  // T7, fixed in 3B (one generator per environment): kept as a regression test
+	// ---------------------------------------------------------------- random generator per environment (fixed)
+	void rng_two_threads() {
 		const auto l_run = [] {
 			cam::Environment l_env(200, Mode::SequentialRandom, 0, 1);
 			for (const char* l_name: {"A", "B", "C"}) {
@@ -243,11 +243,11 @@ namespace {
 		std::cout << "OK no crash\n";
 	}
 
-	// ---------------------------------------------------------------- C16
+	// ---------------------------------------------------------------- identifier returned by add (fixed)
 	void dangling_add_ref() {
 		cam::Environment l_env(3, Mode::Sequential);
-		const cam::AgentId& l_id = l_env.add<Quitter>("q1");  // a copy since D76 (it referred to Agent::m_id)
-		l_env.add<Quitter>("q2");  // q2 no longer stays alive in the sentinel node of m_new_agents (C17, fixed in 3B)
+		const cam::AgentId& l_id = l_env.add<Quitter>("q1");  // a copy now (it referred to Agent::m_id)
+		l_env.add<Quitter>("q2");  // q2 no longer stays alive in the sentinel node of m_new_agents
 		l_env.start();             // q1 and q2 stop and are removed: q1 is destroyed
 		std::cout << "id still readable? size=" << l_id.size() << " value=" << l_id << "\n";
 		std::cout << "OK no crash\n";
@@ -256,31 +256,31 @@ namespace {
 	// ---------------------------------------------------------------- registry
 	struct Probe {
 		const char* m_name;
-		const char* m_ids;
+		const char* m_status;
 		void (*m_run)();
 	};
 
 	const Probe g_probes[] = {
-			{"empty_start_parallel", "C1 (fixed in 1A)", empty_start_parallel},
-			{"empty_start_sequential", "witness C1", empty_start_sequential},
-			{"empty_start_sequential_random", "C1 (fixed in 1A)", empty_start_sequential_random},
-			{"continue_all_dead_parallel", "C1 (fixed in 1A) C24", continue_all_dead_parallel},
-			{"remove_unknown", "C5", remove_unknown},
-			{"remove_buffered", "C5", remove_buffered},
-			{"remove_then_send_by_name", "C6 (fixed in 1A)", remove_then_send_by_name},
-			{"random_agent_bound", "C4", random_agent_bound},
-			{"observables_parallel", "T1 (TSan)", observables_parallel},
-			{"stop_and_send_parallel", "T2 (TSan)", stop_and_send_parallel},
-			{"remove_during_parallel_turn", "C10 (TSan, ASan)", remove_during_parallel_turn},
-			{"remove_during_sequential_turn", "C12", remove_during_sequential_turn},
-			{"rng_two_threads", "T7 (TSan)", rng_two_threads},
-			{"dangling_add_ref", "C16", dangling_add_ref},
+			{"empty_start_parallel", "fixed", empty_start_parallel},
+			{"empty_start_sequential", "witness", empty_start_sequential},
+			{"empty_start_sequential_random", "fixed", empty_start_sequential_random},
+			{"continue_all_dead_parallel", "fixed", continue_all_dead_parallel},
+			{"remove_unknown", "fixed", remove_unknown},
+			{"remove_buffered", "fixed", remove_buffered},
+			{"remove_then_send_by_name", "fixed", remove_then_send_by_name},
+			{"random_agent_bound", "fixed", random_agent_bound},
+			{"observables_parallel", "known (TSan)", observables_parallel},
+			{"stop_and_send_parallel", "fixed (TSan)", stop_and_send_parallel},
+			{"remove_during_parallel_turn", "fixed (TSan, ASan)", remove_during_parallel_turn},
+			{"remove_during_sequential_turn", "fixed", remove_during_sequential_turn},
+			{"rng_two_threads", "fixed (TSan)", rng_two_threads},
+			{"dangling_add_ref", "fixed", dangling_add_ref},
 	};
 
 	void list_probes(std::ostream& p_out) {
 		p_out << "usage: cam_probes <probe>\n";
 		for (const auto& l_probe: g_probes) {
-			p_out << "  " << std::left << std::setw(32) << l_probe.m_name << l_probe.m_ids << "\n";
+			p_out << "  " << std::left << std::setw(32) << l_probe.m_name << l_probe.m_status << "\n";
 		}
 	}
 

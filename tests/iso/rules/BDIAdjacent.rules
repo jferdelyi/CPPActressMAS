@@ -1,5 +1,5 @@
 # E02 BDI Architecture with two fires side by side (oracle BDIAdjacent: the first fire starts on cells 3 and 4), in
-# legacy mode (D89): the patrol puts out the fire on 4, still sees the one on 3 with an empty plan, and both the C# and
+# behaviour of the C#: the patrol puts out the fire on 4, still sees the one on 3 with an empty plan, and both the C# and
 # the port stop for good on reading that plan. Exact trace as BDI.rules; the text of the exception is the runtime's, so
 # it is counted, not compared ("out of range" is in both).
 cover all

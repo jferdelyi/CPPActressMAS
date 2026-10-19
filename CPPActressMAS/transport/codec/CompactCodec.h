@@ -27,8 +27,8 @@ namespace cam::transport {
 
 	/**
 	 * Compact codec (id 1, version 1): little-endian fixed-width scalars, 32-bit length-prefixed strings
-	 * and byte arrays, no schema, no dependency. It is the floor of the envelope micro-benchmark of
-	 * step 1B and the fallback for constrained targets. Identifiers travel as strings.
+	 * and byte arrays, no schema, no dependency. It is the floor of the envelope micro-benchmark
+	 * and the fallback for constrained targets. Identifiers travel as strings.
 	 **/
 	class CompactCodec final : public EnvelopeCodec {
 	public:

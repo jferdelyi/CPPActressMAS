@@ -57,7 +57,7 @@ namespace {
 	constexpr int MAX_TURNS = 600;  // 12 s of simulation at most per environment
 
 	// Keeps its environment alive until the test raises the stop flag or MAX_TURNS turns elapsed, then
-	// stops so that start() returns. The test never removes an agent from outside during a turn (C10, C12).
+	// stops so that start() returns. The test never removes an agent from outside during a turn.
 	std::atomic<bool> g_stop_keepers{false};
 	struct Keeper final : cam::Agent {
 		explicit Keeper(const std::string& p_name) : Agent(p_name) {}

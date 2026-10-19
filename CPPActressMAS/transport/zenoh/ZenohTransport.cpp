@@ -48,7 +48,7 @@ namespace cam::transport {
 
 		/**
 		 * zenoh-c hands our closures to its Rust threads with a synchronisation ThreadSanitizer cannot see (the
-		 * runtime is not instrumented, T10): these two calls tell it that what a thread wrote before handing a
+		 * runtime is not instrumented): these two calls tell it that what a thread wrote before handing a
 		 * closure over happens before the callbacks that follow. They compile to nothing without the sanitizer.
 		 **/
 		void release_to_callbacks([[maybe_unused]] void* p_sync) {

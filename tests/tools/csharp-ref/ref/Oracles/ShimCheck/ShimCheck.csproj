@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- RngVectors compiled through the seed shim (D82): its output must be identical to ref/expected/rng-vectors.txt,
+  <!-- RngVectors compiled through the seed shim: its output must be identical to ref/expected/rng-vectors.txt,
        which proves that SeededRandom draws exactly as the seeded System.Random -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>

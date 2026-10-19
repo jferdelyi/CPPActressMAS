@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Oracle of the C# example E00 Simple Examples/Agents5 (D96): original sources unchanged, see ../Oracle.props -->
+  <!-- Oracle of the C# example E00 Simple Examples/Agents5: original sources unchanged, see ../Oracle.props -->
   <PropertyGroup>
     <OracleSources>$(AmasEx)E00 Simple Examples/Agents5/</OracleSources>
   </PropertyGroup>

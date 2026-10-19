@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- E20 RemoteMessages without WinForms: same agents, same setup per container, console output (D51). -->
+  <!-- E20 RemoteMessages without WinForms: same agents, same setup per container, console output. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>

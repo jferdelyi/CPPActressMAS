@@ -56,7 +56,7 @@ namespace {
 		explicit TestEnvironment(std::string p_label, const Mode p_mode = Mode::Sequential) : Environment(1, p_mode), m_label(std::move(p_label)) {
 			g_labels[get_id()] = m_label;
 		}
-		// Accepting only the given agent types: the catalogue of the process is shared by every environment (D82)
+		// Accepting only the given agent types: the catalogue of the process is shared by every environment
 		TestEnvironment(std::string p_label, std::vector<std::string> p_accepted_types) :
 				Environment({.m_turns = 1, .m_mode = Mode::Sequential, .m_accepted_agent_types = std::move(p_accepted_types)}),
 				m_label(std::move(p_label)) {
@@ -189,7 +189,7 @@ namespace {
 		int m_count = 0;
 	};
 
-	// Agent type never named: anonymous namespace, never registered by any test (the catalogue is per process, D82).
+	// Agent type never named: anonymous namespace, never registered by any test (the catalogue is per process).
 	struct Unlisted final : cam::Agent {
 		Unlisted(const std::string& p_name, std::string p_target) : Agent(p_name), m_target(std::move(p_target)) {}
 		void default_action() override {
@@ -494,7 +494,7 @@ TEST_SUITE("migration") {
 		REQUIRE(l_c.disconnect());
 	}
 
-	TEST_CASE("texts carried by the offer and forwarded after the move arrive as text, shared or not (D76)") {
+	TEST_CASE("texts carried by the offer and forwarded after the move arrive as text, shared or not") {
 		g_recorder.clear();
 		auto l_transport = open_loopback();
 		TestEnvironment l_a("A");

@@ -46,7 +46,7 @@ namespace cam {
 	inline constexpr bool RECYCLE_BLOCKS = CAM_RECYCLE_BLOCKS != 0;
 
 	/**
-	 * Free memory blocks of one size, kept by each thread (P8). A block freed by a thread goes to that thread, which
+	 * Free memory blocks of one size, kept by each thread. A block freed by a thread goes to that thread, which
 	 * hands it out again at its next request of that size: once warm, a thread that frees as much as it takes no longer
 	 * calls the allocator. Each thread keeps MAX_FREE_BLOCKS blocks at most (about 1 MiB of them per size) and frees them
 	 * when it ends.
@@ -147,7 +147,7 @@ namespace cam {
 
 	/**
 	 * Allocator whose single objects come from FreeBlocks: for objects made and dropped at a high rate, such as the
-	 * agents and the JSON contents through std::allocate_shared (P8). Arrays go to std::allocator. Not final: the standard containers of
+	 * agents and the JSON contents through std::allocate_shared. Arrays go to std::allocator. Not final: the standard containers of
 	 * libstdc++ derive from their allocator.
 	 **/
 	template<typename T>

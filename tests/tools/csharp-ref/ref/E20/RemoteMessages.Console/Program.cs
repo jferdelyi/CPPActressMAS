@@ -1,4 +1,4 @@
-// E20 RemoteMessages (ActressMAS v3.1) without WinForms, for the CPPActressMAS harness (D51): PingAgent, PongAgent
+// E20 RemoteMessages (ActressMAS v3.1) without WinForms, for the CPPActressMAS harness: PingAgent, PongAgent
 // and MasSetup.Configure are the originals (RemoteMessages/PingAgent.cs, PongAgent.cs, MasSetup.cs) with the
 // RichTextBox replaced by the console; Program replaces MasMobileForm: create the Container, start it, wait for the
 // registration (the form waits for a click), then RunMas, and stop after a bounded time.

@@ -1,8 +1,7 @@
-# Benchmarks that follow the performance protocol (docs/port/perf/PROTOCOLE.md): same workloads and
-# same measured scope as the C# v3.1 E30 benchmarks, atomic counters, steady_clock in microseconds,
+# Benchmarks: same workloads and same measured scope as the C# v3.1 E30 benchmarks, atomic counters, steady_clock in microseconds,
 # a deterministic variant (--sequential), linked to the static library. Built with -DBUILD_BENCH=ON,
 # normally through the "bench" preset (-O3 -DNDEBUG, no -march=native, no -flto).
-# Examples/Benchmarks/ stays the faithful port of the C# examples; these are the measurement copies.
+# tests/iso/ports/ holds the faithful ports of the C# benchmarks; these are the measurement copies.
 
 if (NOT TARGET CPPActressMASStatic)
 	message(FATAL_ERROR "tests/bench/ links to CPPActressMASStatic: configure with -DBUILD_STATIC=ON")

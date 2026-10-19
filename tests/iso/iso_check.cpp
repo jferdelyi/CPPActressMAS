@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// ISO comparison of an example with its C# original (D74, D82): facts, never text.
+// ISO comparison of an example with its C# original: facts, never text.
 //
 // Usage: iso_check <rules> <oracle> -- <command> [args...]   runs the C++ example and compares
 //        iso_check <rules> <oracle> --actual <file>          compares a saved output (fixtures)

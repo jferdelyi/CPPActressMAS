@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Oracle of the C# example E02 BDI Architecture with two fires side by side (D89, D91), see ../Oracle.props: the
+  <!-- Oracle of the C# example E02 BDI Architecture with two fires side by side, see ../Oracle.props: the
        stubs of the BDI oracle; TerrainAgent.cs.sed starts the first fire on cells 3 and 4 instead of 4, which reaches
        the empty plan bug of the C# (the patrol stops for good); Program.cs.sed bounds noTurns. -->
   <PropertyGroup>

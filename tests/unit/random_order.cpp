@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Random order of the sequential modes (D82): with RandomEngine::DotNet an environment runs its agents in the order of
+// Random order of the sequential modes: with RandomEngine::DotNet an environment runs its agents in the order of
 // the C# turn by turn, against the traces of tests/unit/vectors/rng/trace-order.txt (TraceOrder of tests/tools/csharp-ref, .NET 10);
 // with RandomEngine::Mt19937 the order of a seed is the same with every standard library. The environments are
 // sequential: the agents write into a plain log on the calling thread.
@@ -136,7 +136,7 @@ TEST_SUITE("random_order") {
 
 	TEST_CASE("an agent stopped and an agent added during a random turn keep the C# order (S4)") {
 		const auto l_traces = read_traces();
-		// S3 is not replayed: after a removal the C# Dictionary reuses the freed slot (ISO d, not reproduced)
+		// S3 is not replayed: after a removal the C# Dictionary reuses the freed slot, which the port does not reproduce
 		CHECK(run({.m_turns = 4, .m_mode = Mode::SequentialRandom, .m_seed = 1, .m_random = cam::RandomEngine::DotNet}, true)
 			  == l_traces.at("S4"));
 	}
@@ -151,7 +151,7 @@ TEST_SUITE("random_order") {
 		CHECK(run({.m_turns = 4, .m_mode = Mode::SequentialRandom, .m_seed = 42}, false) == l_expected);
 	}
 
-	TEST_CASE("random_agent draws once over the agents in their order, as RandomAgent of the C# (C4, G5)") {
+	TEST_CASE("random_agent draws once over the agents in their order, as RandomAgent of the C#") {
 		cam::Environment l_env({.m_turns = 1, .m_mode = Mode::Sequential, .m_seed = 5, .m_random = cam::RandomEngine::DotNet});
 		std::vector<cam::AgentId> l_ids;
 		for (const char* l_name: {"A", "B", "C", "D", "E"}) {

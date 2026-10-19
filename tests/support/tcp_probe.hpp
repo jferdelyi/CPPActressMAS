@@ -40,7 +40,7 @@ namespace cam::test {
 
 	/**
 	 * Bounded TCP connection attempt. The network tests call it before opening an MQTT connection:
-	 * without a broker, Environment::initialise_remote_connection() spins forever (N2).
+	 * without a broker, Environment::initialise_remote_connection() spins forever.
 	 * @param p_host Host name or address
 	 * @param p_port TCP port
 	 * @param p_timeout Maximum time for the connection attempt
