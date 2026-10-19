@@ -1,1 +1,1 @@
-s/new EnvironmentMas(delayAfterTurn: 10,/new EnvironmentMas(noTurns: 120, delayAfterTurn: 10,/
+s/new EnvironmentMas(delayAfterTurn: 10,/new EnvironmentMas(noTurns: 60, delayAfterTurn: 10,/

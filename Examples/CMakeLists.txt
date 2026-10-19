@@ -100,6 +100,13 @@ add_executable(BDI ${CMAKE_CURRENT_LIST_DIR}/BDI/BDI.cpp)
 target_link_libraries(BDI CPPActressMAS)
 apply_compile_options(BDI)
 
+add_executable(GameOfLife ${CMAKE_CURRENT_LIST_DIR}/GameOfLife/GameOfLife.cpp)
+target_link_libraries(GameOfLife CPPActressMAS)
+apply_compile_options(GameOfLife)
+# The initial pattern is read from the working directory, as the C#: copied next to the executable
+add_custom_command(TARGET GameOfLife POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/GameOfLife/patterns.txt $<TARGET_FILE_DIR:GameOfLife>)
+
 add_executable(TransportRoundTrip ${CMAKE_CURRENT_LIST_DIR}/Features/TransportRoundTrip.cpp)
 target_link_libraries(TransportRoundTrip CPPActressMAS)
 apply_compile_options(TransportRoundTrip)

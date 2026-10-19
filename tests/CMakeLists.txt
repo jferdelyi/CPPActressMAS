@@ -112,12 +112,14 @@ add_test(NAME unit.iso_check.typo COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/typo
 set_tests_properties(unit.iso_check.typo PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "FAIL fact msg: no tuple in the C# oracle")
 
 # Runs an example and compares its facts with the output of its C# original (tests/iso/oracles/<example>.txt, produced
-# by tools/csharp-ref) under tests/iso/rules/<example>.rules; extra arguments go to the example. Label iso.
+# by tools/csharp-ref) under tests/iso/rules/<example>.rules; extra arguments go to the example, which runs from its own
+# folder, where its data files are copied. Label iso.
 function(cam_add_iso p_example)
 	if (TARGET ${p_example})
 		add_test(NAME iso.${p_example}
 			COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/iso/rules/${p_example}.rules ${CMAKE_CURRENT_LIST_DIR}/iso/oracles/${p_example}.txt
-				-- $<TARGET_FILE:${p_example}> ${ARGN})
+				-- $<TARGET_FILE:${p_example}> ${ARGN}
+			WORKING_DIRECTORY $<TARGET_FILE_DIR:${p_example}>)
 		set_tests_properties(iso.${p_example} PROPERTIES LABELS iso TIMEOUT 300)
 		cam_apply_tsan_suppressions(iso.${p_example})
 	endif()
@@ -127,6 +129,7 @@ endfunction()
 cam_add_iso(MechanismDesign)
 cam_add_iso(PrisonerDilemma)
 cam_add_iso(BDI 120 0)
+cam_add_iso(GameOfLife 60 0)
 
 # Examples of the features of the C++ port (Examples/Features): they run and report what they measure.
 if (TARGET TransportRoundTrip)
