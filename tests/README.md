@@ -29,7 +29,7 @@ The presets need CMake 3.25 or later.
 |---|---|
 | `cmake --workflow --preset debug` | Configures, builds and runs every test of a preset: `debug`, `release`, `core` (no network transport), `asan` (AddressSanitizer and UBSan), `tsan` (ThreadSanitizer), `coverage`, `bench`, `msvc` (Windows) |
 | `cmake --workflow --preset iso` | The same for one type, on `debug`: `unit`, `integration`, `network`, `characterization`, `iso`, `examples` |
-| `ctest --preset asan-iso` | One type on a preset already built: `<preset>-<type>` for `debug`, `release`, `core`, `asan`, `tsan`, `msvc` |
+| `ctest --preset asan-iso` | One type on a preset already built: `<preset>-<type>` for `debug`, `release`, `core`, `asan`, `tsan`, `msvc` (no `examples` for `msvc`) |
 | `tests/run.sh [preset] [type...]` | macOS and Linux: configures, builds and runs the types given (all of them by default) |
 | `tests/run.sh --linux [--compiler gcc\|clang] [preset] [type...]` | The same in a Linux container of the Podman machine, in `build/linux-<compiler>-<preset>` |
 | `tests\run.ps1 [-Configuration Debug] [type...]` | Windows (MSVC, `msvc` preset) |
@@ -48,6 +48,18 @@ Environment variables read by the tests:
 - **Linux** (gcc and clang): every preset; `tests/run.sh --linux` runs them in a container.
 - **Windows** (MSVC): the `msvc` preset, core only (no network transport).
 
+## Continuous integration
+
+`.github/workflows/tests.yml` runs at every push and pull request, without the network transports (the runners have
+neither a broker nor Zenoh, so the network tests skip):
+
+| Job | Configuration | Tests |
+|---|---|---|
+| macOS | Apple clang, `core` preset (Debug) | every type |
+| Linux | gcc and clang, Debug and Release, warnings as errors | every type |
+| Linux sanitizers | gcc, `asan` and `tsan` presets | every type |
+| Windows | MSVC, `msvc` preset (Debug) | `unit` and `iso` |
+
 ## Windows
 
 Windows has not been tested by hand yet. Prerequisites:
@@ -64,17 +76,12 @@ The third-party libraries are git submodules (`ThirdParty/`). If a clone fails o
 ```powershell
 git submodule update --init --depth 1
 
-# With the presets: core only, Debug
+# Static library and tests, core only, Debug (the msvc preset; start here)
 tests\run.ps1
-
-# Core only, without any dependency (start here)
-cmake -S . -B build\msvc-core -DBUILD_EXAMPLES=ON
-cmake --build build\msvc-core --config Debug
-ctest --test-dir build\msvc-core -C Debug --output-on-failure
 
 # With the MQTT transport
 vcpkg install openssl pthreads --triplet x64-windows
-cmake -S . -B build\msvc -DBUILD_EXAMPLES=ON -DCAM_TRANSPORT_MQTT=ON ^
+cmake -S . -B build\msvc -DBUILD_SHARED=OFF -DCAM_TRANSPORT_MQTT=ON ^
   -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows
 cmake --build build\msvc --config Debug
 ctest --test-dir build\msvc -C Debug --output-on-failure
@@ -84,6 +91,9 @@ ctest --test-dir build\msvc -C Debug --output-on-failure
 ```
 
 Notes:
+- The shared library exports no symbol yet, and the static one has the same file name as its import library: with
+  MSVC, build the static library only (`-DBUILD_SHARED=OFF`, as the `msvc` preset does). The examples link to the
+  shared library, so they are left out (`BUILD_EXAMPLES=OFF`).
 - The Visual Studio generator is multi-configuration: `CMAKE_BUILD_TYPE` is empty, so give `--config` to the build
   and `-C` to CTest. The `asan`, `tsan`, `coverage` and `bench` presets pass GCC and Clang options: they do not apply
   to MSVC.

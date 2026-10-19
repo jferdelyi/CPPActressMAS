@@ -1,0 +1,82 @@
+# Tests of CPPActressMAS on macOS, Linux and Windows (tests/README.md). Without the network transports: the runners have
+# neither a broker nor Zenoh, so the network tests skip.
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS, Apple clang, Debug
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Configure, build and test
+        run: cmake --workflow --preset core
+
+  linux:
+    name: Linux, ${{ matrix.compiler }}, ${{ matrix.build_type }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        build_type: [Debug, Release]
+    env:
+      CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+      CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      # Release adds -Wall -Wextra -Wpedantic: a warning of the project fails the build
+      - name: Configure
+        run: cmake --preset core -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+      - name: Build
+        run: cmake --build --preset core
+      - name: Test
+        run: ctest --preset core -j4
+
+  linux-sanitizers:
+    name: Linux, gcc, ${{ matrix.sanitizer }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer: [asan, tsan]
+    env:
+      CC: gcc
+      CXX: g++
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      # The sanitizers place their shadow memory at fixed addresses, which the 32 bits of mmap randomisation of the
+      # runner kernels may take; 28 bits is the usual setting
+      - name: Reduce the mmap randomisation
+        run: sudo sysctl vm.mmap_rnd_bits=28
+      - name: Configure
+        run: cmake --preset ${{ matrix.sanitizer }} -DCAM_TRANSPORT_MQTT=OFF -DCAM_TRANSPORT_ZENOH=OFF
+      - name: Build
+        run: cmake --build --preset ${{ matrix.sanitizer }}
+      - name: Test
+        run: ctest --preset ${{ matrix.sanitizer }} -j4
+
+  windows:
+    name: Windows, MSVC, Debug
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Configure, build, and run the unit and oracle tests
+        shell: pwsh
+        run: tests/run.ps1 unit iso

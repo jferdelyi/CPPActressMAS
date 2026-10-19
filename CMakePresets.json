@@ -86,10 +86,12 @@
 		},
 		{
 			"name": "msvc",
-			"displayName": "Windows, MSVC, core only (multi-config generator: Debug unless told otherwise)",
+			"displayName": "Windows, MSVC, static library and tests, core only (the shared library exports no symbol yet)",
 			"inherits": "base",
 			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
 			"cacheVariables": {
+				"BUILD_SHARED": "OFF",
+				"BUILD_EXAMPLES": "OFF",
 				"CAM_TRANSPORT_MQTT": "OFF",
 				"CAM_TRANSPORT_ZENOH": "OFF"
 			}
@@ -160,8 +162,7 @@
 		{ "name": "msvc-integration", "configurePreset": "msvc", "inherits": "type-integration", "configuration": "Debug" },
 		{ "name": "msvc-network", "configurePreset": "msvc", "inherits": "type-network", "configuration": "Debug" },
 		{ "name": "msvc-characterization", "configurePreset": "msvc", "inherits": "type-characterization", "configuration": "Debug" },
-		{ "name": "msvc-iso", "configurePreset": "msvc", "inherits": "type-iso", "configuration": "Debug" },
-		{ "name": "msvc-examples", "configurePreset": "msvc", "inherits": "type-examples", "configuration": "Debug" }
+		{ "name": "msvc-iso", "configurePreset": "msvc", "inherits": "type-iso", "configuration": "Debug" }
 	],
 	"workflowPresets": [
 		{ "name": "debug", "steps": [ { "type": "configure", "name": "debug" }, { "type": "build", "name": "debug" }, { "type": "test", "name": "debug" } ] },
