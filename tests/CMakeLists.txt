@@ -304,6 +304,13 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.dotnet_format PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.dotnet_format)
 
+	add_executable(cam_dotnet_seed_tests unit/dotnet_seed.cpp)
+	target_link_libraries(cam_dotnet_seed_tests cam_doctest_main)
+	target_include_directories(cam_dotnet_seed_tests PRIVATE ${CMAKE_SOURCE_DIR}/Examples/Common)
+	add_test(NAME unit.dotnet_site_seed COMMAND cam_dotnet_seed_tests)
+	set_tests_properties(unit.dotnet_site_seed PROPERTIES LABELS unit TIMEOUT 300)
+	cam_apply_tsan_suppressions(unit.dotnet_site_seed)
+
 	# Identifiers (D58): version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 	add_executable(cam_identifier_tests unit/identifier.cpp)
 	target_link_libraries(cam_identifier_tests cam_doctest_main ${CAM_TEST_LIBRARY})

@@ -22,7 +22,11 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
+#include <iostream>
 #include <iterator>
+#include <map>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -30,6 +34,7 @@
 /**
  * Number formatting and parsing of .NET, as the C# examples print and read numbers, so that a port prints the same text
  * as its original (D82). Invariant culture, checked against tests/vectors/dotnet/format.txt (FormatVectors, .NET 10).
+ * Seeds of the C# oracles: a port draws from the same seeds as its oracle under the seed shim (D96).
  **/
 namespace cam::dotnet {
 
@@ -143,6 +148,95 @@ namespace cam::dotnet {
 			throw std::out_of_range("to_int32: out of the int range: \"" + std::string(p_text) + "\"");
 		}
 		return static_cast<std::int32_t>(l_negative ? -l_value : l_value);
+	}
+
+	/**
+	 * FNV-1a, 64 bits, of the bytes of a text (UTF-8 for a site name).
+	 * @param p_text The text
+	 * @return The hash
+	 **/
+	inline std::uint64_t fnv1a64(const std::string_view p_text) noexcept {
+		std::uint64_t l_hash = 14695981039346656037ULL;
+		for (const char l_char: p_text) {
+			l_hash ^= static_cast<unsigned char>(l_char);
+			l_hash *= 1099511628211ULL;
+		}
+		return l_hash;
+	}
+
+	/**
+	 * One output of SplitMix64 from a state.
+	 * @param p_state The state
+	 * @return The mixed value
+	 **/
+	inline std::uint64_t splitmix64(const std::uint64_t p_state) noexcept {
+		std::uint64_t l_z = p_state + 0x9E3779B97F4A7C15ULL;
+		l_z = (l_z ^ (l_z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+		l_z = (l_z ^ (l_z >> 27)) * 0x94D049BB133111EBULL;
+		return l_z ^ (l_z >> 31);
+	}
+
+	/**
+	 * Seed that the seed shim of the oracles gives to the k-th System.Random created at a call site of the C#
+	 * (tools/csharp-ref/README.md): the low 31 bits of SplitMix64(SplitMix64(base ^ FNV-1a("File.cs:line")) + k).
+	 * @param p_site The call site, file name and line ("EnvironmentMas.cs:61")
+	 * @param p_instance The rank k of the instance at this site, from 0
+	 * @param p_base The base, CAM_SEED of the oracle
+	 * @return The seed
+	 **/
+	inline std::int32_t site_seed(const std::string_view p_site, const std::uint64_t p_instance, const std::uint64_t p_base) noexcept {
+		return static_cast<std::int32_t>(splitmix64(splitmix64(p_base ^ fnv1a64(p_site)) + p_instance) & 0x7FFFFFFFULL);
+	}
+
+	/**
+	 * The base of the seeds: CAM_SEED of the process environment, read once, as the seed shim reads it (an unsigned
+	 * integer, white space and a leading '+' allowed), 0 when absent or not a number.
+	 * @return The base
+	 **/
+	inline std::uint64_t cam_seed() {
+		static const std::uint64_t s_seed = [] {
+			const char* l_text = std::getenv("CAM_SEED");
+			if (l_text == nullptr) {
+				return std::uint64_t{0};
+			}
+			std::string_view l_view(l_text);
+			const auto l_white = [](const char p_char) { return p_char == ' ' || (p_char >= '\t' && p_char <= '\r'); };
+			while (!l_view.empty() && l_white(l_view.front())) {
+				l_view.remove_prefix(1);
+			}
+			while (!l_view.empty() && l_white(l_view.back())) {
+				l_view.remove_suffix(1);
+			}
+			if (!l_view.empty() && l_view.front() == '+') {
+				l_view.remove_prefix(1);
+			}
+			std::uint64_t l_value = 0;
+			const auto [l_end, l_error] = std::from_chars(l_view.data(), l_view.data() + l_view.size(), l_value);
+			return l_error == std::errc() && l_end == l_view.data() + l_view.size() && !l_view.empty() ? l_value : 0;
+		}();
+		return s_seed;
+	}
+
+	/**
+	 * Seed of the next System.Random created at a call site of the C#, as its oracle drew it: each site counts its
+	 * instances in the process. With CAM_SEED set, the seed is reported on the error output as the shim does
+	 * ("#camrng <site> <k> <seed>"), to compare with the .err file of the oracle.
+	 * @param p_site The call site, file name and line ("Program.cs:90")
+	 * @return The seed, for a cam::DotnetRandom
+	 **/
+	inline std::int32_t next_site_seed(const std::string_view p_site) {
+		static std::mutex s_mutex;
+		static std::map<std::string, std::uint64_t, std::less<>> s_counts;
+		std::uint64_t l_instance;
+		{
+			const std::scoped_lock l_lock(s_mutex);
+			l_instance = s_counts[std::string(p_site)]++;
+		}
+		const std::int32_t l_seed = site_seed(p_site, l_instance, cam_seed());
+		if (std::getenv("CAM_SEED") != nullptr) {
+			std::cerr << "#camrng " << p_site << " " << l_instance << " " << l_seed << std::endl;
+		}
+		return l_seed;
 	}
 
 } // namespace cam::dotnet
