@@ -1,9 +1,57 @@
 # Tests of CPPActressMAS
 
+One folder per type of test, one CTest label per type; every test is named `<type>.<name>`.
+
+| Folder | Label | What it checks |
+|---|---|---|
+| [`unit/`](unit/README.md) | `unit` | The pieces of the library alone |
+| [`integration/`](integration/README.md) | `integration` | Several environments of one process, through the loopback transport: messages, directory, migration |
+| [`network/`](network/README.md) | `network`, plus `mqtt` or `zenoh` | The network transports; skipped without them or without their broker |
+| [`characterization/`](characterization/README.md) | `characterization` | The known defects, and the tests of the fixed ones, kept as regression tests |
+| [`iso/`](iso/README.md) | `iso` | The behaviour of ActressMAS v3.1 (C#): its examples ported as they are, compared with the output of the C# originals |
+| [`examples/`](examples/README.md) | `examples` | The programs of `Examples/`, when they are built |
+| [`bench/`](bench/README.md) | `perf` | The benchmarks, run once (`bench` preset) |
+
+[`tools/`](tools/README.md) produces what the tests compare with (the C# oracles and vectors); [`support/`](support/README.md)
+holds what the types share.
+
+**Rules of the suite.**
+- A behaviour comes with its test, in the same change.
+- Every problem found and fixed keeps a test that reproduces it, as a regression test.
+- No assertion inside an agent: agents record, the test checks after `start()`.
+- A build has no warning (`-Wall -Wextra -Wpedantic`), and no test leaves a sanitizer report.
+
+## Running the tests by hand
+
+The presets need CMake 3.25 or later.
+
+| Command | What it does |
+|---|---|
+| `cmake --workflow --preset debug` | Configures, builds and runs every test of a preset: `debug`, `release`, `core` (no network transport), `asan` (AddressSanitizer and UBSan), `tsan` (ThreadSanitizer), `coverage`, `bench`, `msvc` (Windows) |
+| `cmake --workflow --preset iso` | The same for one type, on `debug`: `unit`, `integration`, `network`, `characterization`, `iso`, `examples` |
+| `ctest --preset asan-iso` | One type on a preset already built: `<preset>-<type>` for `debug`, `release`, `core`, `asan`, `tsan`, `msvc` |
+| `tests/run.sh [preset] [type...]` | macOS and Linux: configures, builds and runs the types given (all of them by default) |
+| `tests/run.sh --linux [--compiler gcc\|clang] [preset] [type...]` | The same in a Linux container of the Podman machine, in `build/linux-<compiler>-<preset>` |
+| `tests\run.ps1 [-Configuration Debug] [type...]` | Windows (MSVC, `msvc` preset) |
+
+The build folders are `build/<preset>`; `CAM_BUILD_PREFIX` in the environment puts a prefix before the preset name
+(`tests/run.sh --linux` uses it).
+
+Environment variables read by the tests:
+- `CAM_MQTT_HOST`, `CAM_MQTT_PORT`, `CAM_MQTT_BROKER_CONTROL`: the MQTT broker of `network.mqtt`.
+- `CAM_SEED`: the base of the seeds of the oracle tests (0 by default, as their oracles; see `iso/README.md`).
+- `CAM_WRITE_VECTORS=1`: writes the binary vectors of the envelope codecs again (`unit/vectors/`).
+
+## Platforms
+
+- **macOS** (Apple clang): every preset.
+- **Linux** (gcc and clang): every preset; `tests/run.sh --linux` runs them in a container.
+- **Windows** (MSVC): the `msvc` preset, core only (no network transport).
+
 ## Windows
 
 Windows has not been tested by hand yet. Prerequisites:
-- Visual Studio 2022 (MSVC 19.3x, C++20) and CMake 3.22 or later.
+- Visual Studio 2022 (MSVC 19.3x, C++20) and CMake 3.22 or later (3.25 for the presets and `tests\run.ps1`).
 - For the MQTT transport: vcpkg, with `openssl` and `pthreads` (libmosquitto needs pthreads4w for its threads), and
   access to GitHub at the first configuration, which downloads libmosquitto (about 2 MB;
   `-DFETCHCONTENT_SOURCE_DIR_LIBMOSQUITTO=<folder>` points to a local copy).
@@ -15,6 +63,9 @@ The third-party libraries are git submodules (`ThirdParty/`). If a clone fails o
 
 ```powershell
 git submodule update --init --depth 1
+
+# With the presets: core only, Debug
+tests\run.ps1
 
 # Core only, without any dependency (start here)
 cmake -S . -B build\msvc-core -DBUILD_EXAMPLES=ON

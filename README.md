@@ -83,20 +83,18 @@ l_environment.connect("mine://somewhere");
 
 ## Tests
 
-One folder of `tests/` per type of test, one CTest label per type: `unit` (the pieces of the library alone), `integration` (environments connected through the loopback transport; agent migration), `network` (plus `mqtt` or `zenoh`: environments through a broker, skipped with exit code 77 unless `CAM_MQTT_HOST` and `CAM_MQTT_PORT` point to a reachable broker and the build has the MQTT transport, the reconnection test also needs `CAM_MQTT_BROKER_CONTROL`, a script accepting `stop` and `start`; two Zenoh peers of the process on 127.0.0.1, no router, skipped without the Zenoh transport), `characterization` (known defects pinned as expected failures: crash probes run in a separate process under the `asan` or `tsan` preset and are checked against the sanitizer signature; value defects are doctest cases marked `should_fail`), `iso` (the C# examples ported as they are, compared with the output of the C# originals, [tests/iso/README.md](tests/iso/README.md)), `examples` (the programs of `Examples/` run and show what they are meant to show; approval of the deterministic ones), `perf` (smoke run of the benchmarks of `tests/bench/`, including the end-to-end transport benchmark `bench_Transport --transport loopback|mqtt|zenoh`).
+One folder of `tests/` per type of test, one CTest label per type: `unit`, `integration`, `network` (plus `mqtt` or `zenoh`), `characterization`, `iso` (the C# examples ported as they are, compared with the output of the C# originals), `examples` and `perf`. How to run them, by hand and on each platform: [tests/README.md](tests/README.md).
 ``` bash
-ctest --preset debug -L unit
-CAM_MQTT_HOST=127.0.0.1 CAM_MQTT_PORT=1883 ctest --preset debug -L mqtt
-ctest --preset debug -L iso
-cmake --preset asan && cmake --build --preset asan && ctest --preset asan -L characterization
+cmake --workflow --preset debug        # every test
+cmake --workflow --preset iso          # one type
+tests/run.sh asan unit iso             # types under a sanitizer preset
 ```
 
 ## Benchmarks
 
-`tests/bench/` holds the measurement copies of the C# E30 benchmarks (PingPong, Skynet, SkynetNumeric), the end-to-end transport benchmark (`bench_Transport`) and the envelope codec micro-benchmark (`bench_Envelope`): same workloads and measured scope as the C# programs, atomic counters, `steady_clock`, a deterministic variant (`--sequential`), linked to the static library and built without `-march=native` nor `-flto`:
+`tests/bench/` holds the measurement copies of the C# E30 benchmarks (PingPong, Skynet, SkynetNumeric), the end-to-end transport benchmark and the envelope codec micro-benchmark ([tests/bench/README.md](tests/bench/README.md)):
 ``` bash
-cmake --preset bench && cmake --build --preset bench
-build/bench/tests/bench/bench_Skynet
+cmake --workflow --preset bench
 build/bench/tests/bench/bench_PingPong --sequential --trials 3
 ```
 
