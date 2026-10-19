@@ -136,15 +136,15 @@ endfunction()
 # Ports of the C# examples compared with their originals (docs/port/EXEMPLES.md)
 cam_add_iso(MechanismDesign)
 cam_add_iso(PrisonerDilemma)
-# E02 keeps the design bugs of the C# by default (legacy) and corrects them with "fixed" (D89): the shipped fires reach
+# E02 keeps the design bugs of the C# by default (legacy) and corrects them with "fixed" (D89): the fires of the C# reach
 # none of them, so both modes match the same oracle; two fires side by side reach the empty plan, which stops the patrol
 # in legacy as in the C#, and no more in fixed (the fire on 3 is put out after the one on 4, no exception). The pattern
 # stays linear: CTest matches it with backtracking, and "(.|\n)*" repeated blows up on the whole output.
 cam_add_iso(BDI 120 0)
 cam_add_iso(BDI NAME BDI.fixed 120 0 fixed)
-cam_add_iso(BDI ORACLE BDIAdjacent 120 0 legacy adjacent)
+cam_add_iso(BDI ORACLE BDIAdjacent 120 0 legacy-adjacent)
 if (TARGET BDI)
-	add_test(NAME example.BDI.fixed_adjacent COMMAND BDI 120 0 fixed adjacent)
+	add_test(NAME example.BDI.fixed_adjacent COMMAND BDI 120 0 fixed-adjacent)
 	set_tests_properties(example.BDI.fixed_adjacent PROPERTIES LABELS integration TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "fire-out\n\t\\[terrain -> patrol\\]: percepts 3 0 0 0" FAIL_REGULAR_EXPRESSION "out of range")
 endif()

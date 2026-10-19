@@ -23,10 +23,10 @@
 // "GUI pos=<patrol position> <cells>" with . normal, F fire, W water, w water being drawn.
 // WARNING: the C# has three design bugs, kept by default ("legacy", D89) and corrected with "fixed": an empty plan
 // stops the patrol for good, the terrain does not answer a drop of water away from a fire, and a patrol plan is one
-// move too long, which would take the patrol off the terrain. The shipped fires reach none of them; "adjacent" starts
-// two fires side by side, which reaches the first one.
-// Arguments: [turns, 0 for no end] [delay after each turn in ms] [legacy|fixed] [shipped|adjacent],
-// 0, 250, legacy and shipped by default, as the C#.
+// move too long, which would take the patrol off the terrain. The fires of the C# reach none of them; the "-adjacent"
+// modes start the first fire on two cells side by side, which reaches the first one.
+// Arguments: [turns, 0 for no end] [delay after each turn in ms] [legacy|fixed|legacy-adjacent|fixed-adjacent],
+// 0, 250 and legacy by default, as the C#.
 
 #include <array>
 #include <cstdlib>
@@ -370,18 +370,18 @@ int main(int argc, char** argv) {
 	const int l_turns = argc > 1 ? std::atoi(argv[1]) : 0;
 	const int l_delay = argc > 2 ? std::atoi(argv[2]) : 250;
 	const std::string l_mode = argc > 3 ? argv[3] : "legacy";
-	const std::string l_scenario = argc > 4 ? argv[4] : "shipped";
-	if ((l_mode != "legacy" && l_mode != "fixed") || (l_scenario != "shipped" && l_scenario != "adjacent")) {
-		std::cerr << "usage: BDI [turns] [delay] [legacy|fixed] [shipped|adjacent]" << std::endl;
+	if (l_mode != "legacy" && l_mode != "fixed" && l_mode != "legacy-adjacent" && l_mode != "fixed-adjacent") {
+		std::cerr << "usage: BDI [turns] [delay] [legacy|fixed|legacy-adjacent|fixed-adjacent]" << std::endl;
 		return 2;
 	}
-	const bool l_fixed = l_mode == "fixed";
+	const bool l_fixed = l_mode.starts_with("fixed");
+	const bool l_adjacent = l_mode.ends_with("-adjacent");
 	if (!l_fixed) {
 		std::cerr << "WARNING: legacy mode, the design bugs of the C# are kept (see the README); \"fixed\" corrects them" << std::endl;
 	}
 
 	cam::Environment l_environment({.m_turns = l_turns, .m_mode = cam::EnvironmentMasMode::Sequential, .m_delay_after_turn = l_delay});
-	l_environment.add<TerrainAgent>("terrain", l_fixed, l_scenario == "adjacent");
+	l_environment.add<TerrainAgent>("terrain", l_fixed, l_adjacent);
 	l_environment.add<PatrolAgent>("patrol", l_fixed);
 	l_environment.set_global_data("Size", 15);
 	l_environment.start();

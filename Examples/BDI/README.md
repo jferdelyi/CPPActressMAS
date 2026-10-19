@@ -9,20 +9,20 @@ Port of the ActressMAS v3.1 example `E02 BDI Architecture`.
 The C# draws the terrain in a form. This port prints instead, each time the form would be refreshed, the line
 `GUI pos=<patrol position> <cells>`: `.` normal, `F` fire, `W` water, `w` water being drawn.
 
-Arguments: `BDI [turns] [delay] [legacy|fixed] [shipped|adjacent]`:
+Arguments: `BDI [turns] [delay] [mode]`:
 
 - `turns`: the number of turns, 0 (the default) for no end, as the C#;
 - `delay`: the delay after each turn in milliseconds, 250 by default, as the C#;
-- `legacy` (the default) or `fixed`: see below;
-- `shipped` (the default), the fires of the C#, or `adjacent`, where the first fire starts on two cells side by side
-  (3 and 4 instead of 4).
+- `mode`: `legacy` (the default) or `fixed`, see below, on the fires of the C#; `legacy-adjacent` or `fixed-adjacent`,
+  the same with the first fire on two cells side by side (3 and 4 instead of 4), a scenario that is not in the C# and
+  reaches its first bug.
 
 **WARNING: the C# has three design bugs, kept by default.** `legacy` reproduces them, as the C# behaves; `fixed`
-corrects them. On the shipped fires both modes print the same output, the one of the C#: none of the bugs is reached.
+corrects them. On the fires of the C# both modes print the same output, the one of the C#: none of the bugs is reached.
 
 | Bug of the C# | `legacy` (as the C#) | `fixed` |
 |---|---|---|
-| A plan ends while a fire is still in sight: the patrol keeps its intention, does not plan again, and reads its empty plan | the exception is printed and the patrol stops for good: nothing moves any more (reached with `adjacent`) | the patrol drops its intention and deliberates again: it fetches water and puts out the other fire |
+| A plan ends while a fire is still in sight: the patrol keeps its intention, does not plan again, and reads its empty plan | the exception is printed and the patrol stops for good: nothing moves any more (reached with `legacy-adjacent`) | the patrol drops its intention and deliberates again: it fetches water and puts out the other fire |
 | `drop-water` on a cell without fire | the terrain answers nothing, the patrol waits forever | the terrain answers with the percepts, as for `get-water` |
 | A patrol plan is one move too long | the patrol would leave the terrain, and the next access throws | a move into an end of the terrain leaves the patrol where it is |
 
