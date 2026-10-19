@@ -1,4 +1,4 @@
-# CPPActressMAS — examples
+# CPPActressMAS: examples
 
 C++ ports of the examples shipped with ActressMAS v3.1 (C#), built with `-DBUILD_EXAMPLES=ON` (one executable each,
 in `build/<preset>/Examples/`). Each folder has its own README with the C# example it ports and how far the port goes.

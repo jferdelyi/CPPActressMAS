@@ -1,4 +1,4 @@
-# Examples — observables
+# Examples: observables
 
 Ports of the ActressMAS v3.1 `E12` examples: agents publish observable properties, and each agent sees the ones that
 pass its perception filter before acting (`see`, `perception_filter`).

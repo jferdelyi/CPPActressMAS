@@ -1,4 +1,4 @@
-# Examples — first steps
+# Examples: first steps
 
 Ports of the ActressMAS v3.1 `E00` examples.
 

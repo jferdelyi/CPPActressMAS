@@ -1,4 +1,4 @@
-# CPPActressMAS — transport layer
+# CPPActressMAS: transport layer
 
 How environments talk to each other: an environment connected to a URL owns an `Endpoint` attached to a `Transport`.
 The layer is part of the core library; the network transports join it behind their CMake options

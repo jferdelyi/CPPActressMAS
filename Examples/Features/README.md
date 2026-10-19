@@ -1,4 +1,4 @@
-# Examples — features of the C++ port
+# Examples: features of the C++ port
 
 Examples without a C# original: what the C++ port adds, measured where it is a matter of speed.
 

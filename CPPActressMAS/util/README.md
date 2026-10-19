@@ -1,4 +1,4 @@
-# CPPActressMAS — utilities
+# CPPActressMAS: utilities
 
 Helpers the library uses but which are not objects of the multi-agent model. Namespace `cam`, no dependency.
 

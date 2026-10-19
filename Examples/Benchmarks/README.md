@@ -1,4 +1,4 @@
-# Examples — original benchmarks
+# Examples: original benchmarks
 
 The two benchmarks of the C++ port as they were written first, close to the ActressMAS v3.1 `E30` examples.
 

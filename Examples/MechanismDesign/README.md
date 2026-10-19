@@ -1,4 +1,4 @@
-# Examples — mechanism design
+# Examples: mechanism design
 
 Port of the ActressMAS v3.1 example `E09 Mechanism Design`.
 

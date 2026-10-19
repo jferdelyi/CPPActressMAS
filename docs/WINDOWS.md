@@ -1,4 +1,4 @@
-# Windows — anticipation et procédure de test à la main
+# Windows: anticipation et procédure de test à la main
 
 > Tenu par Claude, lu par Jean-François sur sa machine Windows (D6, D15). **Rien n'a été vérifié sous Windows** : ni build MSVC, ni MinGW, ni exécution. Ce fichier liste ce que la lecture du code permet d'anticiper (points W de `docs/port/00-analyse-initiale.md`, confirmés en lecture à l'Étape 0), l'impact des changements de la mission 1 et la procédure proposée. Publié ici depuis `docs/port/WINDOWS.md` à l'étape 1A.
 

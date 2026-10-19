@@ -1,4 +1,4 @@
-# CPPActressMAS — core
+# CPPActressMAS: core
 
 The multi-agent core: environments, agents, messages and the turn loop, ported from ActressMAS (C#). This folder has
 no network dependency; the communication between environments lives in [`transport/`](transport/README.md) and the

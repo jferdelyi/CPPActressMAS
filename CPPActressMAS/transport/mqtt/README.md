@@ -1,4 +1,4 @@
-# CPPActressMAS — MQTT transport
+# CPPActressMAS: MQTT transport
 
 Built when `CAM_TRANSPORT_MQTT=ON` (OFF by default). URL: `mqtt://host:port/namespace`.
 

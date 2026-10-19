@@ -1,4 +1,4 @@
-# Examples — several environments
+# Examples: several environments
 
 Ports of the ActressMAS v3.1 `E20` examples. In C# each container is a separate program connected to a central
 server; here the environments of one program are connected by a transport URL, `loopback://` by default.

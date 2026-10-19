@@ -1,4 +1,4 @@
-# Examples — reactive agents
+# Examples: reactive agents
 
 Port of the ActressMAS v3.1 `E01 Reactive` example.
 

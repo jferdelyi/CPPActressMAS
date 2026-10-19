@@ -1,4 +1,4 @@
-# CPPActressMAS — helpers of the examples
+# CPPActressMAS: helpers of the examples
 
 Header-only helpers shared by the examples (included through `Examples/CMakeLists.txt`), not part of the library.
 

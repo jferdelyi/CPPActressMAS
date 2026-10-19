@@ -1,4 +1,4 @@
-# Examples — iterated prisoner's dilemma
+# Examples: iterated prisoner's dilemma
 
 Port of the ActressMAS v3.1 example `E10 Iterated Prisoner Dilemma`.
 

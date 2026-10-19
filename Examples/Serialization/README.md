@@ -1,4 +1,4 @@
-# Examples — agent state
+# Examples: agent state
 
 No C# counterpart: this example shows the C++ API used by migration.
 

@@ -1,4 +1,4 @@
-# CPPActressMAS — Zenoh transport
+# CPPActressMAS: Zenoh transport
 
 Built when `CAM_TRANSPORT_ZENOH=ON` (OFF by default). URL: `zenoh://host:port/namespace`, or
 `zenoh://?listen=tcp/127.0.0.1:7447&ns=name` for a peer that listens.
