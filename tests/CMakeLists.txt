@@ -111,18 +111,78 @@ endforeach()
 add_test(NAME unit.iso_check.typo COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/typo.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/same.txt)
 set_tests_properties(unit.iso_check.typo PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "FAIL fact msg: no tuple in the C# oracle")
 
-# Runs an example and compares its facts with the output of its C# original (tests/iso/oracles/<oracle>.txt, produced
-# by tools/csharp-ref) under tests/iso/rules/<oracle>.rules. The oracle is named after the example unless ORACLE names
-# another one (a scenario of the same example), the test is iso.<oracle> unless NAME says otherwise; the other
-# arguments go to the example, which runs from its own folder, where its data files are copied. Label iso.
-function(cam_add_iso p_example)
+# ---------------------------------------------------------------- harness programs (tests/iso/ports, D98)
+# One program per C# project, named after it: the C# original as it is, its bugs included, on the mechanics of the
+# library. They use the .NET helpers of the examples (Examples/Common/DotNet.hpp) until the examples are rewritten, and
+# keep the floating point contract and the warnings of the examples (-ffp-contract=off; -Wall -Wextra -Wpedantic in
+# Release).
+function(cam_add_iso_port p_project)
+	add_executable(iso_${p_project} iso/ports/${p_project}.cpp)
+	target_link_libraries(iso_${p_project} ${CAM_TEST_LIBRARY})
+	target_include_directories(iso_${p_project} PRIVATE ${CMAKE_SOURCE_DIR}/Examples/Common)
+	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+		target_compile_options(iso_${p_project} PRIVATE -ffp-contract=off $<$<CONFIG:Release>:-Wall -Wextra -Wpedantic>)
+	endif()
+endfunction()
+
+foreach (l_project IN ITEMS Agents1 Agents2 Agents3 Agents4 Agents5 MultipleMessages SendingObjects ColorGame NumberGame
+		MechanismDesign PrisonerDilemma BDI GameOfLife)
+	cam_add_iso_port(${l_project})
+endforeach()
+# GameOfLife reads its initial pattern from the working directory, as the C#
+add_custom_command(TARGET iso_GameOfLife POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/Examples/GameOfLife/patterns.txt $<TARGET_FILE_DIR:iso_GameOfLife>)
+
+# Runs the harness program of a C# project and compares its facts with the output of the C# original
+# (tests/iso/oracles/<oracle>.txt, produced by tools/csharp-ref) under tests/iso/rules/<oracle>.rules. The oracle is
+# named after the project unless ORACLE names another one (a scenario of the same project), the test is iso.<oracle>
+# unless NAME says otherwise; the other arguments go to the program, which runs from its own folder, where its data
+# files are copied. Label iso.
+function(cam_add_iso p_project)
 	cmake_parse_arguments(PARSE_ARGV 1 l "" "NAME;ORACLE" "")
 	if (NOT l_ORACLE)
-		set(l_ORACLE ${p_example})
+		set(l_ORACLE ${p_project})
 	endif()
 	if (NOT l_NAME)
 		set(l_NAME ${l_ORACLE})
 	endif()
+	add_test(NAME iso.${l_NAME}
+		COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/iso/rules/${l_ORACLE}.rules ${CMAKE_CURRENT_LIST_DIR}/iso/oracles/${l_ORACLE}.txt
+			-- $<TARGET_FILE:iso_${p_project}> ${l_UNPARSED_ARGUMENTS}
+		WORKING_DIRECTORY $<TARGET_FILE_DIR:iso_${p_project}>)
+	set_tests_properties(iso.${l_NAME} PROPERTIES LABELS iso TIMEOUT 300)
+	cam_apply_tsan_suppressions(iso.${l_NAME})
+endfunction()
+
+# Sequential examples are compared line by line (exact trace), the parallel ones on what does not depend on the
+# interleaving; Agents2, ColorGame and NumberGame draw from the seeds of their oracles (D96)
+cam_add_iso(Agents1)
+cam_add_iso(Agents2)
+cam_add_iso(Agents3)
+cam_add_iso(Agents4)
+cam_add_iso(Agents5)
+cam_add_iso(MultipleMessages)
+cam_add_iso(SendingObjects)
+cam_add_iso(ColorGame)
+cam_add_iso(NumberGame)
+cam_add_iso(MechanismDesign)
+cam_add_iso(PrisonerDilemma)
+# The fires of the C# reach none of the bugs of E02; two fires side by side reach the empty plan, which stops the patrol
+cam_add_iso(BDI 120 0)
+cam_add_iso(BDI ORACLE BDIAdjacent 120 0 adjacent)
+cam_add_iso(GameOfLife 60 0)
+# 390 000 calls of the perception filter per turn: with gcc, whose ASan detects stack-use-after-return by default (fake
+# stacks), the test took more than 1 200 s, 39 s without; clang leaves it off by default (D95)
+if (CAM_SANITIZER STREQUAL "asan")
+	set_property(TEST iso.GameOfLife APPEND PROPERTY ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=0")
+endif()
+
+# ---------------------------------------------------------------- corrected behaviour of the examples
+# Until the examples are rewritten (D98), their "fixed" mode corrects the bugs of the C#: on the scenarios of the C# it
+# matches the same oracles; where a bug is reached, it is checked alone. The patterns stay linear: CTest matches them
+# with backtracking, and "(.|\n)*" repeated blows up on the whole output.
+function(cam_add_example_iso p_example)
+	cmake_parse_arguments(PARSE_ARGV 1 l "" "NAME;ORACLE" "")
 	if (TARGET ${p_example})
 		add_test(NAME iso.${l_NAME}
 			COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/iso/rules/${l_ORACLE}.rules ${CMAKE_CURRENT_LIST_DIR}/iso/oracles/${l_ORACLE}.txt
@@ -132,23 +192,8 @@ function(cam_add_iso p_example)
 		cam_apply_tsan_suppressions(iso.${l_NAME})
 	endif()
 endfunction()
-
-# Ports of the C# examples compared with their originals (docs/port/EXEMPLES.md)
-cam_add_iso(MechanismDesign)
-cam_add_iso(PrisonerDilemma)
-cam_add_iso(ColorGame)
-cam_add_iso(NumberGame)
-# E00, named after their C# projects: Agents2 is sequential in a seeded random order (exact trace), the others parallel
-cam_add_iso(Exemple1 ORACLE Agents1)
-cam_add_iso(Exemple2 ORACLE Agents2)
-cam_add_iso(Exemple5 ORACLE Agents5)
-cam_add_iso(SendingObjects)
-cam_add_iso(Exemple3 ORACLE Agents3)
-# Agents4 and MultipleMessages keep a bug of the C# by default (legacy) and correct it with "fixed" (D89): sending after
-# Stop (X3), the reply never handled (X1)
-cam_add_iso(Exemple4 ORACLE Agents4)
-cam_add_iso(Exemple4 NAME Agents4.fixed ORACLE Agents4 fixed)
-cam_add_iso(MultipleMessages)
+cam_add_example_iso(Exemple4 NAME Agents4.fixed ORACLE Agents4 fixed)
+cam_add_example_iso(BDI NAME BDI.fixed ORACLE BDI 120 0 fixed)
 if (TARGET Exemple4)
 	add_test(NAME example.Exemple4.fixed COMMAND Exemple4 fixed)
 	set_tests_properties(example.Exemple4.fixed PROPERTIES LABELS integration TIMEOUT 120
@@ -159,23 +204,10 @@ if (TARGET MultipleMessages)
 	set_tests_properties(example.MultipleMessages.fixed PROPERTIES LABELS integration TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "\\[Manager\\]: Worker[0-9] replying" FAIL_REGULAR_EXPRESSION "out of range|Exception")
 endif()
-# E02 keeps the design bugs of the C# by default (legacy) and corrects them with "fixed" (D89): the fires of the C# reach
-# none of them, so both modes match the same oracle; two fires side by side reach the empty plan, which stops the patrol
-# in legacy as in the C#, and no more in fixed (the fire on 3 is put out after the one on 4, no exception). The pattern
-# stays linear: CTest matches it with backtracking, and "(.|\n)*" repeated blows up on the whole output.
-cam_add_iso(BDI 120 0)
-cam_add_iso(BDI NAME BDI.fixed 120 0 fixed)
-cam_add_iso(BDI ORACLE BDIAdjacent 120 0 legacy-adjacent)
 if (TARGET BDI)
 	add_test(NAME example.BDI.fixed_adjacent COMMAND BDI 120 0 fixed-adjacent)
 	set_tests_properties(example.BDI.fixed_adjacent PROPERTIES LABELS integration TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "fire-out\n\t\\[terrain -> patrol\\]: percepts 3 0 0 0" FAIL_REGULAR_EXPRESSION "out of range")
-endif()
-cam_add_iso(GameOfLife 60 0)
-# 390 000 calls of the perception filter per turn: with gcc, whose ASan detects stack-use-after-return by default (fake
-# stacks), the test took more than 1 200 s, 39 s without; clang leaves it off by default (D95)
-if (TARGET GameOfLife AND CAM_SANITIZER STREQUAL "asan")
-	set_property(TEST iso.GameOfLife APPEND PROPERTY ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=0")
 endif()
 
 # Examples of the features of the C++ port (Examples/Features): they run and report what they measure.
