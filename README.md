@@ -245,6 +245,8 @@ void broadcast(const AgentId& p_sender_id, const uint8_t* p_message, const size_
 /**
  * Returns the id of a randomly selected agent from the environment: one draw of the generator of this
  * environment over the agents in their order, as RandomAgent of the C# (the stopped or removed ones excluded).
+ * Any agent may come out, the one that calls included: a caller that wants another kind of agent draws again,
+ * as the manager of the C# example E04 does.
  * @return The id, or nothing when no agent is left (the C# throws)
  **/
 [[nodiscard]] std::optional<AgentId> random_agent() const;
