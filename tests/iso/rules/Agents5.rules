@@ -1,0 +1,15 @@
+# E00 Agents5: parallel, the two agents interleave differently at each run; compared: the lines of each agent in order,
+# the counts, and the turn barriers (setups in turn 0, actions in turn 1, then each agent finds its mailbox empty and
+# stops in turn 2, which ends the simulation).
+cover all
+fact line ^(Setup|Act): (\d+) from (a1\*|a2)$
+fact stop ^(a\d): No messages$
+fact phase ^(?:(Setup|Act)|a\d: (No) messages)
+same line seq by 2
+same stop bag
+same phase seq
+check line count == 26
+check stop count == 2
+fact error (Exception|out of range)
+optional error
+check error count == 0

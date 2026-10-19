@@ -1,0 +1,14 @@
+# E00 SendingObjects: parallel, the two agents interleave differently at each run; compared: what each agent sends and
+# receives, in order, the counts, and the turn barrier (every send of the setup turn before the receptions of turn 1).
+cover all
+fact sending ^(a1\*|a2) sending: (.*)$
+fact receiving ^(a1\*|a2) receiving: (.*)$
+fact phase ^(?:a1\*|a2) (sending|receiving)
+same sending seq by 0
+same receiving seq by 0
+same phase seq
+check sending count == 13
+check receiving count == 13
+fact error (Exception|out of range)
+optional error
+check error count == 0

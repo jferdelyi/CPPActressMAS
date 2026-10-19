@@ -16,8 +16,16 @@
  *                                                                        *
  **************************************************************************/
 
-#include <iostream>
+// Port of the C# example E00 Simple Examples/SendingObjects (ActressMAS v3.1): two agents send objects to each other
+// during their setup and print the objects they receive. Parallel, 10 turns. The C# sends the object itself
+// (ContentObj); here it travels as a JSON object, read back on arrival (as_json).
 
+#include <chrono>
+#include <string>
+#include <thread>
+#include <utility>
+
+#include <DotNet.hpp>
 #include <Environment.h>
 
 class ContentInfo {
@@ -46,15 +54,15 @@ class Agent1 final : public cam::Agent {
 
 		void setup() override {
 			for (int i = 0; i < 10; i++) {
-				std::cout << "[" + get_name() + "]: setup " << std::to_string(i + 1) << std::endl;
-				send_by_name("a2", json(ContentInfo(i + 1, "setup from a1*")));
+				cam::dotnet::write_line("a1* sending: setup " + std::to_string(i + 1) + " from a1*");
+				send_by_name("a2", json(ContentInfo(i + 1, "setup a1*")));
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 			const auto l_content = p_message->as_json().get<ContentInfo>();
-			std::cout << "[" + get_name() + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
+			cam::dotnet::write_line("a1* receiving: " + l_content.m_text + " - " + std::to_string(l_content.m_number));
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 };
@@ -65,23 +73,27 @@ class Agent2 final : public cam::Agent {
 
 		void setup() override {
 			for (int i = 0; i < 3; i++) {
-				std::cout << "[" + get_name() + "]: setup " << std::to_string(i + 1) << std::endl;
-				send(get_first_agent_by_name("a1*").value(), json(ContentInfo(i + 1, "setup from a2")));
+				cam::dotnet::write_line("a2 sending: setup: " + std::to_string(i + 1) + " from a2");
+				// By identifier here, where the C# sends by name: same receiver
+				send(get_first_agent_by_name("a1").value(), json(ContentInfo(i + 1, "setup a2")));
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
 			const auto l_content = p_message->as_json().get<ContentInfo>();
-			std::cout << "[" + get_name() + "]: has received {" << l_content.m_text << ", " << std::to_string(l_content.m_number) << "}" << std::endl;
+			cam::dotnet::write_line("a2 receiving: " + l_content.m_text + " - " + std::to_string(l_content.m_number));
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 };
 
 int main() {
-	cam::Environment l_environment(10);
+	cam::Environment l_environment({.m_turns = 10,
+									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
+									.m_random = cam::RandomEngine::DotNet});
 
-	l_environment.add<Agent1>("a1*");
+	l_environment.add<Agent1>("a1");
 	l_environment.add<Agent2>("a2");
 	l_environment.start();
 

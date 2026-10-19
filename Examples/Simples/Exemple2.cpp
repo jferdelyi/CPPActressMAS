@@ -16,47 +16,58 @@
  *                                                                        *
  **************************************************************************/
 
-#include <iostream>
+// Port of the C# example E00 Simple Examples/Agents2 (ActressMAS v3.1): two agents exchange messages from their setup
+// and their action. Sequential in a random order, 100 turns: the order of each turn comes from the seed of the C#
+// oracle (D96), so the output is the one of the C#.
 
+#include <chrono>
+#include <string>
+#include <thread>
+
+#include <DotNet.hpp>
 #include <Environment.h>
-
 
 class MyAgent1 final : public cam::Agent {
 	public:
-		explicit MyAgent1(const std::string& p_name) : Agent(p_name) { }
+		explicit MyAgent1(const std::string& p_name) : Agent(p_name) {}
 
 		void setup() override {
-			send_by_name("agent2",{{"data", "start"}, {"from", get_name()}});
+			send_by_name("agent2", "start from 1");
+
 			for (int i = 0; i < 10; i++) {
-				send_by_name("agent2",{{"data", "in setup #" + std::to_string(i)}, {"from", get_name()}});
+				send_by_name("agent2", "in setup for: " + std::to_string(i));
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
+			cam::dotnet::write_line(format(p_message));
+
 			for (int i = 0; i < 10; i++) {
-				send_by_name("agent2",{{"data", "in action #" + std::to_string(i)}, {"from", get_name()}});
+				send_by_name("agent2", "in act for: " + std::to_string(i));
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
 };
 
 class MyAgent2 final : public cam::Agent {
-  public:
-	explicit MyAgent2(const std::string& p_name) : Agent(p_name) { }
+	public:
+		explicit MyAgent2(const std::string& p_name) : Agent(p_name) {}
 
-	void setup() override {
-		send_by_name("agent1",{{"data", "start"}, {"from", get_name()}});
-	}
+		void setup() override {
+			send_by_name("agent1", "start from 2");
+		}
 
-	void action(const cam::MessagePointer& p_message) override {
-		std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
-	}
+		void action(const cam::MessagePointer& p_message) override {
+			cam::dotnet::write_line(format(p_message));
+		}
 };
 
 int main() {
-	cam::Environment l_environment(100, cam::EnvironmentMasMode::SequentialRandom);
+	cam::Environment l_environment({.m_turns = 100,
+									.m_mode = cam::EnvironmentMasMode::SequentialRandom,
+									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
+									.m_random = cam::RandomEngine::DotNet});
 
 	l_environment.add<MyAgent1>("agent1");
 	l_environment.add<MyAgent2>("agent2");

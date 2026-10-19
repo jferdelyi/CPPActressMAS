@@ -138,6 +138,11 @@ cam_add_iso(MechanismDesign)
 cam_add_iso(PrisonerDilemma)
 cam_add_iso(ColorGame)
 cam_add_iso(NumberGame)
+# E00, named after their C# projects: Agents2 is sequential in a seeded random order (exact trace), the others parallel
+cam_add_iso(Exemple1 ORACLE Agents1)
+cam_add_iso(Exemple2 ORACLE Agents2)
+cam_add_iso(Exemple5 ORACLE Agents5)
+cam_add_iso(SendingObjects)
 # E02 keeps the design bugs of the C# by default (legacy) and corrects them with "fixed" (D89): the fires of the C# reach
 # none of them, so both modes match the same oracle; two fires side by side reach the empty plan, which stops the patrol
 # in legacy as in the C#, and no more in fixed (the fire on 3 is put out after the one on 4, no exception). The pattern

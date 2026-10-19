@@ -151,6 +151,34 @@ namespace cam::dotnet {
 	}
 
 	/**
+	 * Lock of the console, shared by write and write_line.
+	 * @return The lock
+	 **/
+	inline std::mutex& console_mutex() {
+		static std::mutex s_mutex;
+		return s_mutex;
+	}
+
+	/**
+	 * As Console.Write: the text in one piece, never mixed with what another thread writes at the same time.
+	 * @param p_text The text
+	 **/
+	inline void write(const std::string_view p_text) {
+		const std::scoped_lock l_lock(console_mutex());
+		std::cout << p_text << std::flush;
+	}
+
+	/**
+	 * As Console.WriteLine: the text and the end of line in one piece, never mixed with what another thread writes at
+	 * the same time, as the agents of a parallel turn print.
+	 * @param p_text The text
+	 **/
+	inline void write_line(const std::string_view p_text) {
+		const std::scoped_lock l_lock(console_mutex());
+		std::cout << p_text << std::endl;
+	}
+
+	/**
 	 * FNV-1a, 64 bits, of the bytes of a text (UTF-8 for a site name).
 	 * @param p_text The text
 	 * @return The hash
