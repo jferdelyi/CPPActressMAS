@@ -57,7 +57,8 @@ namespace cam::transport {
 			return l_pairs;
 		}
 
-		// values separated by ','
+#if CAM_TRANSPORT_ZENOH
+		// values separated by ',' (only the Zenoh endpoints are lists)
 		std::vector<std::string> split_list(const std::string& p_text) {
 			std::vector<std::string> l_values;
 			std::size_t l_start = 0;
@@ -70,6 +71,7 @@ namespace cam::transport {
 			}
 			return l_values;
 		}
+#endif
 
 		bool is_mqtt(const std::string& p_scheme) {
 			return p_scheme == "mqtt" || p_scheme == "mqtts";
