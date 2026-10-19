@@ -13,7 +13,7 @@ Ports of the ActressMAS v3.1 `E00` examples.
 | `SendingObjects.cpp` | `SendingObjects` | E00/SendingObjects | Objects carried by messages: sent as JSON objects, read back with `as_json`. | complete, same behaviour as the C#: test `iso.SendingObjects` (parallel: invariants) |
 
 The ports print the texts of the C# (`Agent::format` for the messages) and use the names of its agents. The parallel
-examples write each line in one piece (`cam::dotnet::write_line`, `Examples/Common/DotNet.hpp`), as `Console.WriteLine`
+examples write each line in one piece (`cam::dotnet::write_line`, `tests/iso/DotNet.hpp`), as `Console.WriteLine`
 does, so that the lines of two agents never mix. Random draws (pauses of `Exemple1`, order of `Exemple2`) come from the
 seeds of the C# oracles (`CAM_SEED` in the environment, 0 by default).
 

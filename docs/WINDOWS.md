@@ -60,7 +60,7 @@
 
 - **Catalogue des types** (`CPPActressMAS/AgentTypes.{h,cpp}`) : le nom automatique d'un type vient du démangleur `<cxxabi.h>` sous GCC et Clang (inclus sous `#if`) ; sous MSVC, de `typeid(T).name()` sans son préfixe `class ` ou `struct `. Deux programmes compilés l'un par MSVC, l'autre par GCC ou Clang donnent le même nom à un type d'un espace de noms nommé (« ns::Type »), mais la macro `CAM_AGENT_TYPE(T)` reste le moyen sûr. Le catalogue est une variable statique de fonction dans le `.cpp` : une seule instance tant que la bibliothèque n'est pas dupliquée (avec une DLL, il faudra exporter `AgentTypes`, point W1). `CAM_AGENT_TYPE(T)` s'écrit à portée globale.
 - **Exemples** : `-ffp-contract=off` n'est passé qu'à GCC et Clang ; MSVC ne contracte pas les multiplications-additions par défaut (`/fp:precise`).
-- **`Examples/Common/DotNet.hpp`** : `std::to_chars` des flottants (MSVC 19.24 et suivants).
+- **`tests/iso/DotNet.hpp`** : `std::to_chars` des flottants (MSVC 19.24 et suivants).
 - **`tests/iso/iso_check.cpp`** : `_popen` et `_pclose` sous Windows, comme `approve.cpp`.
 - **Tests** : `tests/unit/message_parse.cpp` écrit ses caractères UTF-8 en octets échappés, pour un compilateur qui ne lit pas la source en UTF-8.
 - **Non vérifié sous Windows** (D6).

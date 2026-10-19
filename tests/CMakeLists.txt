@@ -113,13 +113,12 @@ set_tests_properties(unit.iso_check.typo PROPERTIES LABELS unit PASS_REGULAR_EXP
 
 # ---------------------------------------------------------------- harness programs (tests/iso/ports, D98)
 # One program per C# project, named after it: the C# original as it is, its bugs included, on the mechanics of the
-# library. They use the .NET helpers of the examples (Examples/Common/DotNet.hpp) until the examples are rewritten, and
-# keep the floating point contract and the warnings of the examples (-ffp-contract=off; -Wall -Wextra -Wpedantic in
-# Release).
+# library, with the .NET helpers of the harness (tests/iso/DotNet.hpp). They keep the floating point contract and the
+# warnings of the examples (-ffp-contract=off; -Wall -Wextra -Wpedantic in Release).
 function(cam_add_iso_port p_project)
 	add_executable(iso_${p_project} iso/ports/${p_project}.cpp)
 	target_link_libraries(iso_${p_project} ${CAM_TEST_LIBRARY})
-	target_include_directories(iso_${p_project} PRIVATE ${CMAKE_SOURCE_DIR}/Examples/Common)
+	target_include_directories(iso_${p_project} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/iso)
 	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 		target_compile_options(iso_${p_project} PRIVATE -ffp-contract=off $<$<CONFIG:Release>:-Wall -Wextra -Wpedantic>)
 	endif()
@@ -353,10 +352,10 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 	set_tests_properties(unit.agent_types PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.agent_types)
 
-	# Number formatting and parsing of .NET for the examples (Examples/Common/DotNet.hpp, D82), against the C# vectors.
+	# Number formatting and parsing of .NET for the harness programs (tests/iso/DotNet.hpp, D82), against the C# vectors.
 	add_executable(cam_dotnet_format_tests unit/dotnet_format.cpp)
 	target_link_libraries(cam_dotnet_format_tests cam_doctest_main)
-	target_include_directories(cam_dotnet_format_tests PRIVATE ${CMAKE_SOURCE_DIR}/Examples/Common)
+	target_include_directories(cam_dotnet_format_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/iso)
 	target_compile_definitions(cam_dotnet_format_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")
 	add_test(NAME unit.dotnet_format COMMAND cam_dotnet_format_tests)
 	set_tests_properties(unit.dotnet_format PROPERTIES LABELS unit TIMEOUT 300)
@@ -364,7 +363,7 @@ if (EXISTS ${CAM_DOCTEST_HEADER})
 
 	add_executable(cam_dotnet_seed_tests unit/dotnet_seed.cpp)
 	target_link_libraries(cam_dotnet_seed_tests cam_doctest_main)
-	target_include_directories(cam_dotnet_seed_tests PRIVATE ${CMAKE_SOURCE_DIR}/Examples/Common)
+	target_include_directories(cam_dotnet_seed_tests PRIVATE ${CMAKE_CURRENT_LIST_DIR}/iso)
 	add_test(NAME unit.dotnet_site_seed COMMAND cam_dotnet_seed_tests)
 	set_tests_properties(unit.dotnet_site_seed PROPERTIES LABELS unit TIMEOUT 300)
 	cam_apply_tsan_suppressions(unit.dotnet_site_seed)

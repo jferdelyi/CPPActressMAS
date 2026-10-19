@@ -16,7 +16,6 @@ in `build/<preset>/Examples/`). Each folder has its own README with the C# examp
 | [`Serialization/`](Serialization/README.md) | `Serialization` | Saving and restoring the state of an agent |
 | [`Benchmarks/`](Benchmarks/README.md) | `PingPong`, `Skynet` | The two original C++ benchmarks |
 | [`Features/`](Features/README.md) | `TransportRoundTrip`, `SharedText` | Features of the C++ port without a C# original: transports chosen by URL, shared texts |
-| [`Common/`](Common/README.md) | (helpers) | `DotNet.hpp`: .NET number formatting and parsing, so that a port prints and reads numbers as its C# original |
 
 The examples run offline. `Mobile` and `MobilePingPong` connect their environments to `loopback://` by default
 (in memory, same process); a Zenoh or MQTT URL can be given instead, see their sources. The inventory of the

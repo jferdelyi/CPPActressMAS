@@ -9,5 +9,5 @@ pass its perception filter before acting (`see`, `perception_filter`).
 | `NumberGame.cpp` | `NumberGame` | E12/NumberGame | Numeric observables, written with two decimals: an agent sees the neighbours whose value is within 10 of its own. | complete, same behaviour as the C#: test `iso.NumberGame` |
 
 Both run 10 sequential turns in a fixed order and draw their colors or numbers from the seeds of their C# oracles
-(`cam::dotnet::next_site_seed`, `Examples/Common/DotNet.hpp`): `CAM_SEED` in the environment changes them, as for the
+(`cam::dotnet::next_site_seed`, `tests/iso/DotNet.hpp`): `CAM_SEED` in the environment changes them, as for the
 oracle. The texts are those of the C#, typos included ("I did't see"), so that the outputs can be compared.

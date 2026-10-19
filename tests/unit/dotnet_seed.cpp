@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Seeds of the C# oracles for the examples (Examples/Common/DotNet.hpp, D96): the seeds that the seed shim of
+// Seeds of the C# oracles for the harness programs (tests/iso/DotNet.hpp, D96): the seeds that the seed shim of
 // tools/csharp-ref gave, read in the "#camrng" lines of the oracle runs (CAM_SEED 0 and 42, 2026-10-19).
 
 #include <doctest/doctest.h>
