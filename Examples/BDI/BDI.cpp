@@ -21,7 +21,12 @@
 // its percepts, desires, one intention, and a plan of actions sent to the terrain one by one.
 // The C# draws the terrain in a form; this port prints, each time the form would be refreshed, the line
 // "GUI pos=<patrol position> <cells>" with . normal, F fire, W water, w water being drawn.
-// Arguments: [turns, 0 for no end] [delay after each turn in ms], 0 and 250 by default as the C#.
+// WARNING: the C# has three design bugs, kept by default ("legacy", D89) and corrected with "fixed": an empty plan
+// stops the patrol for good, the terrain does not answer a drop of water away from a fire, and a patrol plan is one
+// move too long, which would take the patrol off the terrain. The shipped fires reach none of them; "adjacent" starts
+// two fires side by side, which reaches the first one.
+// Arguments: [turns, 0 for no end] [delay after each turn in ms] [legacy|fixed] [shipped|adjacent],
+// 0, 250, legacy and shipped by default, as the C#.
 
 #include <array>
 #include <cstdlib>
@@ -30,6 +35,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -46,22 +52,45 @@ enum class TerrainState {
 
 class TerrainAgent final : public cam::Agent {
 	private:
+		bool m_fixed;
+		bool m_adjacent;
 		int m_patrol_position = 0;
 		std::vector<TerrainState> m_states;
 		int m_turns = 0;
 		int m_size = 0;
 
-		// None beyond both ends (D84: every access to the terrain is bounded)
+		// Fixed: None beyond both ends. Legacy: as the C#, a cell off the terrain throws
 		[[nodiscard]] TerrainState state_at(const int p_position) const {
-			return p_position < 0 || p_position >= m_size ? TerrainState::None : m_states[p_position];
+			if (p_position >= 0 && p_position < m_size) {
+				return m_states[p_position];
+			}
+			if (m_fixed) {
+				return TerrainState::None;
+			}
+			throw std::out_of_range("Index out of range: cell " + std::to_string(p_position) + " is off the terrain");
 		}
 
 		void update_visual_field(const cam::AgentId& p_sender) const {
-			std::string l_percepts = "percepts " + std::to_string(m_patrol_position);
-			for (int i = m_patrol_position - 1; i <= m_patrol_position + 1; i++) {  // left, current, right
-				l_percepts += " " + std::to_string(static_cast<int>(state_at(i)));
+			TerrainState l_left;
+			TerrainState l_current;
+			TerrainState l_right;
+
+			if (m_patrol_position == 0) {  // left end
+				l_left = TerrainState::None;
+				l_current = state_at(m_patrol_position);
+				l_right = state_at(m_patrol_position + 1);
+			} else if (m_patrol_position == m_size - 1) {  // right end
+				l_left = state_at(m_patrol_position - 1);
+				l_current = state_at(m_patrol_position);
+				l_right = TerrainState::None;
+			} else {
+				l_left = state_at(m_patrol_position - 1);
+				l_current = state_at(m_patrol_position);
+				l_right = state_at(m_patrol_position + 1);
 			}
-			send(p_sender, l_percepts);
+
+			send(p_sender, "percepts " + std::to_string(m_patrol_position) + " " + std::to_string(static_cast<int>(l_left)) + " " +
+						   std::to_string(static_cast<int>(l_current)) + " " + std::to_string(static_cast<int>(l_right)));
 		}
 
 		// What the form of the C# would draw
@@ -79,7 +108,10 @@ class TerrainAgent final : public cam::Agent {
 		}
 
 	public:
-		explicit TerrainAgent(const std::string& p_name) : Agent(p_name) {}
+		TerrainAgent(const std::string& p_name, const bool p_fixed, const bool p_adjacent) :
+				Agent(p_name),
+				m_fixed(p_fixed),
+				m_adjacent(p_adjacent) {}
 
 		void setup() override {
 			std::cout << "Starting " << get_name() << std::endl;
@@ -106,6 +138,9 @@ class TerrainAgent final : public cam::Agent {
 				if (l_action == "move") {
 					if (m_turns == 4) {
 						m_states[4] = TerrainState::Fire;  // at some point, start a fire
+						if (m_adjacent) {
+							m_states[3] = TerrainState::Fire;  // not in the C#: two fires side by side
+						}
 					}
 					if (m_turns == 20) {
 						m_states[7] = TerrainState::Fire;
@@ -114,10 +149,10 @@ class TerrainAgent final : public cam::Agent {
 						m_states[9] = TerrainState::Fire;
 					}
 
-					// The patrol stays on the terrain (D84): the C# would leave it, then fail on the next access
-					if (l_parameters == "right" && m_patrol_position < m_size - 1) {
+					// Fixed: the patrol stays on the terrain. Legacy: as the C#, it may leave it, and the next access throws
+					if (l_parameters == "right" && (!m_fixed || m_patrol_position < m_size - 1)) {
 						m_patrol_position++;
-					} else if (l_parameters == "left" && m_patrol_position > 0) {
+					} else if (l_parameters == "left" && (!m_fixed || m_patrol_position > 0)) {
 						m_patrol_position--;
 					}
 
@@ -133,9 +168,11 @@ class TerrainAgent final : public cam::Agent {
 					if (state_at(m_patrol_position) == TerrainState::Fire) {
 						m_states[m_patrol_position] = TerrainState::Normal;
 						send(p_message->get_sender(), "fire-out");
+						update_visual_field(p_message->get_sender());
+					} else if (m_fixed) {
+						// Fixed: percepts as for get-water. Legacy: as the C#, no answer, the patrol waits forever
+						update_visual_field(p_message->get_sender());
 					}
-					// Percepts in both cases, as get-water (D84): without them the C# leaves the patrol waiting forever
-					update_visual_field(p_message->get_sender());
 				}
 
 				update_terrain_gui();
@@ -147,6 +184,7 @@ class TerrainAgent final : public cam::Agent {
 
 class PatrolAgent final : public cam::Agent {
 	private:
+		bool m_fixed;
 		std::map<std::string, int> m_beliefs;
 		std::set<std::string> m_desires;
 		std::string m_intention;  // only 1 intention active in this model
@@ -269,13 +307,14 @@ class PatrolAgent final : public cam::Agent {
 
 		void execute_action() {
 			if (m_plan.empty()) {  // plan finished
-				// The C# drops the intention, then reads the empty plan and stops for good on the exception (D84):
-				// the intention is dropped and the patrol deliberates again
 				m_intention.clear();
-				filter_desires();
-				make_plan();
+				if (m_fixed) {  // Fixed: the patrol deliberates again
+					filter_desires();
+					make_plan();
+				}
+				// Legacy: as the C#, reading the empty plan throws, and the patrol stops for good
 				if (m_plan.empty()) {
-					return;
+					throw std::out_of_range("Index out of range: the plan is empty");
 				}
 			}
 
@@ -286,7 +325,9 @@ class PatrolAgent final : public cam::Agent {
 		}
 
 	public:
-		explicit PatrolAgent(const std::string& p_name) : Agent(p_name) {}
+		PatrolAgent(const std::string& p_name, const bool p_fixed) :
+				Agent(p_name),
+				m_fixed(p_fixed) {}
 
 		void setup() override {
 			std::cout << "Starting " << get_name() << std::endl;
@@ -328,10 +369,20 @@ class PatrolAgent final : public cam::Agent {
 int main(int argc, char** argv) {
 	const int l_turns = argc > 1 ? std::atoi(argv[1]) : 0;
 	const int l_delay = argc > 2 ? std::atoi(argv[2]) : 250;
+	const std::string l_mode = argc > 3 ? argv[3] : "legacy";
+	const std::string l_scenario = argc > 4 ? argv[4] : "shipped";
+	if ((l_mode != "legacy" && l_mode != "fixed") || (l_scenario != "shipped" && l_scenario != "adjacent")) {
+		std::cerr << "usage: BDI [turns] [delay] [legacy|fixed] [shipped|adjacent]" << std::endl;
+		return 2;
+	}
+	const bool l_fixed = l_mode == "fixed";
+	if (!l_fixed) {
+		std::cerr << "WARNING: legacy mode, the design bugs of the C# are kept (see the README); \"fixed\" corrects them" << std::endl;
+	}
 
 	cam::Environment l_environment({.m_turns = l_turns, .m_mode = cam::EnvironmentMasMode::Sequential, .m_delay_after_turn = l_delay});
-	l_environment.add<TerrainAgent>("terrain");
-	l_environment.add<PatrolAgent>("patrol");
+	l_environment.add<TerrainAgent>("terrain", l_fixed, l_scenario == "adjacent");
+	l_environment.add<PatrolAgent>("patrol", l_fixed);
 	l_environment.set_global_data("Size", 15);
 	l_environment.start();
 	return 0;

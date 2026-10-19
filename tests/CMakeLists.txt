@@ -111,24 +111,43 @@ endforeach()
 add_test(NAME unit.iso_check.typo COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/typo.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/same.txt)
 set_tests_properties(unit.iso_check.typo PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "FAIL fact msg: no tuple in the C# oracle")
 
-# Runs an example and compares its facts with the output of its C# original (tests/iso/oracles/<example>.txt, produced
-# by tools/csharp-ref) under tests/iso/rules/<example>.rules; extra arguments go to the example, which runs from its own
-# folder, where its data files are copied. Label iso.
+# Runs an example and compares its facts with the output of its C# original (tests/iso/oracles/<oracle>.txt, produced
+# by tools/csharp-ref) under tests/iso/rules/<oracle>.rules. The oracle is named after the example unless ORACLE names
+# another one (a scenario of the same example), the test is iso.<oracle> unless NAME says otherwise; the other
+# arguments go to the example, which runs from its own folder, where its data files are copied. Label iso.
 function(cam_add_iso p_example)
+	cmake_parse_arguments(PARSE_ARGV 1 l "" "NAME;ORACLE" "")
+	if (NOT l_ORACLE)
+		set(l_ORACLE ${p_example})
+	endif()
+	if (NOT l_NAME)
+		set(l_NAME ${l_ORACLE})
+	endif()
 	if (TARGET ${p_example})
-		add_test(NAME iso.${p_example}
-			COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/iso/rules/${p_example}.rules ${CMAKE_CURRENT_LIST_DIR}/iso/oracles/${p_example}.txt
-				-- $<TARGET_FILE:${p_example}> ${ARGN}
+		add_test(NAME iso.${l_NAME}
+			COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/iso/rules/${l_ORACLE}.rules ${CMAKE_CURRENT_LIST_DIR}/iso/oracles/${l_ORACLE}.txt
+				-- $<TARGET_FILE:${p_example}> ${l_UNPARSED_ARGUMENTS}
 			WORKING_DIRECTORY $<TARGET_FILE_DIR:${p_example}>)
-		set_tests_properties(iso.${p_example} PROPERTIES LABELS iso TIMEOUT 300)
-		cam_apply_tsan_suppressions(iso.${p_example})
+		set_tests_properties(iso.${l_NAME} PROPERTIES LABELS iso TIMEOUT 300)
+		cam_apply_tsan_suppressions(iso.${l_NAME})
 	endif()
 endfunction()
 
 # Ports of the C# examples compared with their originals (docs/port/EXEMPLES.md)
 cam_add_iso(MechanismDesign)
 cam_add_iso(PrisonerDilemma)
+# E02 keeps the design bugs of the C# by default (legacy) and corrects them with "fixed" (D89): the shipped fires reach
+# none of them, so both modes match the same oracle; two fires side by side reach the empty plan, which stops the patrol
+# in legacy as in the C#, and no more in fixed (the fire on 3 is put out after the one on 4, no exception). The pattern
+# stays linear: CTest matches it with backtracking, and "(.|\n)*" repeated blows up on the whole output.
 cam_add_iso(BDI 120 0)
+cam_add_iso(BDI NAME BDI.fixed 120 0 fixed)
+cam_add_iso(BDI ORACLE BDIAdjacent 120 0 legacy adjacent)
+if (TARGET BDI)
+	add_test(NAME example.BDI.fixed_adjacent COMMAND BDI 120 0 fixed adjacent)
+	set_tests_properties(example.BDI.fixed_adjacent PROPERTIES LABELS integration TIMEOUT 120
+		PASS_REGULAR_EXPRESSION "fire-out\n\t\\[terrain -> patrol\\]: percepts 3 0 0 0" FAIL_REGULAR_EXPRESSION "out of range")
+endif()
 cam_add_iso(GameOfLife 60 0)
 
 # Examples of the features of the C++ port (Examples/Features): they run and report what they measure.
