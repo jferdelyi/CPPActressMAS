@@ -40,11 +40,13 @@ To add an example: create `ref/Oracles/<Name>/<Name>.csproj` with its `OracleSou
 An example with a WinForms form, or one that never stops, declares what replaces original code; the `#cam` header lists
 it (`#cam stub`, `#cam patch`):
 
-- `OracleExcludes`: original files not compiled, the form and its `.Designer.cs`. The project's `Stubs/*.cs` are
-  compiled in their place: a stub keeps the form's members that the agents call and prints the state the form would
-  draw, `ShowDialog` returns at once.
-- `oracle.sed`: rewrites only `noTurns` of the original `Program.cs` into `WORKDIR/ref/Oracles/<Name>/Program.Oracle.cs`,
-  compiled instead of `Program.cs`. The script stops if the rewrite does not change exactly one line.
+- `OracleExcludes`: original files not compiled, the form and its `.Designer.cs`. The stubs of `OracleStubs` (the
+  project's `Stubs/` by default, or another project's) are compiled in their place: a stub keeps the form's members
+  that the agents call and prints the state the form would draw, `ShowDialog` returns at once.
+- `<File>.cs.sed`: rewrites one line of the original `<File>.cs` into `WORKDIR/ref/Oracles/<Name>/Patched/<File>.cs`,
+  compiled instead of the original: `noTurns` of an example that never stops (`Program.cs.sed`), or a scenario that
+  reaches a bug of the C# (`BDIAdjacent/TerrainAgent.cs.sed`, D89). The script stops if a rewrite does not change
+  exactly one line.
 - `OracleData`: data files copied next to the program, which reads them from its working directory (`patterns.txt` of
   E13).
 

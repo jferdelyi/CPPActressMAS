@@ -45,20 +45,22 @@ EX="$W/ActressMas/ActressMAS v3.1/Source Code and Examples/Examples"
 # example folder of an oracle project (its <OracleSources>, relative to Examples/)
 oracle_sources() { sed -n 's:.*<OracleSources>\$(AmasEx)\(.*\)</OracleSources>.*:\1:p' "$1"; }
 
-# Program.Oracle.cs of each oracle project that has an oracle.sed (D86): the original Program.cs with only noTurns
-# rewritten, written in WORKDIR/ref (never in the repository nor in the clone), compiled instead of Program.cs
-for sedf in "$W"/ref/Oracles/*/oracle.sed; do
+# Patched/<File>.cs of each <File>.cs.sed of an oracle project (D86, D91): the original file with one line rewritten
+# (noTurns, a scenario that reaches a bug), written in WORKDIR/ref (never in the repository nor in the clone), compiled
+# instead of the original
+for sedf in "$W"/ref/Oracles/*/*.cs.sed; do
   [ -e "$sedf" ] || continue
-  dir="$(dirname "$sedf")"
-  src="$EX/$(oracle_sources "$dir"/*.csproj)Program.cs"
-  sed -f "$sedf" "$src" > "$dir/Program.Oracle.cs"
-  if [ "$(diff "$src" "$dir/Program.Oracle.cs" | grep -c '^>')" != 1 ]; then
+  dir="$(dirname "$sedf")"; file="$(basename "$sedf" .sed)"
+  src="$EX/$(oracle_sources "$dir"/*.csproj)$file"
+  mkdir -p "$dir/Patched"
+  sed -f "$sedf" "$src" > "$dir/Patched/$file"
+  if [ "$(diff "$src" "$dir/Patched/$file" | grep -c '^>')" != 1 ]; then
     echo "$sedf must change exactly one line of $src" >&2; exit 1
   fi
 done
-for gen in "$W"/ref/Oracles/*/Program.Oracle.cs; do
+for gen in "$W"/ref/Oracles/*/Patched/*.cs; do
   [ -e "$gen" ] || continue
-  [ -e "$(dirname "$gen")/oracle.sed" ] || { echo "$gen has no oracle.sed any more: remove it" >&2; exit 1; }
+  [ -e "$(dirname "$(dirname "$gen")")/$(basename "$gen").sed" ] || { echo "$gen has no $(basename "$gen").sed any more: remove it" >&2; exit 1; }
 done
 
 # one-shot .NET SDK container, WORKDIR mounted on /w, removed on exit
@@ -103,25 +105,27 @@ do_oracles() {  # raw outputs of the oracle projects, CR removed, with a #cam he
   mkdir -p "$W/logs/oracles"
   runtime="$(dn bash -c 'dotnet --list-runtimes | grep Microsoft.NETCore.App | tail -1' | tr -d '\r')"
   for proj in "$W"/ref/Oracles/*/*.csproj; do
-    local name dir sources
+    local name dir sources stubs
     name="$(basename "$proj" .csproj)"; dir="$(dirname "$proj")"
     [ "$name" = ShimCheck ] && continue
     sources="$(oracle_sources "$proj")"
+    stubs="$(sed -n 's:.*<OracleStubs>\$(MSBuildProjectDirectory)/\(.*\)</OracleStubs>.*:\1:p' "$proj")"
+    stubs="$dir/${stubs:-Stubs/}"
     # the shim seeds every Random: a direct System.Random or Random.Shared would escape it
     if grep -rnE 'System\.Random|Random\.Shared' "$EX/$sources" --include='*.cs'; then
       echo "$name: System.Random used directly, the seed shim cannot apply" >&2; exit 1
     fi
     {
       echo "#cam oracle $name"
-      if compgen -G "$dir/Stubs/*.cs" > /dev/null || [ -e "$dir/oracle.sed" ]; then
+      if compgen -G "$stubs*.cs" > /dev/null || compgen -G "$dir/*.cs.sed" > /dev/null; then
         echo "#cam csharp ActressMas $REF_COMMIT, Examples/$sources (sources unchanged but the stubs and patch below, seed shim)"
       else
         echo "#cam csharp ActressMas $REF_COMMIT, Examples/$sources (sources unchanged, seed shim)"
       fi
       echo "#cam runtime $runtime"
       # what replaces original code, if anything: form stubs, bounded Program.cs (D86)
-      for stub in "$dir"/Stubs/*.cs; do [ -e "$stub" ] && echo "#cam stub $(basename "$stub") (form replaced, prints its state)"; done
-      [ -e "$dir/oracle.sed" ] && sed 's/^/#cam patch Program.cs: /' "$dir/oracle.sed"
+      for stub in "$stubs"*.cs; do [ -e "$stub" ] && echo "#cam stub $(basename "$stub") (form replaced, prints its state)"; done
+      for sedf in "$dir"/*.cs.sed; do [ -e "$sedf" ] && sed "s/^/#cam patch $(basename "$sedf" .sed): /" "$sedf"; done
       echo "#cam command cd Oracles/$name/bin/Release/$TFM && dotnet $name.dll"
       echo "#cam seed $seed"
       # run from the output folder: data files (OracleData) are read from the working directory

@@ -11,15 +11,19 @@
     <NoWarn>$(NoWarn);1591;1572;SYSLIB0011</NoWarn>
   </PropertyGroup>
   <!--
-    Declared by a project when its example needs it (D86):
-    - OracleExcludes: original files not compiled (a WinForms form), replaced by the project's Stubs/*.cs;
+    Declared by a project when its example needs it (D86, D91):
+    - OracleExcludes: original files not compiled (a WinForms form), replaced by the stubs of OracleStubs (the
+      project's Stubs/ by default);
     - OracleData: data files copied next to the program, which runs from its output folder;
-    - oracle.sed: csharp-ref.sh writes Program.Oracle.cs, the original Program.cs with only noTurns rewritten, compiled
-      instead of Program.cs (an example that never stops gets a bounded run).
+    - <File>.cs.sed: csharp-ref.sh writes Patched/<File>.cs, the original file with one line rewritten (noTurns of an
+      example that never stops, a scenario that reaches a bug), compiled instead of the original.
   -->
+  <PropertyGroup>
+    <OracleStubs Condition="'$(OracleStubs)' == ''">$(MSBuildProjectDirectory)/Stubs/</OracleStubs>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(OracleSources)*.cs" Exclude="$(OracleExcludes)" />
-    <Compile Include="$(MSBuildProjectDirectory)/Stubs/*.cs" />
+    <Compile Include="$(OracleStubs)*.cs" />
     <Compile Include="$(AmasFw)Agents/*.cs" />
     <Compile Include="$(AmasFw)Info.cs" />
     <Compile Include="$(AmasFw)ContainerServer/*.cs" />
@@ -27,8 +31,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Shim/*.cs" />
     <None Include="$(OracleData)" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)/Program.Oracle.cs')">
-    <Compile Remove="$(OracleSources)Program.cs" />
-    <Compile Include="$(MSBuildProjectDirectory)/Program.Oracle.cs" />
+  <ItemGroup>
+    <OraclePatched Include="$(MSBuildProjectDirectory)/Patched/*.cs" />
+    <Compile Remove="@(OraclePatched->'$(OracleSources)%(Filename)%(Extension)')" />
+    <Compile Include="@(OraclePatched)" />
   </ItemGroup>
 </Project>

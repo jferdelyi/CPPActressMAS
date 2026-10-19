@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E02 BDI Architecture with two fires side by side (D89, D91), see ../Oracle.props: the
+       stubs of the BDI oracle; TerrainAgent.cs.sed starts the first fire on cells 3 and 4 instead of 4, which reaches
+       the empty plan bug of the C# (the patrol stops for good); Program.cs.sed bounds noTurns. -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E02 BDI Architecture/</OracleSources>
+    <OracleExcludes>$(OracleSources)TerrainForm.cs;$(OracleSources)TerrainForm.Designer.cs</OracleExcludes>
+    <OracleStubs>$(MSBuildProjectDirectory)/../BDI/Stubs/</OracleStubs>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>
