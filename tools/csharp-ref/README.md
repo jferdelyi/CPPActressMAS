@@ -25,7 +25,7 @@ tools/csharp-ref/csharp-ref.sh WORKDIR ACTION [net10|net8]
 | `bench` | the E30 benchmarks |
 | `e00` | the seven E00 examples |
 | `shimcheck` | `RngVectors` compiled through the seed shim: must equal `ref/expected/rng-vectors.txt` |
-| `oracles` | runs every project of `ref/Oracles/` into `WORKDIR/logs/oracles/<Name>.txt` |
+| `oracles` | runs every project of `ref/Oracles/`, from its output folder, into `WORKDIR/logs/oracles/<Name>.txt` |
 | `e20build`, `capture`, `e20`, `e20mono` | the ContainerServer harness of E20 (.NET 8 and Mono) |
 
 ## Oracles
@@ -36,6 +36,17 @@ a `#cam` header (C# commit, runtime, command, seed); `tests/iso/iso_check` extra
 
 To add an example: create `ref/Oracles/<Name>/<Name>.csproj` with its `OracleSources` folder, run `build` then
 `oracles`, and copy `WORKDIR/logs/oracles/<Name>.txt` to `tests/iso/oracles/`.
+
+An example with a WinForms form, or one that never stops, declares what replaces original code; the `#cam` header lists
+it (`#cam stub`, `#cam patch`):
+
+- `OracleExcludes`: original files not compiled, the form and its `.Designer.cs`. The project's `Stubs/*.cs` are
+  compiled in their place: a stub keeps the form's members that the agents call and prints the state the form would
+  draw, `ShowDialog` returns at once.
+- `oracle.sed`: rewrites only `noTurns` of the original `Program.cs` into `WORKDIR/ref/Oracles/<Name>/Program.Oracle.cs`,
+  compiled instead of `Program.cs`. The script stops if the rewrite does not change exactly one line.
+- `OracleData`: data files copied next to the program, which reads them from its working directory (`patterns.txt` of
+  E13).
 
 ## Seed shim
 

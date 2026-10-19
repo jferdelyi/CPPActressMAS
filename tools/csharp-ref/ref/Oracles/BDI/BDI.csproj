@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E02 BDI Architecture (D86), see ../Oracle.props: the WinForms form is replaced by
+       Stubs/TerrainForm.cs, which prints the state it would draw; oracle.sed bounds noTurns. -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E02 BDI Architecture/</OracleSources>
+    <OracleExcludes>$(OracleSources)TerrainForm.cs;$(OracleSources)TerrainForm.Designer.cs</OracleExcludes>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

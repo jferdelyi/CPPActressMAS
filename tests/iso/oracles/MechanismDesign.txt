@@ -1,7 +1,7 @@
 #cam oracle MechanismDesign
 #cam csharp ActressMas eb0bb73, Examples/E09 Mechanism Design/ (sources unchanged, seed shim)
 #cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
-#cam command dotnet Oracles/MechanismDesign/bin/Release/net10.0/MechanismDesign.dll
+#cam command cd Oracles/MechanismDesign/bin/Release/net10.0 && dotnet MechanismDesign.dll
 #cam seed 0
 [a]: My net benefits are (0 20 10 35)
 [b]: My net benefits are (0 40 40 20)

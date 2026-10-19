@@ -1,7 +1,7 @@
 #cam oracle PrisonerDilemma
 #cam csharp ActressMas eb0bb73, Examples/E10 Iterated Prisoner Dilemma/ (sources unchanged, seed shim)
 #cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
-#cam command dotnet Oracles/PrisonerDilemma/bin/Release/net10.0/PrisonerDilemma.dll
+#cam command cd Oracles/PrisonerDilemma/bin/Release/net10.0 && dotnet PrisonerDilemma.dll
 #cam seed 0
 Round 1
 	[p1-TitForTatPrisonerAgent -> police]: play deny

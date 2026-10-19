@@ -10,8 +10,8 @@
 #   ACTION  : build | rng | trace | format | bench | e00 | probe | mono | shimcheck | oracles | all
 #             format   : FormatVectors (number formatting and parsing of .NET), for tests/vectors/dotnet/format.txt
 #             shimcheck: RngVectors through the seed shim, must equal ref/expected/rng-vectors.txt (D82)
-#             oracles  : runs every project of ref/Oracles (seed shim, CAM_SEED or 0) into WORKDIR/logs/oracles/<Name>.txt,
-#                        the raw outputs to version in tests/iso/oracles/ (D82)
+#             oracles  : runs every project of ref/Oracles (seed shim, CAM_SEED or 0) from its output folder into
+#                        WORKDIR/logs/oracles/<Name>.txt, the raw outputs to version in tests/iso/oracles/ (D82, D86)
 #             e20build | capture | e20 | e20mono   (ContainerServer harness, ref/E20; always net8: BinaryFormatter throws
 #             on net9+; e20mono adds the SHIPPED .NET Framework server and mobile containers under Mono, ref/mono/e20-mono.sh)
 #   flavor  : net10 (default, image mcr.microsoft.com/dotnet/sdk:10.0) or net8 (image mcr.microsoft.com/dotnet/sdk:8.0)
@@ -40,6 +40,26 @@ case "$(GIT_OPTIONAL_LOCKS=0 git -C "$W/ActressMas" rev-parse HEAD)" in
   *) echo "ActressMas is not at $REF_COMMIT: stop, the clone is read only" >&2; exit 2 ;;
 esac
 mkdir -p "$W/logs"
+EX="$W/ActressMas/ActressMAS v3.1/Source Code and Examples/Examples"
+
+# example folder of an oracle project (its <OracleSources>, relative to Examples/)
+oracle_sources() { sed -n 's:.*<OracleSources>\$(AmasEx)\(.*\)</OracleSources>.*:\1:p' "$1"; }
+
+# Program.Oracle.cs of each oracle project that has an oracle.sed (D86): the original Program.cs with only noTurns
+# rewritten, written in WORKDIR/ref (never in the repository nor in the clone), compiled instead of Program.cs
+for sedf in "$W"/ref/Oracles/*/oracle.sed; do
+  [ -e "$sedf" ] || continue
+  dir="$(dirname "$sedf")"
+  src="$EX/$(oracle_sources "$dir"/*.csproj)Program.cs"
+  sed -f "$sedf" "$src" > "$dir/Program.Oracle.cs"
+  if [ "$(diff "$src" "$dir/Program.Oracle.cs" | grep -c '^>')" != 1 ]; then
+    echo "$sedf must change exactly one line of $src" >&2; exit 1
+  fi
+done
+for gen in "$W"/ref/Oracles/*/Program.Oracle.cs; do
+  [ -e "$gen" ] || continue
+  [ -e "$(dirname "$gen")/oracle.sed" ] || { echo "$gen has no oracle.sed any more: remove it" >&2; exit 1; }
+done
 
 # one-shot .NET SDK container, WORKDIR mounted on /w, removed on exit
 dn() { podman run --rm --pull=never --name "cam-csref-$$-$RANDOM" -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 \
@@ -86,18 +106,26 @@ do_oracles() {  # raw outputs of the oracle projects, CR removed, with a #cam he
     local name dir sources
     name="$(basename "$proj" .csproj)"; dir="$(dirname "$proj")"
     [ "$name" = ShimCheck ] && continue
-    sources="$(sed -n 's:.*<OracleSources>\$(AmasEx)\(.*\)</OracleSources>.*:\1:p' "$proj")"
+    sources="$(oracle_sources "$proj")"
     # the shim seeds every Random: a direct System.Random or Random.Shared would escape it
-    if grep -rnE 'System\.Random|Random\.Shared' "$W/ActressMas/ActressMAS v3.1/Source Code and Examples/Examples/$sources" --include='*.cs'; then
+    if grep -rnE 'System\.Random|Random\.Shared' "$EX/$sources" --include='*.cs'; then
       echo "$name: System.Random used directly, the seed shim cannot apply" >&2; exit 1
     fi
     {
       echo "#cam oracle $name"
-      echo "#cam csharp ActressMas $REF_COMMIT, Examples/$sources (sources unchanged, seed shim)"
+      if compgen -G "$dir/Stubs/*.cs" > /dev/null || [ -e "$dir/oracle.sed" ]; then
+        echo "#cam csharp ActressMas $REF_COMMIT, Examples/$sources (sources unchanged but the stubs and patch below, seed shim)"
+      else
+        echo "#cam csharp ActressMas $REF_COMMIT, Examples/$sources (sources unchanged, seed shim)"
+      fi
       echo "#cam runtime $runtime"
-      echo "#cam command dotnet Oracles/$name/bin/Release/$TFM/$name.dll"
+      # what replaces original code, if anything: form stubs, bounded Program.cs (D86)
+      for stub in "$dir"/Stubs/*.cs; do [ -e "$stub" ] && echo "#cam stub $(basename "$stub") (form replaced, prints its state)"; done
+      [ -e "$dir/oracle.sed" ] && sed 's/^/#cam patch Program.cs: /' "$dir/oracle.sed"
+      echo "#cam command cd Oracles/$name/bin/Release/$TFM && dotnet $name.dll"
       echo "#cam seed $seed"
-      dn bash -c "CAM_SEED=$seed timeout 120 dotnet Oracles/$name/bin/Release/$TFM/$name.dll 2> /w/logs/oracles/$name.err" | tr -d '\r'
+      # run from the output folder: data files (OracleData) are read from the working directory
+      dn bash -c "cd Oracles/$name/bin/Release/$TFM && CAM_SEED=$seed timeout 300 dotnet $name.dll 2> /w/logs/oracles/$name.err" | tr -d '\r'
     } > "$W/logs/oracles/$name.txt"
     echo "$name: $(grep -vc '^#cam' "$W/logs/oracles/$name.txt") lines"
   done
