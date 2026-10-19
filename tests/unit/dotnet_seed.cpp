@@ -42,6 +42,9 @@ TEST_CASE("site_seed gives the seeds of the oracle shim") {
 	const Vector l_vectors[] = {
 			{"EnvironmentMas.cs:61", 0, 0, 1644240549},
 			{"EnvironmentMas.cs:61", 1, 0, 1921065420},
+			{"EnvironmentMas.cs:61", 2, 0, 252614525},
+			{"EnvironmentMas.cs:61", 3, 0, 1988093695},
+			{"EnvironmentMas.cs:61", 4, 0, 910785032},
 			{"Program.cs:119", 0, 0, 510404372},
 			{"Program.cs:90", 0, 0, 932746367},
 			{"Program.cs:36", 0, 0, 787071105},

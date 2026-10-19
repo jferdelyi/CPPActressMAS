@@ -126,7 +126,7 @@ function(cam_add_iso_port p_project)
 endfunction()
 
 foreach (l_project IN ITEMS Agents1 Agents2 Agents3 Agents4 Agents5 MultipleMessages SendingObjects ColorGame NumberGame
-		MechanismDesign PrisonerDilemma BDI GameOfLife)
+		MechanismDesign PrisonerDilemma BDI GameOfLife PingPong Skynet)
 	cam_add_iso_port(${l_project})
 endforeach()
 # GameOfLife reads its initial pattern from the working directory, as the C#
@@ -171,6 +171,9 @@ cam_add_iso(PrisonerDilemma)
 cam_add_iso(BDI 120 0)
 cam_add_iso(BDI ORACLE BDIAdjacent 120 0 adjacent)
 cam_add_iso(GameOfLife 60 0)
+# The benchmarks, durations ignored
+cam_add_iso(PingPong)
+cam_add_iso(Skynet)
 # 390 000 calls of the perception filter per turn: with gcc, whose ASan detects stack-use-after-return by default (fake
 # stacks), the test took more than 1 200 s, 39 s without; clang leaves it off by default (D95)
 if (CAM_SANITIZER STREQUAL "asan")
