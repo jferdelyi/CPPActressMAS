@@ -96,6 +96,10 @@ add_executable(PrisonerDilemma ${CMAKE_CURRENT_LIST_DIR}/PrisonerDilemma/Prisone
 target_link_libraries(PrisonerDilemma CPPActressMAS)
 apply_compile_options(PrisonerDilemma)
 
+add_executable(BDI ${CMAKE_CURRENT_LIST_DIR}/BDI/BDI.cpp)
+target_link_libraries(BDI CPPActressMAS)
+apply_compile_options(BDI)
+
 add_executable(TransportRoundTrip ${CMAKE_CURRENT_LIST_DIR}/Features/TransportRoundTrip.cpp)
 target_link_libraries(TransportRoundTrip CPPActressMAS)
 apply_compile_options(TransportRoundTrip)

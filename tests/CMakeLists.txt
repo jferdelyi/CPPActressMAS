@@ -126,6 +126,7 @@ endfunction()
 # Ports of the C# examples compared with their originals (docs/port/EXEMPLES.md)
 cam_add_iso(MechanismDesign)
 cam_add_iso(PrisonerDilemma)
+cam_add_iso(BDI 120 0)
 
 # Examples of the features of the C++ port (Examples/Features): they run and report what they measure.
 if (TARGET TransportRoundTrip)

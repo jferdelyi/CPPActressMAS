@@ -1,0 +1,21 @@
+# E02 BDI Architecture: sequential, fixed order, no random draw, so the C# guarantees the order of every line (exact
+# trace, level (a)). 120 turns (the oracle bounds noTurns, tools/csharp-ref), delay 0. "order" checks how the kinds of
+# line interleave, the other facts their contents in sequence: together, the whole trace.
+cover all
+fact order ^(Starting|\t\[[\w-]+ -> [\w-]+\]|Adopting|GUI)
+fact start ^Starting (\w+)$
+fact message ^\t\[([\w-]+) -> ([\w-]+)\]: (.*)$
+fact intention ^Adopting new intention: (.*)$
+fact gui ^GUI pos=(\d+) ([.FWw]+)$
+same order seq
+same start seq
+same message seq
+same intention seq
+same gui seq
+# the terrain refreshes its form once per turn after the setup turn
+check gui count == 119
+# no exception caught by an agent (the form of the C# drawn before its thread has created it, an access out of the
+# terrain): neither output may hold one
+fact error (Object reference|out of range|Index was|Exception)
+optional error
+check error count == 0

@@ -9,6 +9,7 @@ in `build/<preset>/Examples/`). Each folder has its own README with the C# examp
 | [`Observables/`](Observables/README.md) | `ColorGame`, `NumberGame` | Agents that see the observable properties of the others |
 | [`MAS/`](MAS/README.md) | `Reactive` | Reactive explorers bringing samples back to a base |
 | [`Mobiles/`](Mobiles/README.md) | `Mobile`, `MobilePingPong` | Several environments: agent migration and remote messages |
+| [`BDI/`](BDI/README.md) | `BDI` | A BDI patrol that puts out fires on a terrain (beliefs, desires, intentions, plans) |
 | [`MechanismDesign/`](MechanismDesign/README.md) | `MechanismDesign` | Taxes that make telling the truth the best choice (Clarke tax) |
 | [`PrisonerDilemma/`](PrisonerDilemma/README.md) | `PrisonerDilemma` | Ten rounds of the prisoner's dilemma, tit for tat |
 | [`Serialization/`](Serialization/README.md) | `Serialization` | Saving and restoring the state of an agent |
