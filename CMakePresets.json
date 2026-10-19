@@ -1,11 +1,11 @@
 {
-	"version": 3,
-	"cmakeMinimumRequired": { "major": 3, "minor": 22, "patch": 0 },
+	"version": 6,
+	"cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
 	"configurePresets": [
 		{
 			"name": "base",
 			"hidden": true,
-			"binaryDir": "${sourceDir}/build/${presetName}",
+			"binaryDir": "${sourceDir}/build/$env{CAM_BUILD_PREFIX}${presetName}",
 			"cacheVariables": {
 				"BUILD_EXAMPLES": "ON",
 				"CAM_TRANSPORT_MQTT": "ON",
@@ -83,6 +83,16 @@
 				"CAM_TRANSPORT_MQTT": "OFF",
 				"CAM_TRANSPORT_ZENOH": "OFF"
 			}
+		},
+		{
+			"name": "msvc",
+			"displayName": "Windows, MSVC, core only (multi-config generator: Debug unless told otherwise)",
+			"inherits": "base",
+			"condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+			"cacheVariables": {
+				"CAM_TRANSPORT_MQTT": "OFF",
+				"CAM_TRANSPORT_ZENOH": "OFF"
+			}
 		}
 	],
 	"buildPresets": [
@@ -92,7 +102,8 @@
 		{ "name": "asan", "configurePreset": "asan" },
 		{ "name": "tsan", "configurePreset": "tsan" },
 		{ "name": "coverage", "configurePreset": "coverage" },
-		{ "name": "bench", "configurePreset": "bench" }
+		{ "name": "bench", "configurePreset": "bench" },
+		{ "name": "msvc", "configurePreset": "msvc", "configuration": "Debug" }
 	],
 	"testPresets": [
 		{
@@ -101,12 +112,71 @@
 			"output": { "outputOnFailure": true },
 			"execution": { "noTestsAction": "error" }
 		},
+		{ "name": "type-unit", "hidden": true, "inherits": "base", "filter": { "include": { "label": "^unit$" } } },
+		{ "name": "type-integration", "hidden": true, "inherits": "base", "filter": { "include": { "label": "^integration$" } } },
+		{ "name": "type-network", "hidden": true, "inherits": "base", "filter": { "include": { "label": "^network$" } } },
+		{ "name": "type-characterization", "hidden": true, "inherits": "base", "filter": { "include": { "label": "^characterization$" } } },
+		{ "name": "type-iso", "hidden": true, "inherits": "base", "filter": { "include": { "label": "^iso$" } } },
+		{ "name": "type-examples", "hidden": true, "inherits": "base", "filter": { "include": { "label": "^examples$" } } },
 		{ "name": "debug", "configurePreset": "debug", "inherits": "base" },
 		{ "name": "release", "configurePreset": "release", "inherits": "base" },
 		{ "name": "core", "configurePreset": "core", "inherits": "base" },
 		{ "name": "asan", "configurePreset": "asan", "inherits": "base" },
 		{ "name": "tsan", "configurePreset": "tsan", "inherits": "base" },
 		{ "name": "coverage", "configurePreset": "coverage", "inherits": "base" },
-		{ "name": "bench", "configurePreset": "bench", "inherits": "base" }
+		{ "name": "bench", "configurePreset": "bench", "inherits": "base" },
+		{ "name": "msvc", "configurePreset": "msvc", "inherits": "base", "configuration": "Debug" },
+		{ "name": "debug-unit", "configurePreset": "debug", "inherits": "type-unit" },
+		{ "name": "debug-integration", "configurePreset": "debug", "inherits": "type-integration" },
+		{ "name": "debug-network", "configurePreset": "debug", "inherits": "type-network" },
+		{ "name": "debug-characterization", "configurePreset": "debug", "inherits": "type-characterization" },
+		{ "name": "debug-iso", "configurePreset": "debug", "inherits": "type-iso" },
+		{ "name": "debug-examples", "configurePreset": "debug", "inherits": "type-examples" },
+		{ "name": "release-unit", "configurePreset": "release", "inherits": "type-unit" },
+		{ "name": "release-integration", "configurePreset": "release", "inherits": "type-integration" },
+		{ "name": "release-network", "configurePreset": "release", "inherits": "type-network" },
+		{ "name": "release-characterization", "configurePreset": "release", "inherits": "type-characterization" },
+		{ "name": "release-iso", "configurePreset": "release", "inherits": "type-iso" },
+		{ "name": "release-examples", "configurePreset": "release", "inherits": "type-examples" },
+		{ "name": "core-unit", "configurePreset": "core", "inherits": "type-unit" },
+		{ "name": "core-integration", "configurePreset": "core", "inherits": "type-integration" },
+		{ "name": "core-network", "configurePreset": "core", "inherits": "type-network" },
+		{ "name": "core-characterization", "configurePreset": "core", "inherits": "type-characterization" },
+		{ "name": "core-iso", "configurePreset": "core", "inherits": "type-iso" },
+		{ "name": "core-examples", "configurePreset": "core", "inherits": "type-examples" },
+		{ "name": "asan-unit", "configurePreset": "asan", "inherits": "type-unit" },
+		{ "name": "asan-integration", "configurePreset": "asan", "inherits": "type-integration" },
+		{ "name": "asan-network", "configurePreset": "asan", "inherits": "type-network" },
+		{ "name": "asan-characterization", "configurePreset": "asan", "inherits": "type-characterization" },
+		{ "name": "asan-iso", "configurePreset": "asan", "inherits": "type-iso" },
+		{ "name": "asan-examples", "configurePreset": "asan", "inherits": "type-examples" },
+		{ "name": "tsan-unit", "configurePreset": "tsan", "inherits": "type-unit" },
+		{ "name": "tsan-integration", "configurePreset": "tsan", "inherits": "type-integration" },
+		{ "name": "tsan-network", "configurePreset": "tsan", "inherits": "type-network" },
+		{ "name": "tsan-characterization", "configurePreset": "tsan", "inherits": "type-characterization" },
+		{ "name": "tsan-iso", "configurePreset": "tsan", "inherits": "type-iso" },
+		{ "name": "tsan-examples", "configurePreset": "tsan", "inherits": "type-examples" },
+		{ "name": "msvc-unit", "configurePreset": "msvc", "inherits": "type-unit", "configuration": "Debug" },
+		{ "name": "msvc-integration", "configurePreset": "msvc", "inherits": "type-integration", "configuration": "Debug" },
+		{ "name": "msvc-network", "configurePreset": "msvc", "inherits": "type-network", "configuration": "Debug" },
+		{ "name": "msvc-characterization", "configurePreset": "msvc", "inherits": "type-characterization", "configuration": "Debug" },
+		{ "name": "msvc-iso", "configurePreset": "msvc", "inherits": "type-iso", "configuration": "Debug" },
+		{ "name": "msvc-examples", "configurePreset": "msvc", "inherits": "type-examples", "configuration": "Debug" }
+	],
+	"workflowPresets": [
+		{ "name": "debug", "steps": [ { "type": "configure", "name": "debug" }, { "type": "build", "name": "debug" }, { "type": "test", "name": "debug" } ] },
+		{ "name": "release", "steps": [ { "type": "configure", "name": "release" }, { "type": "build", "name": "release" }, { "type": "test", "name": "release" } ] },
+		{ "name": "core", "steps": [ { "type": "configure", "name": "core" }, { "type": "build", "name": "core" }, { "type": "test", "name": "core" } ] },
+		{ "name": "asan", "steps": [ { "type": "configure", "name": "asan" }, { "type": "build", "name": "asan" }, { "type": "test", "name": "asan" } ] },
+		{ "name": "tsan", "steps": [ { "type": "configure", "name": "tsan" }, { "type": "build", "name": "tsan" }, { "type": "test", "name": "tsan" } ] },
+		{ "name": "coverage", "steps": [ { "type": "configure", "name": "coverage" }, { "type": "build", "name": "coverage" }, { "type": "test", "name": "coverage" } ] },
+		{ "name": "bench", "steps": [ { "type": "configure", "name": "bench" }, { "type": "build", "name": "bench" }, { "type": "test", "name": "bench" } ] },
+		{ "name": "msvc", "steps": [ { "type": "configure", "name": "msvc" }, { "type": "build", "name": "msvc" }, { "type": "test", "name": "msvc" } ] },
+		{ "name": "unit", "steps": [ { "type": "configure", "name": "debug" }, { "type": "build", "name": "debug" }, { "type": "test", "name": "debug-unit" } ] },
+		{ "name": "integration", "steps": [ { "type": "configure", "name": "debug" }, { "type": "build", "name": "debug" }, { "type": "test", "name": "debug-integration" } ] },
+		{ "name": "network", "steps": [ { "type": "configure", "name": "debug" }, { "type": "build", "name": "debug" }, { "type": "test", "name": "debug-network" } ] },
+		{ "name": "characterization", "steps": [ { "type": "configure", "name": "debug" }, { "type": "build", "name": "debug" }, { "type": "test", "name": "debug-characterization" } ] },
+		{ "name": "iso", "steps": [ { "type": "configure", "name": "debug" }, { "type": "build", "name": "debug" }, { "type": "test", "name": "debug-iso" } ] },
+		{ "name": "examples", "steps": [ { "type": "configure", "name": "debug" }, { "type": "build", "name": "debug" }, { "type": "test", "name": "debug-examples" } ] }
 	]
 }
