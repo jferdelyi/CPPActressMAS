@@ -149,6 +149,11 @@ if (TARGET BDI)
 		PASS_REGULAR_EXPRESSION "fire-out\n\t\\[terrain -> patrol\\]: percepts 3 0 0 0" FAIL_REGULAR_EXPRESSION "out of range")
 endif()
 cam_add_iso(GameOfLife 60 0)
+# 390 000 calls of the perception filter per turn: with gcc, whose ASan detects stack-use-after-return by default (fake
+# stacks), the test took more than 1 200 s, 39 s without; clang leaves it off by default (D95)
+if (TARGET GameOfLife AND CAM_SANITIZER STREQUAL "asan")
+	set_property(TEST iso.GameOfLife APPEND PROPERTY ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=0")
+endif()
 
 # Examples of the features of the C++ port (Examples/Features): they run and report what they measure.
 if (TARGET TransportRoundTrip)
