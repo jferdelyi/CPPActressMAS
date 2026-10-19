@@ -1,0 +1,7 @@
+#cam oracle Skynet
+#cam csharp ActressMas eb0bb73, Examples/E30 Benchmarks/Skynet/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Skynet/bin/Release/net10.0 && dotnet Skynet.dll
+#cam seed 0
+Sum = 49995000
+36.000 ms

@@ -1,0 +1,26 @@
+#cam oracle PingPong
+#cam csharp ActressMas eb0bb73, Examples/E30 Benchmarks/PingPong/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/PingPong/bin/Release/net10.0 && dotnet PingPong.dll
+#cam seed 0
+Trial 1
+2534410 msg
+530 ms
+
+Trial 2
+1899894 msg
+357 ms
+
+Trial 3
+2916672 msg
+323 ms
+
+Trial 4
+2044601 msg
+271 ms
+
+Trial 5
+1874150 msg
+289 ms
+
+6632.657 msg/ms
