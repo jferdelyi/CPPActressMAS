@@ -1,0 +1,56 @@
+#cam oracle Agents4
+#cam csharp ActressMas eb0bb73, Examples/E00 Simple Examples/Agents4/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Agents4/bin/Release/net10.0 && dotnet Agents4.dll
+#cam seed 0
+[a4 -> writer]: Agent a4 turn 1 index 1
+[a4 -> writer]: Agent a4 turn 1 index 2
+[a4 -> writer]: Agent a4 turn 1 index 3
+[a2 -> writer]: Agent a2 turn 1 index 1
+[a2 -> writer]: Agent a2 turn 1 index 2
+[a2 -> writer]: Agent a2 turn 1 index 3
+[a1 -> writer]: Agent a1 turn 1 index 1
+[a1 -> writer]: Agent a1 turn 1 index 2
+[a1 -> writer]: Agent a1 turn 1 index 3
+[a5 -> writer]: Agent a5 turn 1 index 1
+[a5 -> writer]: Agent a5 turn 1 index 2
+[a5 -> writer]: Agent a5 turn 1 index 3
+[a3 -> writer]: Agent a3 turn 1 index 1
+[a3 -> writer]: Agent a3 turn 1 index 2
+[a3 -> writer]: Agent a3 turn 1 index 3
+[a4 -> writer]: Agent a4 turn 2 index 1
+[a4 -> writer]: Agent a4 turn 2 index 2
+[a4 -> writer]: Agent a4 turn 2 index 3
+[a5 -> writer]: Agent a5 turn 2 index 1
+[a5 -> writer]: Agent a5 turn 2 index 2
+[a5 -> writer]: Agent a5 turn 2 index 3
+[a2 -> writer]: Agent a2 turn 2 index 1
+[a2 -> writer]: Agent a2 turn 2 index 2
+[a2 -> writer]: Agent a2 turn 2 index 3
+[a3 -> writer]: Agent a3 turn 2 index 1
+[a3 -> writer]: Agent a3 turn 2 index 2
+[a3 -> writer]: Agent a3 turn 2 index 3
+[a1 -> writer]: Agent a1 turn 2 index 1
+[a1 -> writer]: Agent a1 turn 2 index 2
+[a1 -> writer]: Agent a1 turn 2 index 3
+[a4 -> writer]: Agent a4 turn 3 index 1
+[a4 -> writer]: Agent a4 turn 3 index 2
+[a4 -> writer]: Agent a4 turn 3 index 3
+[a5 -> writer]: Agent a5 turn 3 index 1
+[a5 -> writer]: Agent a5 turn 3 index 2
+[a5 -> writer]: Agent a5 turn 3 index 3
+[a2 -> writer]: Agent a2 turn 3 index 1
+[a2 -> writer]: Agent a2 turn 3 index 2
+[a2 -> writer]: Agent a2 turn 3 index 3
+[a3 -> writer]: Agent a3 turn 3 index 1
+[a3 -> writer]: Agent a3 turn 3 index 2
+[a3 -> writer]: Agent a3 turn 3 index 3
+[a1 -> writer]: Agent a1 turn 3 index 1
+[a1 -> writer]: Agent a1 turn 3 index 2
+[a1 -> writer]: Agent a1 turn 3 index 3
+[a4 -> writer]: Agent a4 turn 4 index 1
+[a3 -> writer]: Agent a3 turn 4 index 1
+[a3 -> writer]: Agent a3 turn 4 index 2
+[a3 -> writer]: Agent a3 turn 4 index 3
+[a4 -> writer]: Agent a4 turn 4 index 2
+[a4 -> writer]: Agent a4 turn 4 index 3

@@ -1,0 +1,79 @@
+#cam oracle Agents3
+#cam csharp ActressMas eb0bb73, Examples/E00 Simple Examples/Agents3/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Agents3/bin/Release/net10.0 && dotnet Agents3.dll
+#cam seed 0
+monitor: start round 1 in setup
+-> sending to agent2
+-> sending to agent1
+-> sending to agent4
+-> sending to agent3
+
+Turn 1 finished
+
+	[monitor -> agent4]: start
+	[monitor -> agent3]: start
+	[monitor -> agent1]: start
+	[monitor -> agent2]: start
+
+Turn 2 finished
+
+	[agent4 -> monitor]: done
+	[agent3 -> monitor]: done
+	[agent1 -> monitor]: done
+	[agent2 -> monitor]: done
+
+monitor: start round 2 in act
+-> sending to agent2
+-> sending to agent1
+-> sending to agent4
+-> sending to agent3
+
+Turn 3 finished
+
+	[monitor -> agent2]: continue
+	[agent2 -> monitor]: done
+	[monitor -> agent1]: continue
+	[monitor -> agent4]: continue
+	[monitor -> agent3]: continue
+
+Turn 4 finished
+
+	[agent1 -> monitor]: done
+	[agent4 -> monitor]: done
+	[agent3 -> monitor]: done
+
+monitor: start round 3 in act
+-> sending to agent2
+-> sending to agent1
+-> sending to agent4
+-> sending to agent3
+	[monitor -> agent1]: continue
+	[monitor -> agent4]: continue
+	[monitor -> agent3]: continue
+
+Turn 5 finished
+
+	[monitor -> agent2]: continue
+	[agent1 -> monitor]: done
+	[agent4 -> monitor]: done
+	[agent3 -> monitor]: done
+	[agent2 -> monitor]: done
+
+Turn 6 finished
+
+
+Turn 7 finished
+
+
+Turn 8 finished
+
+
+Turn 9 finished
+
+
+Turn 10 finished
+
+
+Simulation finished
+
