@@ -16,66 +16,87 @@
  *                                                                        *
  **************************************************************************/
 
-#include <iostream>
+// Port of the C# example E00 Simple Examples/Agents3 (ActressMAS v3.1): a monitor runs three start/done rounds with
+// four agents; the environment reports the end of each turn and of the simulation. Parallel, 10 turns, 100 ms after
+// each turn. The monitor addresses the agents in the order of the environment, the order of insertion in C++ (the C#
+// follows its ConcurrentDictionary, ISO e).
 
+#include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
+
+#include <DotNet.hpp>
 #include <Environment.h>
 
 class MyEnvironment final : public cam::Environment {
-  public:
-	MyEnvironment() :
-		Environment(10, cam::EnvironmentMasMode::Parallel, 100) {}
+	public:
+		MyEnvironment() :
+				Environment({.m_turns = 10,
+							 .m_mode = cam::EnvironmentMasMode::Parallel,
+							 .m_delay_after_turn = 100,
+							 .m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
+							 .m_random = cam::RandomEngine::DotNet}) {}
 
-	void turn_finished(const int p_turn) override {
-		std::cout << std::endl
-				  << "Turn " + std::to_string(p_turn + 1) + " finished" << std::endl
-				  << std::endl;
-	}
+		void turn_finished(const int p_turn) override {
+			cam::dotnet::write_line("\nTurn " + std::to_string(p_turn + 1) + " finished\n");
+		}
 
-	void simulation_finished() override {
-		std::cout << std::endl
-				  << "Simulation finished" << std::endl
-				  << std::endl;
-	}
+		void simulation_finished() override {
+			cam::dotnet::write_line("\nSimulation finished\n");
+		}
+};
+
+class MyAgent final : public cam::Agent {
+	public:
+		explicit MyAgent(const std::string& p_name) : Agent(p_name) {}
+
+		void action(const cam::MessagePointer& p_message) override {
+			cam::dotnet::write_line("\t" + format(p_message));
+			const std::string l_content = p_message->to_string();
+			if (get_agent_name(p_message->get_sender()) == "monitor" && (l_content == "start" || l_content == "continue")) {
+				send_by_name("monitor", "done");
+			}
+		}
 };
 
 class MonitorAgent final : public cam::Agent {
-	protected:
-		int m_round{};
-		int m_max_rounds{};
-		std::map<cam::AgentId, bool> m_finished;
-		std::vector<cam::AgentId> m_agents_id;
+	private:
+		int m_round = 0;
+		int m_max_rounds = 0;
+		std::map<std::string, bool> m_finished;
+		std::vector<std::string> m_agent_names;
+
+		[[nodiscard]] bool all_finished() const {
+			return std::ranges::all_of(m_finished, [](const auto& p_entry) { return p_entry.second; });
+		}
 
 	public:
-		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) { }
+		explicit MonitorAgent(const std::string& p_name) : Agent(p_name) {}
 
 		void setup() override {
 			m_max_rounds = 3;
 			m_round = 0;
 
-			std::cout << "[" + get_name() + "]: start round 1 in setup " << std::endl;
+			cam::dotnet::write_line("monitor: start round 1 in setup");
 
-			// In C# version the order is always 3,2,1,4
-			// In C++ version the order is always 4,3,2,1
-			// Probably explained by the type of container and
-			// find algorithm. I think this is not really critical
-			for (const auto& l_agent : get_filtered_agents("agent")) {
-				m_agents_id.push_back(l_agent);
-				m_finished.emplace(l_agent, false);
+			for (const auto& l_agent: get_filtered_agents("agent")) {
+				const std::string l_name = get_agent_name(l_agent).value_or("");
+				m_agent_names.push_back(l_name);
+				m_finished.emplace(l_name, false);
 			}
 
-			for (const auto& l_agent : m_agents_id) {
-				if (const auto& l_agent_name = get_agent_name(l_agent); l_agent_name != std::nullopt) {
-					std::cout << "[" + get_name() + "]: sending to " << l_agent_name.value() << std::endl;
-					send(l_agent,{{"data", "start"}, {"from", get_name()}});
-				}
+			for (const auto& l_name: m_agent_names) {
+				cam::dotnet::write_line("-> sending to " + l_name);
+				send_by_name(l_name, "start");
 			}
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
+			cam::dotnet::write_line("\t" + format(p_message));
 
-			if (p_message->content()["data"] == "done") {
-				m_finished[p_message->get_sender()] = true;
+			if (p_message->to_string() == "done") {
+				m_finished[get_agent_name(p_message->get_sender()).value_or("")] = true;
 			}
 
 			if (all_finished()) {
@@ -83,44 +104,15 @@ class MonitorAgent final : public cam::Agent {
 					return;
 				}
 
-				for (const auto& l_agent : m_agents_id) {
-					m_finished[l_agent] = false;
+				for (const auto& l_name: m_agent_names) {
+					m_finished[l_name] = false;
 				}
 
-				std::cout << "[" + get_name() + "]: start round " + std::to_string(m_round + 1) + " in action";
-
-				for (const auto& l_agent : m_agents_id) {
-					if (const auto& l_agent_name = get_agent_name(l_agent); l_agent_name != std::nullopt) {
-						std::cout << "[" + get_name() + "]: sending to " << l_agent_name.value() << std::endl;
-						send(l_agent, {{"data", "continue"}, {"from", get_name()}});
-					}
+				cam::dotnet::write_line("\r\nmonitor: start round " + std::to_string(m_round + 1) + " in act");
+				for (const auto& l_name: m_agent_names) {
+					cam::dotnet::write_line("-> sending to " + l_name);
+					send_by_name(l_name, "continue");
 				}
-			}
-		}
-
-	protected:
-		[[nodiscard]] bool all_finished() const {
-			return std::ranges::all_of(m_finished.cbegin(), m_finished.cend(),[](const auto& l_data) {
-				return l_data.second;
-			});
-		}
-};
-
-class MyAgent : public cam::Agent {
-	cam::AgentId m_monitor_id;
-	public:
-		explicit MyAgent(const std::string& p_name) : Agent(p_name) { }
-
-		void setup() override {
-			if (const auto& l_agent_id = get_first_agent_by_name("monitor"); l_agent_id != std::nullopt) {
-				m_monitor_id = l_agent_id.value();
-			}
-		}
-
-		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
-			if (p_message->get_sender() == m_monitor_id && (p_message->content()["data"] == "start" || p_message->content()["data"] == "continue")) {
-				send(m_monitor_id, {{"data", "done"}, {"from", get_name()}});
 			}
 		}
 };
@@ -128,7 +120,8 @@ class MyAgent : public cam::Agent {
 int main() {
 	MyEnvironment l_environment;
 
-	for (int i = 1; i <= 4; i++) {
+	constexpr int l_no_agents = 4;
+	for (int i = 1; i <= l_no_agents; i++) {
 		l_environment.add<MyAgent>("agent" + std::to_string(i));
 	}
 	l_environment.add<MonitorAgent>("monitor");

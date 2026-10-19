@@ -16,70 +16,106 @@
  *                                                                        *
  **************************************************************************/
 
-#include <iostream>
-#include <random>
+// Port of the C# example E00 Simple Examples/MultipleMessages (ActressMAS v3.1): a manager starts five workers; each
+// reports to the manager and sends a request to another worker, drawn at random, which replies. Parallel, 20 turns.
+// WARNING: the C# handles the reply under the label "request_reply", which no message carries (X1): the reply is never
+// handled and the exchange stops there. "legacy", the default, keeps this bug; "fixed" handles the reply as the C#
+// meant to (D89): the worker tells the manager, which prints "replying", and sends a new request, until the last turn.
+// The workers draw from one generator, as from the static Random of the C#, with the seed of its oracle (D96), but
+// under a lock: the C# draws without one, which C++ cannot do without undefined behaviour.
+// Arguments: [legacy|fixed].
 
+#include <cstdint>
+#include <iostream>
+#include <mutex>
+#include <string>
+
+#include <DotNet.hpp>
 #include <Environment.h>
+#include <util/DotnetRandom.h>
 
 class ManagerAgent final : public cam::Agent {
 	public:
-		explicit ManagerAgent(const std::string& p_name) : Agent(p_name) { }
+		explicit ManagerAgent(const std::string& p_name) : Agent(p_name) {}
 
 		void setup() override {
-			broadcast({{"action", "start"}});
+			broadcast("start");
 		}
 
 		void action(const cam::MessagePointer& p_message) override {
-			if (const std::string& l_action = p_message->content()["action"]; l_action == "report") {
-				std::cout << "[" + get_name() + "]: reporting from " << p_message->content()["from"] << std::endl;
+			cam::dotnet::write_line(format(p_message));
+			const auto [l_action, l_parameters] = p_message->parse();
+			const std::string l_sender = get_agent_name(p_message->get_sender()).value_or("");
+
+			if (l_action == "report") {
+				cam::dotnet::write_line("\t[" + get_name() + "]: " + l_sender + " reporting");
 			} else if (l_action == "reply") {
-				std::cout << "[" + get_name() + "]: replaying from " << p_message->content()["from"] << std::endl;
+				cam::dotnet::write_line("\t[" + get_name() + "]: " + l_sender + " replying");
 			}
 		}
 };
 
 class WorkerAgent final : public cam::Agent {
+	private:
+		bool m_fixed;
 
-	protected:
+		// Another worker, drawn from the generator shared by the workers, as the static Random of the C#
 		[[nodiscard]] std::string next_worker() const {
+			static std::mutex s_mutex;
+			static cam::DotnetRandom s_rand(cam::dotnet::next_site_seed("WorkerAgent.cs:9"));
+			constexpr std::int32_t l_no_workers = 5;
 			std::string l_name = get_name();
-
-			std::random_device l_rd;
-			std::uniform_int_distribution l_dist(1, 5);
-
+			const std::scoped_lock l_lock(s_mutex);
 			while (l_name == get_name()) {
-				l_name = "Worker" + std::to_string(l_dist(l_rd));
+				l_name = "Worker" + std::to_string(s_rand.next(l_no_workers));
 			}
 			return l_name;
 		}
 
 	public:
-		explicit WorkerAgent(const std::string& p_name) : Agent(p_name) {}
+		WorkerAgent(const std::string& p_name, const bool p_fixed) :
+				Agent(p_name),
+				m_fixed(p_fixed) {}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
+			cam::dotnet::write_line(format(p_message));
+			const auto [l_action, l_parameters] = p_message->parse();
 
-			if (const std::string& l_action = p_message->content()["action"];
-				l_action == "start") {
-				send_by_name("Manager", {{"action", "report"}, {"from", get_name()}});
-				send_by_name(next_worker(), {{"action", "request"}, {"from", get_name()}});
+			if (l_action == "start") {
+				send_by_name("Manager", "report");
+				send_by_name(next_worker(), "request");
 			} else if (l_action == "request") {
-				send(p_message->get_sender(), {{"action", "reply"}, {"from", get_name()}});
-			} else if (l_action == "reply") {
-				send_by_name("Manager", {{"action", "reply"}, {"from", get_name()}});
-				send_by_name(next_worker(), {{"action", "request"}, {"from", get_name()}});
+				send(p_message->get_sender(), "reply");
+			} else if (l_action == (m_fixed ? "reply" : "request_reply")) {
+				// Legacy: "request_reply", as the C#, never matches; fixed: the reply is handled
+				send_by_name("Manager", "reply");
+				send_by_name(next_worker(), "request");
 			}
 		}
 };
 
-int main() {
-	cam::Environment l_environment(20);
+int main(int argc, char** argv) {
+	const std::string l_mode = argc > 1 ? argv[1] : "legacy";
+	if (l_mode != "legacy" && l_mode != "fixed") {
+		std::cerr << "usage: MultipleMessages [legacy|fixed]" << std::endl;
+		return 2;
+	}
+	const bool l_fixed = l_mode == "fixed";
+	if (!l_fixed) {
+		std::cerr << "WARNING: legacy mode, the replies are never handled, as in the C# (see the README); \"fixed\" corrects it" << std::endl;
+	}
+
+	constexpr int l_no_workers = 5;
+	cam::Environment l_environment({.m_turns = 20,
+									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
+									.m_random = cam::RandomEngine::DotNet});
 
 	l_environment.add<ManagerAgent>("Manager");
-	for (int i = 1; i <= 5; i++) {
-		l_environment.add<WorkerAgent>("Worker" + std::to_string(i));
+	for (int i = 0; i < l_no_workers; i++) {
+		l_environment.add<WorkerAgent>("Worker" + std::to_string(i), l_fixed);
 	}
-	l_environment.start();
 
+	l_environment.start();
 	return 0;
 }

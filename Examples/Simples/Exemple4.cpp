@@ -16,48 +16,76 @@
  *                                                                        *
  **************************************************************************/
 
-#include <iostream>
+// Port of the C# example E00 Simple Examples/Agents4 (ActressMAS v3.1): five agents write three messages per turn to a
+// writer, then stop. Parallel, 5 turns, one second after each turn.
+// WARNING: the C# stops an agent at its fourth action and still sends three messages afterwards (X3); "legacy", the
+// default, keeps this bug, "fixed" stops without sending (D89). The writer prints the late messages it gets in the last
+// turn, so the C# prints 45 to 60 lines; "fixed" prints 45.
+// Arguments: [legacy|fixed].
 
+#include <iostream>
+#include <string>
+
+#include <DotNet.hpp>
 #include <Environment.h>
 
-class MyAgent : public cam::Agent {
-	protected:
+class MyAgent final : public cam::Agent {
+	private:
+		bool m_fixed;
 		int m_turn = 1;
 
 	public:
-		explicit MyAgent(const std::string& p_name) : Agent(p_name) {
-		}
+		MyAgent(const std::string& p_name, const bool p_fixed) :
+				Agent(p_name),
+				m_fixed(p_fixed) {}
 
 		void default_action() override {
 			if (m_turn > 3) {
 				stop();
-			} else {
-				for (int i = 1; i <= 3; i++) {
-					send_by_name("writer", {{"turn", m_turn}, {"index", i}, {"from", get_name()}});
+				if (m_fixed) {  // Fixed: a stopped agent sends nothing more
+					return;
 				}
-
-				m_turn++;
+				// Legacy: as the C#, the three messages below are still sent after the stop
 			}
+			for (int i = 1; i <= 3; i++) {
+				send_by_name("writer", "Agent " + get_name() + " turn " + std::to_string(m_turn) + " index " + std::to_string(i));
+			}
+			m_turn++;
 		}
 };
 
 class WriterAgent final : public cam::Agent {
 	public:
-		explicit WriterAgent(const std::string& p_name) : Agent(p_name) {
-		}
+		explicit WriterAgent(const std::string& p_name) : Agent(p_name) {}
 
 		void action(const cam::MessagePointer& p_message) override {
-			std::cout << "[" + get_name() + "]: has received " << p_message->to_string() << std::endl;
+			cam::dotnet::write_line(format(p_message));
 		}
 };
 
-int main() {
-	cam::Environment l_environment(5, cam::EnvironmentMasMode::Parallel, 1000);
+int main(int argc, char** argv) {
+	const std::string l_mode = argc > 1 ? argv[1] : "legacy";
+	if (l_mode != "legacy" && l_mode != "fixed") {
+		std::cerr << "usage: Exemple4 [legacy|fixed]" << std::endl;
+		return 2;
+	}
+	const bool l_fixed = l_mode == "fixed";
+	if (!l_fixed) {
+		std::cerr << "WARNING: legacy mode, the agents still send after stopping, as in the C# (see the README); \"fixed\" corrects it" << std::endl;
+	}
+
+	constexpr int l_no_agents = 5;
+	cam::Environment l_environment({.m_turns = 5,
+									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_delay_after_turn = 1000,
+									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
+									.m_random = cam::RandomEngine::DotNet});
 
 	l_environment.add<WriterAgent>("writer");
-	for (int i = 1; i <= 5; i++) {
-		l_environment.add<MyAgent>("a" + std::to_string(i));
+	for (int i = 1; i <= l_no_agents; i++) {
+		l_environment.add<MyAgent>("a" + std::to_string(i), l_fixed);
 	}
+
 	l_environment.start();
 	return 0;
 }

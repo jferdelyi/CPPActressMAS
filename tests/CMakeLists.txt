@@ -143,6 +143,22 @@ cam_add_iso(Exemple1 ORACLE Agents1)
 cam_add_iso(Exemple2 ORACLE Agents2)
 cam_add_iso(Exemple5 ORACLE Agents5)
 cam_add_iso(SendingObjects)
+cam_add_iso(Exemple3 ORACLE Agents3)
+# Agents4 and MultipleMessages keep a bug of the C# by default (legacy) and correct it with "fixed" (D89): sending after
+# Stop (X3), the reply never handled (X1)
+cam_add_iso(Exemple4 ORACLE Agents4)
+cam_add_iso(Exemple4 NAME Agents4.fixed ORACLE Agents4 fixed)
+cam_add_iso(MultipleMessages)
+if (TARGET Exemple4)
+	add_test(NAME example.Exemple4.fixed COMMAND Exemple4 fixed)
+	set_tests_properties(example.Exemple4.fixed PROPERTIES LABELS integration TIMEOUT 120
+		PASS_REGULAR_EXPRESSION "Agent a5 turn 3 index 3" FAIL_REGULAR_EXPRESSION "turn 4")
+endif()
+if (TARGET MultipleMessages)
+	add_test(NAME example.MultipleMessages.fixed COMMAND MultipleMessages fixed)
+	set_tests_properties(example.MultipleMessages.fixed PROPERTIES LABELS integration TIMEOUT 120
+		PASS_REGULAR_EXPRESSION "\\[Manager\\]: Worker[0-9] replying" FAIL_REGULAR_EXPRESSION "out of range|Exception")
+endif()
 # E02 keeps the design bugs of the C# by default (legacy) and corrects them with "fixed" (D89): the fires of the C# reach
 # none of them, so both modes match the same oracle; two fires side by side reach the empty plan, which stops the patrol
 # in legacy as in the C#, and no more in fixed (the fire on 3 is put out after the one on 4, no exception). The pattern

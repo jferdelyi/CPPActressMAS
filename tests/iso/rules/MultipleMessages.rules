@@ -1,0 +1,26 @@
+# E00 MultipleMessages: parallel, and each worker sends its request to another worker drawn at random, so names and
+# order vary; compared: who is started, who reports, the counts of requests and replies, one request per worker, and
+# the manager printing "reporting" right after each report. In legacy (X1, D89) the replies are never handled: no
+# "replying".
+cover all
+fact start ^\[Manager -> (Worker\d)\]: start$
+fact report ^\[(Worker\d) -> Manager\]: report$
+fact reporting ^\t\[Manager\]: (Worker\d) reporting$
+fact request ^\[(Worker\d) -> (Worker\d)\]: request$
+fact reply ^\[(Worker\d) -> (Worker\d)\]: reply$
+fact replying ^\t\[Manager\]: (Worker\d) replying$
+fact manager ^(?:\[Worker\d -> Manager\]: (report)|\t\[Manager\]: Worker\d (reporting))$
+optional replying
+same start bag
+same report bag
+same reporting bag
+same request count
+same reply count
+same manager seq
+check request count == 5
+check request distinct(0) == 5
+check reply count == 5
+check replying count == 0
+fact error (Exception|out of range)
+optional error
+check error count == 0

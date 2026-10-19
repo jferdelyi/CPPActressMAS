@@ -45,6 +45,7 @@ TEST_CASE("site_seed gives the seeds of the oracle shim") {
 			{"Program.cs:119", 0, 0, 510404372},
 			{"Program.cs:90", 0, 0, 932746367},
 			{"Program.cs:36", 0, 0, 787071105},
+			{"WorkerAgent.cs:9", 0, 0, 1092558013},
 			{"EnvironmentMas.cs:61", 0, 42, 197252999},
 			{"EnvironmentMas.cs:61", 1, 42, 1023968965},
 			{"Program.cs:119", 0, 42, 755820040},

@@ -1,0 +1,21 @@
+# E00 Agents3: parallel, so the agents interleave and the monitor may handle a "done" in the turn it is sent or in the
+# next one; compared: the lines of the monitor in order (three rounds of 4 sends and 4 "done"), the lines of each agent
+# in order, who is addressed, and the turn reports. The monitor addresses the agents in the order of the environment,
+# which differs from the C# (ISO e): names are compared as multisets.
+ignore ^$
+cover all
+fact monitor ^(?:monitor: start round (\d) in (setup|act)|-> (sending) to agent\d|\t\[agent\d -> monitor\]: (done))$
+fact agent ^\t\[monitor -> (agent\d)\]: (start|continue)$
+fact sendto ^-> sending to (agent\d)$
+fact done ^\t\[(agent\d) -> monitor\]: done$
+fact environment ^(Turn \d+ finished|Simulation finished)$
+same monitor seq
+same agent seq by 0
+same sendto bag
+same done bag
+same environment seq
+check monitor count == 27
+check agent count == 12
+fact error (Exception|out of range)
+optional error
+check error count == 0
