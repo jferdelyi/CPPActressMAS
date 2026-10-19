@@ -8,7 +8,7 @@
 #             builds stay there. ActressMas/ is cloned there if missing, then only read.
 #             Must live under $HOME or /private/tmp: plain /tmp is NOT shared with the VM (podman: "statfs ...: no such file").
 #   ACTION  : build | rng | trace | format | bench | e00 | probe | mono | shimcheck | oracles | all
-#             format   : FormatVectors (number formatting and parsing of .NET), for tests/vectors/dotnet/format.txt
+#             format   : FormatVectors (number formatting and parsing of .NET), for tests/iso/vectors/format.txt
 #             shimcheck: RngVectors through the seed shim, must equal ref/expected/rng-vectors.txt (D82)
 #             oracles  : runs every project of ref/Oracles (seed shim, CAM_SEED or 0) from its output folder into
 #                        WORKDIR/logs/oracles/<Name>.txt, the raw outputs to version in tests/iso/oracles/ (D82, D86)

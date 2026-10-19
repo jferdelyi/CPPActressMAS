@@ -17,7 +17,7 @@
  **************************************************************************/
 
 // Random order of the sequential modes (D82): with RandomEngine::DotNet an environment runs its agents in the order of
-// the C# turn by turn, against the traces of tests/vectors/rng/trace-order.txt (TraceOrder of tests/tools/csharp-ref, .NET 10);
+// the C# turn by turn, against the traces of tests/unit/vectors/rng/trace-order.txt (TraceOrder of tests/tools/csharp-ref, .NET 10);
 // with RandomEngine::Mt19937 the order of a seed is the same with every standard library. The environments are
 // sequential: the agents write into a plain log on the calling thread.
 

@@ -12,4 +12,4 @@ header (magic, codec id, version); a transport uses one codec, chosen by the URL
 | `envelope.proto` | Schema of the envelope (reference for the protobuf codec; not compiled by the project). |
 | `ContentCodec.{h,cpp}` | Encoding of a message content at the network boundary: once when it leaves the node, once when it arrives. |
 
-The binary vectors of each envelope codec are under `tests/vectors/envelope/<codec>/v1/`.
+The binary vectors of each envelope codec are under `tests/unit/vectors/envelope/<codec>/v1/`.

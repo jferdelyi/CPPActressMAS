@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Envelope codec tests: round trips, binary vectors pinned under tests/vectors/envelope/compact/v1
+// Envelope codec tests: round trips, binary vectors pinned under tests/unit/vectors/envelope/compact/v1
 // (one .bin and one .json per vector; the .json is the readable description, the .bin the bytes a
 // receiver must accept), and malformed input. CAM_WRITE_VECTORS=1 regenerates the vectors.
 

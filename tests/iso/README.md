@@ -11,11 +11,11 @@ library at its best; a harness program reproduces the C#, line for line.
 | `oracles/<Oracle>.txt` | Raw output of the C# original, with a `#cam` header (C# commit, runtime, command, seed, and what replaces original code: form stubs, bounded number of turns, a scenario patch), produced by `tests/tools/csharp-ref` in a container. The C++ tests never run .NET. |
 | `rules/<Oracle>.rules` | The facts of the output and how they are compared: exact sequence, multiset, order within a group, invariants (grammar at the top of `iso_check.cpp`). |
 | `iso_check.cpp` | The comparison tool: runs a program, extracts the facts of both outputs and compares them. |
-| `DotNet.hpp` | .NET behaviour the ports need: number formatting and parsing (`format_fixed` as `ToString("F2")`, `to_string` as `Double.ToString()`, `to_int32` as `Convert.ToInt32`, invariant culture), `write` and `write_line` (one piece per line, as `Console.WriteLine`), and the seeds of the oracles (`next_site_seed`). Checked by `unit.dotnet_format` and `unit.dotnet_site_seed` against vectors of the C#. |
-| `fixtures/` | Outputs that the tool must accept or refuse (`unit.iso_check.*`). |
+| `DotNet.hpp` | .NET behaviour the ports need: number formatting and parsing (`format_fixed` as `ToString("F2")`, `to_string` as `Double.ToString()`, `to_int32` as `Convert.ToInt32`, invariant culture), `write` and `write_line` (one piece per line, as `Console.WriteLine`), and the seeds of the oracles (`next_site_seed`). Checked by `iso.dotnet_format` and `iso.dotnet_site_seed` (`dotnet_format.cpp`, `dotnet_seed.cpp`) against vectors of the C# (`vectors/format.txt`). |
+| `fixtures/` | Outputs that the tool must accept or refuse (`iso.check.*`). |
 
 A program is registered with `cam_add_iso(<Project> [NAME <test>] [ORACLE <oracle>] [arguments])` in
-`tests/CMakeLists.txt`: the test `iso.<oracle>` (label `iso`) runs `iso_<Project>` from its folder, where its data files
+`tests/iso/CMakeLists.txt`: the test `iso.<oracle>` (label `iso`) runs `iso_<Project>` from its folder, where its data files
 are copied, with the arguments that match the oracle (the number of turns of an example that never stops, a scenario).
 
 **Comparison levels.**

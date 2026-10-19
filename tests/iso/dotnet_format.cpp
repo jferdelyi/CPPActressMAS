@@ -17,7 +17,7 @@
  **************************************************************************/
 
 // Number formatting and parsing of .NET for the harness programs (tests/iso/DotNet.hpp, D82): every case of
-// tests/vectors/dotnet/format.txt, produced by tests/tools/csharp-ref (FormatVectors, .NET 10), is computed again.
+// tests/iso/vectors/format.txt, produced by tests/tools/csharp-ref (FormatVectors, .NET 10), is computed again.
 
 #include <doctest/doctest.h>
 
@@ -66,7 +66,7 @@ namespace {
 	}
 
 	std::vector<std::string> lines(const char p_kind) {
-		std::ifstream l_file(std::string(CAM_VECTORS_DIR) + "/dotnet/format.txt");
+		std::ifstream l_file(std::string(CAM_VECTORS_DIR) + "/format.txt");
 		REQUIRE(l_file.good());
 		std::vector<std::string> l_lines;
 		for (std::string l_line; std::getline(l_file, l_line);) {

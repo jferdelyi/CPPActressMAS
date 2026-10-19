@@ -10,7 +10,7 @@
 
 # T10 (dependency, 2A, Linux): zenoh-c embeds the Rust runtime (zenoh, tokio), which is not instrumented
 # and synchronises through futex calls that ThreadSanitizer does not see, so every memcpy, write, recv or
-# free issued from that code looks unsynchronised (237 reports on zenoh.network under gcc, both accesses
+# free issued from that code looks unsynchronised (237 reports on network.zenoh under gcc, both accesses
 # inside the Rust code every time, none in CPPActressMAS). The shared library is linked on Linux so that
 # this entry ignores the interceptors called from it and nothing else: a race between two CPPActressMAS
 # frames stays visible (T9 was found that way). Ignoring the library also hides the thread creations it

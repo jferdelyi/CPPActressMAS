@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// ActressMAS wire codec tests against the bytes of the C# code: tests/vectors/envelope/actressmas/v1 holds
+// ActressMAS wire codec tests against the bytes of the C# code: tests/unit/vectors/envelope/actressmas/v1 holds
 // frames and BinaryFormatter streams captured from ActressMAS v3.1 under .NET 8 (and one Request Move Agent
 // under Mono), each with its decoded description. Every vector must decode to its description; the ones
 // without a null string must be written back byte for byte; malformed input is refused.

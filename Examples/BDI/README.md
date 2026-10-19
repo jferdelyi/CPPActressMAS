@@ -4,7 +4,7 @@ Port of the ActressMAS v3.1 example `E02 BDI Architecture`.
 
 | File | Executable | C# example | What it shows | Port |
 |---|---|---|---|---|
-| `BDI.cpp` | `BDI` | E02 BDI Architecture | A patrol walks along a terrain of 15 cells and puts out the fires that start on it, with water taken from the left end. The patrol is a BDI agent: beliefs revised from its percepts, desires, one intention, and a plan sent to the terrain one action at a time. Two agents in a fixed sequential order, the size of the terrain in the global data of the environment. | complete, same behaviour as the C# (`legacy`): tests `iso.BDI` and `iso.BDIAdjacent`; `fixed`: `iso.BDI.fixed`, `example.BDI.fixed_adjacent` |
+| `BDI.cpp` | `BDI` | E02 BDI Architecture | A patrol walks along a terrain of 15 cells and puts out the fires that start on it, with water taken from the left end. The patrol is a BDI agent: beliefs revised from its percepts, desires, one intention, and a plan sent to the terrain one action at a time. Two agents in a fixed sequential order, the size of the terrain in the global data of the environment. | complete, same behaviour as the C# (`legacy`): tests `iso.BDI` and `iso.BDIAdjacent`; `fixed`: `examples.BDI.fixed.oracle`, `examples.BDI.fixed_adjacent` |
 
 The C# draws the terrain in a form. This port prints instead, each time the form would be refreshed, the line
 `GUI pos=<patrol position> <cells>`: `.` normal, `F` fire, `W` water, `w` water being drawn.

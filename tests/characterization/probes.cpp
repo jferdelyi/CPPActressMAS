@@ -21,7 +21,7 @@
 // Each probe reproduces a known defect of the core (IDs from docs/port/00-analyse-initiale.md) whose
 // symptom is a crash, undefined behaviour or a data race, so it never runs inside the test process:
 // CTest launches one process per probe (cam_probes <name>) and the expected failure is the sanitizer
-// signature (tests/CMakeLists.txt, PASS_REGULAR_EXPRESSION). A probe that runs to completion prints
+// signature (tests/characterization/CMakeLists.txt, PASS_REGULAR_EXPRESSION). A probe that runs to completion prints
 // "OK no crash". Memory probes have a verdict under ASan + UBSan only, race probes under TSan only.
 // Defects whose symptom is a wrong value are doctest cases in known_defects.cpp.
 //

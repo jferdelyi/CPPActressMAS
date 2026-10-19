@@ -10,5 +10,5 @@ Built when `CAM_TRANSPORT_ZENOH=ON` (OFF by default). URL: `zenoh://host:port/na
 
 ## Notes
 - **Install**: zenoh-c and zenoh-cpp 1.7.1 from their release archives (see `docs/WINDOWS.md` for Windows).
-- **Tests**: `zenoh.network` opens TCP sockets on 127.0.0.1, no multicast.
+- **Tests**: `network.zenoh` opens TCP sockets on 127.0.0.1, no multicast.
 - **Dependencies**: zenoh-c and zenoh-cpp (EPL-2.0 or Apache-2.0).

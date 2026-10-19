@@ -7,9 +7,9 @@ Ports of the ActressMAS v3.1 `E00` examples.
 | `Exemple1.cpp` | `Exemple1` | E00/Agents1 | Two agents send ten messages each to a monitor during their setup, with random pauses. | complete, same behaviour as the C#: test `iso.Agents1` (parallel: invariants) |
 | `Exemple2.cpp` | `Exemple2` | E00/Agents2 | Two agents exchanging messages between `setup` and `action`, in a random order at each turn. | complete, same behaviour as the C#: test `iso.Agents2` (exact trace) |
 | `Exemple3.cpp` | `Exemple3` | E00/Agents3 | A monitor that runs three start/done rounds with four agents; the environment reports each turn. | complete, same behaviour as the C#: test `iso.Agents3` (parallel: invariants); the monitor addresses the agents in the order of insertion, the C# in the order of its dictionary |
-| `Exemple4.cpp` | `Exemple4` | E00/Agents4 | Five agents write three messages per turn to a writer, then stop. | complete, same behaviour as the C# in `legacy`: tests `iso.Agents4`, `iso.Agents4.fixed`, `example.Exemple4.fixed` |
+| `Exemple4.cpp` | `Exemple4` | E00/Agents4 | Five agents write three messages per turn to a writer, then stop. | complete, same behaviour as the C# in `legacy`: tests `iso.Agents4`, `examples.Exemple4.fixed.oracle`, `examples.Exemple4.fixed` |
 | `Exemple5.cpp` | `Exemple5` | E00/Agents5 | Long setups, then actions; an agent stops as soon as its mailbox is empty. | complete, same behaviour as the C#: test `iso.Agents5` (parallel: invariants) |
-| `MultipleMessages.cpp` | `MultipleMessages` | E00/MultipleMessages | A manager and five workers with crossed requests to workers drawn at random. | complete, same behaviour as the C# in `legacy`: tests `iso.MultipleMessages`, `example.MultipleMessages.fixed` |
+| `MultipleMessages.cpp` | `MultipleMessages` | E00/MultipleMessages | A manager and five workers with crossed requests to workers drawn at random. | complete, same behaviour as the C# in `legacy`: tests `iso.MultipleMessages`, `examples.MultipleMessages.fixed` |
 | `SendingObjects.cpp` | `SendingObjects` | E00/SendingObjects | Objects carried by messages: sent as JSON objects, read back with `as_json`. | complete, same behaviour as the C#: test `iso.SendingObjects` (parallel: invariants) |
 
 The ports print the texts of the C# (`Agent::format` for the messages) and use the names of its agents. The parallel

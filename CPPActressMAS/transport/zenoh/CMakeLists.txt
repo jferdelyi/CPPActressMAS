@@ -4,7 +4,7 @@
 # library is linked: the shared one installed here has a broken install name (ENV.md), and a static link keeps
 # the executables self-contained. Elsewhere the shared library is preferred when the package provides it:
 # ThreadSanitizer then sees the Rust runtime as a module of its own and ignores the synchronisation it cannot
-# instrument (tests/tsan/suppressions.txt, T10). Their include directories are imported ones, treated as
+# instrument (tests/support/tsan_suppressions.txt, T10). Their include directories are imported ones, treated as
 # system headers.
 
 find_package(zenohc 1.7.1 EXACT QUIET)

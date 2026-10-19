@@ -4,7 +4,7 @@
 // codec major version, reserved) followed by one Envelope message in the proto3 wire format. The project
 // does not compile this file: its codec writes and reads the wire format directly (no libprotobuf), and
 // this file is what another implementation (prost, nanopb, protoc) uses to speak to it. The binary
-// vectors of tests/vectors/envelope/protobuf/v1/ were checked against protoc.
+// vectors of tests/unit/vectors/envelope/protobuf/v1/ were checked against protoc.
 //
 // Field numbers never change; new fields take new numbers; unknown fields are ignored.
 

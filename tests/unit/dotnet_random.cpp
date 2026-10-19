@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Generator compatible with the seeded System.Random of .NET (D82): every series of tests/vectors/rng/rng-vectors.txt,
+// Generator compatible with the seeded System.Random of .NET (D82): every series of tests/unit/vectors/rng/rng-vectors.txt,
 // produced by tests/tools/csharp-ref (RngVectors, .NET 10), is drawn again and compared value by value.
 
 #include <doctest/doctest.h>
