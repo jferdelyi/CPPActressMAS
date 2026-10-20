@@ -1,0 +1,929 @@
+#cam oracle Reactive
+#cam csharp ActressMas eb0bb73, Examples/E01 Reactive Architecture/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam stub PlanetForm.cs (form replaced, prints its state)
+#cam patch Program.cs: s/new EnvironmentMas(delayAfterTurn: 100);/new EnvironmentMas(noTurns: 100, delayAfterTurn: 100);/
+#cam command cd Oracles/Reactive/bin/Release/net10.0 && dotnet Reactive.dll
+#cam seed 0
+Starting explorer5
+Starting explorer4
+Starting explorer3
+Starting explorer2
+Starting planet
+Starting explorer1
+	[explorer4 -> planet]: position 6 0
+	[explorer2 -> planet]: position 3 10
+	[explorer3 -> planet]: position 1 3
+	[explorer5 -> planet]: position 4 10
+	[explorer1 -> planet]: position 8 4
+	[planet -> explorer4]: move
+	[planet -> explorer5]: move
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[explorer4 -> planet]: change 7 0
+	[explorer1 -> planet]: change 8 5
+	[explorer3 -> planet]: change 1 2
+	[explorer2 -> planet]: change 3 10
+	[explorer5 -> planet]: change 5 10
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer5 -> planet]: change 4 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[explorer4 -> planet]: change 6 0
+	[explorer3 -> planet]: change 1 3
+	[explorer2 -> planet]: change 3 9
+	[explorer1 -> planet]: change 8 6
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer5 -> planet]: change 4 10
+	[explorer4 -> planet]: change 6 0
+	[planet -> explorer1]: move
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer1 -> planet]: change 9 6
+	[explorer3 -> planet]: change 1 2
+	[explorer2 -> planet]: change 3 8
+	[explorer5 -> planet]: change 3 10
+	[explorer4 -> planet]: change 5 0
+	[planet -> explorer3]: move
+	[planet -> explorer2]: rock res8
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 1 3
+	[explorer2 -> planet]: pick-up res8
+	[planet -> explorer3]: move
+	[explorer1 -> planet]: change 9 5
+	[explorer5 -> planet]: change 2 10
+	[explorer4 -> planet]: change 5 0
+	[explorer3 -> planet]: change 1 2
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer5 -> planet]: change 1 10
+	[explorer4 -> planet]: change 5 0
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 0 2
+	[explorer1 -> planet]: change 9 4
+	[explorer2 -> planet]: carry 3 7
+	[explorer5 -> planet]: change 0 10
+	[explorer4 -> planet]: change 5 1
+	[planet -> explorer5]: move
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer4]: move
+	[explorer5 -> planet]: change 0 9
+	[explorer2 -> planet]: carry 3 6
+	[explorer3 -> planet]: change 0 3
+	[explorer1 -> planet]: change 9 3
+	[explorer4 -> planet]: change 5 2
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 0 4
+	[explorer2 -> planet]: carry 4 6
+	[explorer1 -> planet]: change 10 3
+	[planet -> explorer3]: move
+	[explorer4 -> planet]: change 5 3
+	[explorer5 -> planet]: change 0 10
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[explorer3 -> planet]: change 0 4
+	[explorer2 -> planet]: carry 4 5
+	[explorer1 -> planet]: change 10 4
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer5 -> planet]: change 0 9
+	[explorer4 -> planet]: change 4 3
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: rock res6
+	[explorer3 -> planet]: change 0 5
+	[explorer2 -> planet]: carry 5 5
+	[explorer1 -> planet]: change 9 4
+	[explorer5 -> planet]: change 0 8
+	[explorer4 -> planet]: pick-up res6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 1 5
+	[explorer2 -> planet]: unload res8
+	[explorer1 -> planet]: change 9 3
+	[planet -> explorer2]: move
+	[explorer5 -> planet]: change 0 7
+	[explorer4 -> planet]: carry 4 4
+	[explorer2 -> planet]: change 4 5
+	[planet -> explorer1]: move
+	[planet -> explorer3]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer1 -> planet]: change 9 4
+	[explorer3 -> planet]: change 2 5
+	[explorer5 -> planet]: change 0 6
+	[explorer4 -> planet]: carry 4 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 2 6
+	[explorer2 -> planet]: change 3 5
+	[explorer1 -> planet]: change 9 5
+	[explorer5 -> planet]: change 0 5
+	[explorer4 -> planet]: carry 5 5
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer5 -> planet]: change 0 6
+	[explorer4 -> planet]: unload res6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 2 5
+	[explorer2 -> planet]: change 3 6
+	[explorer1 -> planet]: change 9 6
+	[explorer5 -> planet]: change 0 5
+	[explorer4 -> planet]: change 5 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 2 6
+	[explorer2 -> planet]: change 4 6
+	[explorer1 -> planet]: change 8 6
+	[explorer5 -> planet]: change 0 6
+	[explorer4 -> planet]: change 6 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 1 6
+	[explorer2 -> planet]: change 4 7
+	[explorer1 -> planet]: change 8 7
+	[explorer5 -> planet]: change 0 7
+	[explorer4 -> planet]: change 6 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: rock res9
+	[explorer3 -> planet]: change 0 6
+	[explorer2 -> planet]: change 3 7
+	[explorer1 -> planet]: change 9 7
+	[explorer5 -> planet]: change 1 7
+	[explorer4 -> planet]: pick-up res9
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 1 6
+	[explorer2 -> planet]: change 4 7
+	[explorer1 -> planet]: change 8 7
+	[explorer5 -> planet]: change 1 6
+	[explorer4 -> planet]: carry 5 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: block
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 0 6
+	[explorer2 -> planet]: change 5 7
+	[explorer1 -> planet]: change 8 6
+	[explorer5 -> planet]: change 2 6
+	[explorer4 -> planet]: unload res9
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 1 6
+	[explorer2 -> planet]: change 4 7
+	[explorer1 -> planet]: change 8 7
+	[explorer5 -> planet]: change 3 6
+	[explorer4 -> planet]: change 5 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 2 6
+	[explorer2 -> planet]: change 4 6
+	[explorer1 -> planet]: change 7 7
+	[explorer5 -> planet]: change 2 6
+	[explorer4 -> planet]: change 4 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: block
+	[planet -> explorer4]: block
+	[explorer3 -> planet]: change 3 6
+	[explorer2 -> planet]: change 4 7
+	[explorer1 -> planet]: change 8 7
+	[explorer5 -> planet]: change 2 5
+	[explorer4 -> planet]: change 3 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: block
+	[explorer3 -> planet]: change 3 5
+	[explorer2 -> planet]: change 3 7
+	[explorer1 -> planet]: change 8 6
+	[explorer5 -> planet]: change 2 6
+	[explorer4 -> planet]: change 2 6
+	[planet -> explorer5]: move
+	[planet -> explorer4]: block
+	[explorer5 -> planet]: change 1 6
+	[explorer4 -> planet]: change 2 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 3 4
+	[explorer2 -> planet]: change 3 8
+	[explorer1 -> planet]: change 8 7
+	[explorer5 -> planet]: change 2 6
+	[explorer4 -> planet]: change 3 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 4 4
+	[explorer2 -> planet]: change 3 7
+	[explorer1 -> planet]: change 7 7
+	[explorer5 -> planet]: change 2 7
+	[explorer4 -> planet]: change 4 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[explorer3 -> planet]: change 3 4
+	[explorer2 -> planet]: change 4 7
+	[explorer1 -> planet]: change 7 8
+	[explorer5 -> planet]: change 1 7
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 3 5
+	[explorer2 -> planet]: change 3 7
+	[explorer1 -> planet]: change 6 8
+	[explorer4 -> planet]: change 5 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: rock res6
+	[explorer3 -> planet]: change 4 5
+	[explorer2 -> planet]: change 3 8
+	[explorer1 -> planet]: change 6 7
+	[explorer5 -> planet]: change 1 8
+	[explorer4 -> planet]: pick-up res6
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer5 -> planet]: change 1 9
+	[explorer4 -> planet]: unload res6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: rock res10
+	[planet -> explorer5]: rock res1
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 4 4
+	[explorer2 -> planet]: change 2 8
+	[explorer1 -> planet]: pick-up res10
+	[explorer5 -> planet]: pick-up res1
+	[explorer4 -> planet]: change 5 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 4
+	[explorer2 -> planet]: change 3 8
+	[explorer1 -> planet]: carry 6 6
+	[explorer5 -> planet]: carry 1 8
+	[explorer4 -> planet]: change 5 3
+	[planet -> explorer3]: block
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 4
+	[explorer2 -> planet]: change 4 8
+	[explorer1 -> planet]: carry 6 5
+	[explorer5 -> planet]: carry 2 8
+	[explorer4 -> planet]: change 6 3
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 7 4
+	[explorer2 -> planet]: change 4 9
+	[explorer1 -> planet]: carry 5 5
+	[explorer5 -> planet]: carry 2 7
+	[explorer4 -> planet]: change 7 3
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 4
+	[explorer2 -> planet]: change 5 9
+	[explorer1 -> planet]: unload res10
+	[explorer5 -> planet]: carry 3 7
+	[explorer4 -> planet]: change 7 2
+	[planet -> explorer3]: move
+	[planet -> explorer2]: rock res4
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[explorer3 -> planet]: change 5 4
+	[explorer2 -> planet]: pick-up res4
+	[explorer1 -> planet]: change 6 5
+	[explorer5 -> planet]: carry 3 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer4]: move
+	[planet -> explorer5]: move
+	[explorer3 -> planet]: change 5 3
+	[explorer2 -> planet]: carry 5 8
+	[explorer1 -> planet]: change 6 6
+	[explorer4 -> planet]: change 8 2
+	[explorer5 -> planet]: carry 4 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: rock res7
+	[explorer3 -> planet]: change 5 4
+	[explorer2 -> planet]: carry 5 7
+	[explorer1 -> planet]: change 6 5
+	[explorer5 -> planet]: carry 4 5
+	[explorer4 -> planet]: pick-up res7
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 5
+	[explorer2 -> planet]: carry 5 6
+	[explorer1 -> planet]: change 6 4
+	[explorer5 -> planet]: carry 5 5
+	[explorer4 -> planet]: carry 8 3
+	[planet -> explorer3]: rock res6
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: pick-up res6
+	[explorer2 -> planet]: carry 5 5
+	[explorer1 -> planet]: change 6 5
+	[explorer5 -> planet]: unload res1
+	[explorer4 -> planet]: carry 7 3
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: unload res6
+	[explorer2 -> planet]: unload res4
+	[explorer1 -> planet]: change 6 4
+	[explorer5 -> planet]: change 5 6
+	[explorer4 -> planet]: carry 7 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 5
+	[explorer2 -> planet]: change 6 5
+	[explorer1 -> planet]: change 6 3
+	[explorer5 -> planet]: change 6 6
+	[explorer4 -> planet]: carry 6 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: block
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 5
+	[explorer2 -> planet]: change 6 6
+	[explorer1 -> planet]: change 6 4
+	[explorer5 -> planet]: change 7 6
+	[explorer4 -> planet]: carry 6 5
+	[planet -> explorer3]: rock res1
+	[planet -> explorer2]: block
+	[planet -> explorer1]: block
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: pick-up res1
+	[explorer2 -> planet]: change 7 6
+	[explorer1 -> planet]: change 6 3
+	[explorer5 -> planet]: change 7 7
+	[explorer4 -> planet]: carry 5 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: block
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: unload res1
+	[explorer2 -> planet]: change 6 6
+	[explorer1 -> planet]: change 7 3
+	[explorer5 -> planet]: change 8 7
+	[explorer4 -> planet]: unload res7
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 6
+	[explorer2 -> planet]: change 6 7
+	[explorer1 -> planet]: change 6 3
+	[explorer5 -> planet]: change 7 7
+	[explorer4 -> planet]: change 5 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 7
+	[explorer2 -> planet]: change 6 6
+	[explorer1 -> planet]: change 6 2
+	[explorer5 -> planet]: change 8 7
+	[explorer4 -> planet]: change 6 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 4 7
+	[explorer2 -> planet]: change 5 6
+	[explorer1 -> planet]: change 6 3
+	[explorer5 -> planet]: change 8 6
+	[explorer4 -> planet]: change 6 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 4 8
+	[explorer2 -> planet]: change 6 6
+	[explorer1 -> planet]: change 6 4
+	[explorer5 -> planet]: change 9 6
+	[explorer4 -> planet]: change 6 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: block
+	[explorer3 -> planet]: change 4 7
+	[explorer2 -> planet]: change 6 7
+	[explorer1 -> planet]: change 6 5
+	[explorer5 -> planet]: change 9 5
+	[explorer4 -> planet]: change 5 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 4 6
+	[explorer2 -> planet]: change 6 6
+	[explorer1 -> planet]: change 5 5
+	[explorer5 -> planet]: change 8 5
+	[explorer4 -> planet]: change 4 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: rock res1
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 6
+	[explorer2 -> planet]: change 7 6
+	[explorer1 -> planet]: pick-up res1
+	[explorer5 -> planet]: change 9 5
+	[explorer4 -> planet]: change 5 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 7
+	[explorer2 -> planet]: change 6 6
+	[explorer1 -> planet]: unload res1
+	[explorer5 -> planet]: change 9 4
+	[explorer4 -> planet]: change 5 3
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 6
+	[explorer2 -> planet]: change 5 6
+	[explorer1 -> planet]: change 5 6
+	[explorer4 -> planet]: change 6 3
+	[planet -> explorer3]: move
+	[planet -> explorer2]: block
+	[planet -> explorer1]: block
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 7
+	[explorer2 -> planet]: change 4 6
+	[explorer1 -> planet]: change 5 5
+	[explorer5 -> planet]: change 8 4
+	[explorer4 -> planet]: change 7 3
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer5 -> planet]: change 9 4
+	[explorer4 -> planet]: change 7 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: rock res1
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 7
+	[explorer2 -> planet]: change 4 7
+	[explorer1 -> planet]: pick-up res1
+	[explorer5 -> planet]: change 9 3
+	[explorer4 -> planet]: change 7 3
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 7 7
+	[explorer2 -> planet]: change 4 8
+	[explorer1 -> planet]: unload res1
+	[explorer5 -> planet]: change 10 3
+	[explorer4 -> planet]: change 7 4
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 7
+	[explorer2 -> planet]: change 3 8
+	[explorer1 -> planet]: change 6 5
+	[explorer5 -> planet]: change 9 3
+	[explorer4 -> planet]: change 7 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 6
+	[explorer2 -> planet]: change 4 8
+	[explorer1 -> planet]: change 6 6
+	[explorer5 -> planet]: change 9 4
+	[explorer4 -> planet]: change 7 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: block
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 7 6
+	[explorer2 -> planet]: change 4 7
+	[explorer1 -> planet]: change 6 7
+	[explorer5 -> planet]: change 8 4
+	[explorer4 -> planet]: change 7 5
+	[planet -> explorer3]: block
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 8 6
+	[explorer2 -> planet]: change 3 7
+	[explorer1 -> planet]: change 6 8
+	[explorer5 -> planet]: change 9 4
+	[explorer4 -> planet]: change 6 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 8 7
+	[explorer2 -> planet]: change 2 7
+	[explorer1 -> planet]: change 6 9
+	[explorer5 -> planet]: change 10 4
+	[explorer4 -> planet]: change 5 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: rock res1
+	[explorer3 -> planet]: change 7 7
+	[explorer2 -> planet]: change 2 6
+	[explorer1 -> planet]: change 7 9
+	[explorer5 -> planet]: change 10 5
+	[explorer4 -> planet]: pick-up res1
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 7 8
+	[explorer2 -> planet]: change 2 7
+	[explorer1 -> planet]: change 7 8
+	[explorer5 -> planet]: change 10 5
+	[explorer4 -> planet]: unload res1
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: block
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 8
+	[explorer2 -> planet]: change 2 6
+	[explorer1 -> planet]: change 8 8
+	[explorer5 -> planet]: change 9 5
+	[explorer4 -> planet]: change 4 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 8
+	[explorer2 -> planet]: change 2 7
+	[explorer1 -> planet]: change 9 8
+	[explorer5 -> planet]: change 8 5
+	[explorer4 -> planet]: change 4 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 4 8
+	[explorer2 -> planet]: change 2 8
+	[explorer1 -> planet]: change 9 7
+	[explorer5 -> planet]: change 7 5
+	[explorer4 -> planet]: change 5 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 8
+	[explorer2 -> planet]: change 3 8
+	[explorer1 -> planet]: change 10 7
+	[explorer5 -> planet]: change 7 4
+	[explorer4 -> planet]: change 6 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 8
+	[explorer2 -> planet]: change 2 8
+	[explorer1 -> planet]: change 9 7
+	[explorer5 -> planet]: change 6 4
+	[explorer4 -> planet]: change 5 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 9
+	[explorer2 -> planet]: change 2 7
+	[explorer1 -> planet]: change 8 7
+	[explorer5 -> planet]: change 5 4
+	[explorer4 -> planet]: change 4 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 9
+	[explorer2 -> planet]: change 2 8
+	[explorer1 -> planet]: change 8 8
+	[explorer5 -> planet]: change 6 4
+	[explorer4 -> planet]: change 4 7
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 8
+	[explorer2 -> planet]: change 3 8
+	[explorer1 -> planet]: change 7 8
+	[explorer5 -> planet]: change 5 4
+	[explorer4 -> planet]: change 4 8
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 7
+	[explorer2 -> planet]: change 3 7
+	[explorer1 -> planet]: change 7 7
+	[explorer5 -> planet]: change 4 4
+	[explorer4 -> planet]: change 4 9
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 7
+	[explorer2 -> planet]: change 3 6
+	[explorer1 -> planet]: change 6 7
+	[explorer5 -> planet]: change 5 4
+	[explorer4 -> planet]: change 4 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: block
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 6
+	[explorer2 -> planet]: change 4 6
+	[explorer1 -> planet]: change 7 7
+	[explorer5 -> planet]: change 4 4
+	[explorer4 -> planet]: change 3 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 6
+	[explorer2 -> planet]: change 5 6
+	[explorer1 -> planet]: change 6 7
+	[explorer5 -> planet]: change 3 4
+	[explorer4 -> planet]: change 2 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: block
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 6
+	[explorer2 -> planet]: change 5 5
+	[explorer1 -> planet]: change 7 7
+	[explorer5 -> planet]: change 2 4
+	[explorer4 -> planet]: change 2 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: rock res1
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 6
+	[explorer2 -> planet]: pick-up res1
+	[explorer1 -> planet]: change 6 7
+	[explorer5 -> planet]: change 3 4
+	[explorer4 -> planet]: change 3 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 5
+	[explorer2 -> planet]: unload res1
+	[explorer1 -> planet]: change 6 8
+	[explorer5 -> planet]: change 2 4
+	[explorer4 -> planet]: change 2 10
+	[planet -> explorer3]: block
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 6
+	[explorer2 -> planet]: change 5 6
+	[explorer1 -> planet]: change 6 7
+	[explorer5 -> planet]: change 3 4
+	[explorer4 -> planet]: change 2 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: block
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 6 6
+	[explorer2 -> planet]: change 5 5
+	[explorer1 -> planet]: change 7 7
+	[explorer5 -> planet]: change 3 3
+	[explorer4 -> planet]: change 2 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: rock res1
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 6
+	[explorer2 -> planet]: pick-up res1
+	[explorer1 -> planet]: change 7 6
+	[explorer5 -> planet]: change 3 2
+	[explorer4 -> planet]: change 2 9
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 7
+	[explorer2 -> planet]: unload res1
+	[explorer1 -> planet]: change 6 6
+	[explorer5 -> planet]: change 3 1
+	[explorer4 -> planet]: change 1 9
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 4 7
+	[explorer2 -> planet]: change 4 5
+	[explorer1 -> planet]: change 5 6
+	[explorer5 -> planet]: change 4 1
+	[explorer4 -> planet]: change 1 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 5 7
+	[explorer2 -> planet]: change 4 4
+	[explorer1 -> planet]: change 6 6
+	[explorer5 -> planet]: change 4 0
+	[explorer4 -> planet]: change 2 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 4 7
+	[explorer2 -> planet]: change 4 3
+	[explorer1 -> planet]: change 6 5
+	[explorer5 -> planet]: change 3 0
+	[explorer4 -> planet]: change 3 10
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 3 7
+	[explorer2 -> planet]: change 5 3
+	[explorer1 -> planet]: change 5 5
+	[explorer5 -> planet]: change 4 0
+	[explorer4 -> planet]: change 3 9
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: rock res1
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 3 6
+	[explorer2 -> planet]: change 5 4
+	[explorer1 -> planet]: pick-up res1
+	[explorer5 -> planet]: change 5 0
+	[explorer4 -> planet]: change 3 8
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 3 7
+	[explorer2 -> planet]: change 5 5
+	[explorer1 -> planet]: unload res1
+	[explorer5 -> planet]: change 4 0
+	[explorer4 -> planet]: change 4 8
+	[planet -> explorer3]: move
+	[planet -> explorer2]: block
+	[planet -> explorer1]: move
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 2 7
+	[explorer2 -> planet]: change 6 5
+	[explorer1 -> planet]: change 6 5
+	[explorer5 -> planet]: change 3 0
+	[explorer4 -> planet]: change 4 7
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: block
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 2 6
+	[explorer2 -> planet]: change 6 6
+	[explorer1 -> planet]: change 6 6
+	[explorer5 -> planet]: change 2 0
+	[explorer4 -> planet]: change 4 6
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: block
+	[planet -> explorer5]: move
+	[planet -> explorer4]: move
+	[explorer3 -> planet]: change 1 6
+	[explorer2 -> planet]: change 5 6
+	[explorer1 -> planet]: change 6 7
+	[explorer5 -> planet]: change 2 0
+	[explorer4 -> planet]: change 4 5
+	[planet -> explorer3]: move
+	[planet -> explorer2]: move
+	[planet -> explorer1]: move

@@ -1,0 +1,24 @@
+# E01 Reactive Architecture: parallel, 100 turns (the oracle bounds the turns, the example never stops); the explorers
+# draw their moves from one generator in any order, and a message sent during a turn is read in that turn only if its
+# receiver has not acted yet: how many exchanges fit in 100 turns depends on the scheduling, in the C# as in the C++.
+# Compared: who starts, the five first positions, the vocabulary of the protocol (cover all), and its order: a sample
+# is picked up only after the planet told the explorer of it, and unloaded only after it was picked up.
+cover all
+fact start ^Starting (planet|explorer\d)$
+fact position ^\t\[(explorer\d) -> planet\]: position (\d+) (\d+)$
+fact change ^\t\[(explorer\d) -> planet\]: change (\d+) (\d+)$
+fact carry ^\t\[(explorer\d) -> planet\]: carry (\d+) (\d+)$
+fact pickup ^\t\[(explorer\d) -> planet\]: pick-up (res\d+)$
+fact unload ^\t\[(explorer\d) -> planet\]: unload (res\d+)$
+fact move ^\t\[planet -> (explorer\d)\]: move$
+fact block ^\t\[planet -> (explorer\d)\]: block$
+fact rock ^\t\[planet -> (explorer\d)\]: rock (res\d+)$
+optional block
+same start bag
+same position count
+check position count == 5
+check position distinct(0) == 5
+check pickup count <= rock.count
+check unload count <= pickup.count
+check move count >= 50
+check pickup distinct(1) <= 10

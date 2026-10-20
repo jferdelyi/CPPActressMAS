@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E11 Predator-Prey, GUI version, see ../Oracle.props: the form and the program that shows
+       it are replaced by Stubs/MainForm.cs, which runs at once what the "Run MAS" button runs and whose controls print
+       what they would show. -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E11 Predator-Prey/PredatorPreyGui/</OracleSources>
+    <OracleExcludes>$(OracleSources)MainForm.cs;$(OracleSources)MainForm.Designer.cs;$(OracleSources)Program.cs</OracleExcludes>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

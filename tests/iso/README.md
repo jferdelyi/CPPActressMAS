@@ -20,7 +20,8 @@ are copied, with the arguments that match the oracle (the number of turns of an 
 
 **Comparison levels.**
 - **Exact trace**, for a sequential example: every line in order (`Agents2`, `ColorGame`, `NumberGame`, `MechanismDesign`, `PrisonerDilemma`, `BDI`, `GameOfLife`, `Zeuthen`, `Voting`, `EnglishWithBroadcast`, `LrtaStar`).
-- **Invariants**, for a parallel one: what does not depend on the interleaving, such as the lines of each agent in order, multisets, counts, sums and turn barriers (`Agents1`, `Agents3`, `Agents4`, `Agents5`, `MultipleMessages`, `SendingObjects`, `PingPong`, `Skynet`, `FictitiousPlay`, `ReplicatorDynamics`, `EnglishWithoutBroadcast`, `Vickrey`, `YellowPages`, `Shapley`, `ContractNet`), or an example that prints only a result (`SkynetNumeric`, its sum).
+- **Invariants**, for a parallel one: what does not depend on the interleaving, such as the lines of each agent in order, multisets, counts, sums and turn barriers (`Agents1`, `Agents3`, `Agents4`, `Agents5`, `MultipleMessages`, `SendingObjects`, `PingPong`, `Skynet`, `FictitiousPlay`, `ReplicatorDynamics`, `EnglishWithoutBroadcast`, `Vickrey`, `YellowPages`, `Shapley`, `ContractNet`, `Reactive`), or an example that prints only a result (`SkynetNumeric`, its sum).
+- **Exact beginning, then invariants**, for a sequential example in a random order whose C# order changes once agents leave (the C# `Dictionary` reuses their places): the first turns line by line, then counts and bounds (`PredatorPrey`, `PredatorPreyGui`; `same ... first N` compares the first tuples only).
 
 **Durations are never compared.** A run of the C# and a run of the C++ take different times: a rule checks only that a
 duration is printed, and in what form (for instance `fact duration ^\d+\.000 ms$` and `same duration count`), never its

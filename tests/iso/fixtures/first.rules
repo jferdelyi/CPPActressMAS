@@ -1,0 +1,3 @@
+# Fixture of iso_check: only the first two messages compared, in order
+fact msg \[(\w+) -> (\w+)\]: (.*)
+same msg seq first 2

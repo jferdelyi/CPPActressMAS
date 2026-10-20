@@ -26,9 +26,10 @@
 // with "#cam" are its header. A rules file holds one rule per line ('#' starts a comment):
 //   fact NAME REGEX             each line matching REGEX (searched) gives a tuple: its groups, or the whole match
 //   section REGEX               a line matching REGEX starts a new section; every tuple then begins with its section
-//   same NAME bag|seq|set|count [by C,C...] [num C TOL]
+//   same NAME bag|seq|set|count [by C,C...] [num C TOL] [first N]
 //                               compares the tuples of NAME with the oracle: multiset, order (only within each group of
-//                               the "by" columns), set or number; "num" compares column C as numbers within TOL
+//                               the "by" columns), set or number; "num" compares column C as numbers within TOL; "first"
+//                               keeps only the first N tuples of each output
 //   check NAME AGG [by C,C...] OP VALUE
 //                               invariant on both outputs: AGG is count, sum(C), min(C), max(C) or distinct(C); OP is
 //                               ==, !=, <, <=, >, >= or in; VALUE is a number, [low,high] or OTHER.AGG
@@ -77,6 +78,7 @@ namespace {
 		std::vector<std::size_t> m_by;
 		int m_numeric_column = -1;
 		double m_tolerance = 0;
+		std::size_t m_first = 0;
 	};
 
 	struct Check {
@@ -195,6 +197,10 @@ namespace {
 						l_same.m_by = columns(l_word);
 					} else if (l_word == "num") {
 						l_stream >> l_same.m_numeric_column >> l_same.m_tolerance;
+					} else if (l_word == "first") {
+						if (!(l_stream >> l_same.m_first) || l_same.m_first == 0) {
+							throw UsageError("\"first\" needs a positive number in: " + l_line);
+						}
 					} else {
 						throw UsageError("unexpected \"" + l_word + "\" in: " + l_line);
 					}
@@ -314,6 +320,11 @@ namespace {
 	}
 
 	std::string compare(const Same& p_same, std::vector<Tuple> p_expected, std::vector<Tuple> p_actual) {
+		if (p_same.m_first > 0) {
+			// Only the first tuples of each output, in their order
+			p_expected.resize(std::min(p_expected.size(), p_same.m_first));
+			p_actual.resize(std::min(p_actual.size(), p_same.m_first));
+		}
 		if (p_same.m_mode == "count") {
 			return p_expected.size() == p_actual.size() ? std::string() :
 				   std::to_string(p_expected.size()) + " in C#, " + std::to_string(p_actual.size()) + " in C++";

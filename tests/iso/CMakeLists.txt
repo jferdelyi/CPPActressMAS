@@ -17,6 +17,11 @@ foreach (l_case IN ITEMS "order|FAIL same msg seq" "uncovered|FAIL cover all on 
 	add_test(NAME iso.check.${l_name} COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/basic.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/${l_name}.txt)
 	set_tests_properties(iso.check.${l_name} PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "${l_expected}")
 endforeach()
+# "first": a difference after the first tuples is not compared, a difference among them is
+add_test(NAME iso.check.first COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/first.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/first.txt)
+set_tests_properties(iso.check.first PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "same behaviour" FAIL_REGULAR_EXPRESSION "FAIL")
+add_test(NAME iso.check.first_order COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/first.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/order.txt)
+set_tests_properties(iso.check.first_order PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "FAIL same msg seq")
 add_test(NAME iso.check.typo COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/typo.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/same.txt)
 set_tests_properties(iso.check.typo PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "FAIL fact msg: no tuple in the C# oracle")
 
@@ -43,7 +48,8 @@ endfunction()
 
 foreach (l_project IN ITEMS Agents1 Agents2 Agents3 Agents4 Agents5 MultipleMessages SendingObjects ColorGame NumberGame
 		MechanismDesign PrisonerDilemma BDI GameOfLife PingPong Skynet SkynetNumeric Zeuthen Voting EnglishWithBroadcast
-		FictitiousPlay ReplicatorDynamics LrtaStar EnglishWithoutBroadcast Vickrey YellowPages Shapley ContractNet)
+		FictitiousPlay ReplicatorDynamics LrtaStar EnglishWithoutBroadcast Vickrey YellowPages Shapley ContractNet
+		Reactive PredatorPrey PredatorPreyGui)
 	cam_add_iso_port(${l_project})
 endforeach()
 # GameOfLife reads its initial pattern from the working directory, as the C#
@@ -104,6 +110,13 @@ cam_add_iso(Vickrey)
 cam_add_iso(YellowPages)
 cam_add_iso(Shapley)
 cam_add_iso(ContractNet)
+# The example never stops: 100 turns, as its oracle, without the delay of 100 ms after each turn
+cam_add_iso(Reactive 100 0)
+cam_add_iso(PredatorPrey)
+# Without the pause of 100 ms after each turn; both versions write world-state.txt next to the programs, and the GUI
+# version prints it back at the end
+cam_add_iso(PredatorPreyGui 0)
+set_tests_properties(iso.PredatorPrey iso.PredatorPreyGui PROPERTIES RESOURCE_LOCK world-state.txt)
 # Known defect: when an agent stops before the others read its last messages, the library formats these messages with
 # its identifier instead of its name, if the agent is already removed when they are read, which depends on the
 # interleaving. Such a test accepts the behaviour of the C#, or that difference alone (the multiset of the messages);
