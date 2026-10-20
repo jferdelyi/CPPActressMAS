@@ -11,7 +11,7 @@ library at its best; a harness program reproduces the C#, line for line.
 | `oracles/<Oracle>.txt` | Raw output of the C# original, with a `#cam` header (C# commit, runtime, command, seed, and what replaces original code: form stubs, bounded number of turns, a scenario patch), produced by `tests/tools/csharp-ref` in a container. The C++ tests never run .NET. |
 | `rules/<Oracle>.rules` | The facts of the output and how they are compared: exact sequence, multiset, order within a group, invariants (grammar at the top of `iso_check.cpp`). |
 | `iso_check.cpp` | The comparison tool: runs a program, extracts the facts of both outputs and compares them. |
-| `DotNet.hpp` | .NET behaviour the ports need: number formatting and parsing (`format_fixed` as `ToString("F2")`, `to_string` as `Double.ToString()`, `to_int32` as `Convert.ToInt32`, invariant culture), `write` and `write_line` (one piece per line, as `Console.WriteLine`), and the seeds of the oracles (`next_site_seed`). Checked by `iso.dotnet_format` and `iso.dotnet_site_seed` (`dotnet_format.cpp`, `dotnet_seed.cpp`) against vectors of the C# (`vectors/format.txt`). |
+| `DotNet.hpp` | .NET behaviour the ports need: number formatting and parsing (`format_fixed` as `ToString("F2")`, `to_string` as `Double.ToString()`, `to_int32` as `Convert.ToInt32`, invariant culture), `write` and `write_line` (one piece per line, as `Console.WriteLine`), and the seeds of the oracles (`next_site_seed`), and the sort of `List<T>.Sort()` (`list_sort`, not stable). Checked by `iso.dotnet_format` and `iso.dotnet_site_seed` (`dotnet_format.cpp`, `dotnet_seed.cpp`) against vectors of the C# (`vectors/format.txt`). |
 | `fixtures/` | Outputs that the tool must accept or refuse (`iso.check.*`). |
 
 A program is registered with `cam_add_iso(<Project> [NAME <test>] [ORACLE <oracle>] [arguments])` in
@@ -20,7 +20,7 @@ are copied, with the arguments that match the oracle (the number of turns of an 
 
 **Comparison levels.**
 - **Exact trace**, for a sequential example: every line in order (`Agents2`, `ColorGame`, `NumberGame`, `MechanismDesign`, `PrisonerDilemma`, `BDI`, `GameOfLife`, `Zeuthen`, `Voting`, `EnglishWithBroadcast`, `LrtaStar`).
-- **Invariants**, for a parallel one: what does not depend on the interleaving, such as the lines of each agent in order, multisets, counts, sums and turn barriers (`Agents1`, `Agents3`, `Agents4`, `Agents5`, `MultipleMessages`, `SendingObjects`, `PingPong`, `Skynet`, `FictitiousPlay`, `ReplicatorDynamics`, `EnglishWithoutBroadcast`, `Vickrey`, `YellowPages`, `Shapley`), or an example that prints only a result (`SkynetNumeric`, its sum).
+- **Invariants**, for a parallel one: what does not depend on the interleaving, such as the lines of each agent in order, multisets, counts, sums and turn barriers (`Agents1`, `Agents3`, `Agents4`, `Agents5`, `MultipleMessages`, `SendingObjects`, `PingPong`, `Skynet`, `FictitiousPlay`, `ReplicatorDynamics`, `EnglishWithoutBroadcast`, `Vickrey`, `YellowPages`, `Shapley`, `ContractNet`), or an example that prints only a result (`SkynetNumeric`, its sum).
 
 **Durations are never compared.** A run of the C# and a run of the C++ take different times: a rule checks only that a
 duration is printed, and in what form (for instance `fact duration ^\d+\.000 ms$` and `same duration count`), never its

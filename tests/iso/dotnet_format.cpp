@@ -180,6 +180,30 @@ TEST_SUITE("dotnet_format") {
 		}
 	}
 
+	TEST_CASE("list_sort leaves equal keys where List<T>.Sort() of .NET leaves them") {
+		const auto l_lines = lines('L');
+		REQUIRE(l_lines.size() == 44);
+		for (const auto& l_line: l_lines) {
+			CAPTURE(l_line);
+			const auto l_fields = fields(l_line);
+			REQUIRE(l_fields.size() == 4);
+			std::vector<std::pair<int, int>> l_items;
+			std::stringstream l_keys(l_fields[2]);
+			for (int l_key; l_keys >> l_key;) {
+				l_items.emplace_back(l_key, static_cast<int>(l_items.size()));
+			}
+			REQUIRE(l_items.size() == std::stoul(l_fields[1]));
+			cam::dotnet::list_sort(l_items, [](const std::pair<int, int>& p_a, const std::pair<int, int>& p_b) {
+				return p_a.first < p_b.first ? -1 : (p_a.first > p_b.first ? 1 : 0);
+			});
+			std::string l_tags;
+			for (const auto& [l_key, l_tag]: l_items) {
+				l_tags += (l_tags.empty() ? "" : " ") + std::to_string(l_tag);
+			}
+			CHECK(l_tags == l_fields[3]);
+		}
+	}
+
 	TEST_CASE("to_int32 reads, or refuses, every text as Convert.ToInt32") {
 		const auto l_lines = lines('I');
 		REQUIRE(l_lines.size() == 20);

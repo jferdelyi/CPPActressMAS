@@ -32,6 +32,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 /**
@@ -316,6 +317,132 @@ namespace cam::dotnet {
 			l_value = std::strtod(l_number.c_str(), nullptr);
 		}
 		return l_negative ? -l_value : l_value;
+	}
+
+	namespace detail {
+
+		template<typename T, typename Compare>
+		void swap_if_greater(T* p_keys, const Compare& p_compare, const int p_i, const int p_j) {
+			if (p_i != p_j && p_compare(p_keys[p_i], p_keys[p_j]) > 0) {
+				std::swap(p_keys[p_i], p_keys[p_j]);
+			}
+		}
+
+		template<typename T, typename Compare>
+		void insertion_sort(T* p_keys, const int p_length, const Compare& p_compare) {
+			for (int i = 0; i < p_length - 1; i++) {
+				T l_t = std::move(p_keys[i + 1]);
+				int j = i;
+				while (j >= 0 && p_compare(l_t, p_keys[j]) < 0) {
+					p_keys[j + 1] = std::move(p_keys[j]);
+					j--;
+				}
+				p_keys[j + 1] = std::move(l_t);
+			}
+		}
+
+		template<typename T, typename Compare>
+		void down_heap(T* p_keys, int p_i, const int p_n, const Compare& p_compare) {
+			T l_d = std::move(p_keys[p_i - 1]);
+			while (p_i <= p_n >> 1) {
+				int l_child = 2 * p_i;
+				if (l_child < p_n && p_compare(p_keys[l_child - 1], p_keys[l_child]) < 0) {
+					l_child++;
+				}
+				if (!(p_compare(l_d, p_keys[l_child - 1]) < 0)) {
+					break;
+				}
+				p_keys[p_i - 1] = std::move(p_keys[l_child - 1]);
+				p_i = l_child;
+			}
+			p_keys[p_i - 1] = std::move(l_d);
+		}
+
+		template<typename T, typename Compare>
+		void heap_sort(T* p_keys, const int p_n, const Compare& p_compare) {
+			for (int i = p_n >> 1; i >= 1; i--) {
+				down_heap(p_keys, i, p_n, p_compare);
+			}
+			for (int i = p_n; i > 1; i--) {
+				std::swap(p_keys[0], p_keys[i - 1]);
+				down_heap(p_keys, 1, i - 1, p_compare);
+			}
+		}
+
+		template<typename T, typename Compare>
+		int pick_pivot_and_partition(T* p_keys, const int p_length, const Compare& p_compare) {
+			const int l_hi = p_length - 1;
+			const int l_middle = l_hi >> 1;
+			swap_if_greater(p_keys, p_compare, 0, l_middle);
+			swap_if_greater(p_keys, p_compare, 0, l_hi);
+			swap_if_greater(p_keys, p_compare, l_middle, l_hi);
+			T l_pivot = p_keys[l_middle];
+			std::swap(p_keys[l_middle], p_keys[l_hi - 1]);
+			int l_left = 0;
+			int l_right = l_hi - 1;
+			while (l_left < l_right) {
+				while (p_compare(p_keys[++l_left], l_pivot) < 0) {
+				}
+				while (p_compare(l_pivot, p_keys[--l_right]) < 0) {
+				}
+				if (l_left >= l_right) {
+					break;
+				}
+				std::swap(p_keys[l_left], p_keys[l_right]);
+			}
+			if (l_left != l_hi - 1) {
+				std::swap(p_keys[l_left], p_keys[l_hi - 1]);
+			}
+			return l_left;
+		}
+
+		template<typename T, typename Compare>
+		void intro_sort(T* p_keys, const int p_length, int p_depth_limit, const Compare& p_compare) {
+			int l_partition_size = p_length;
+			while (l_partition_size > 1) {
+				if (l_partition_size <= 16) {
+					if (l_partition_size == 2) {
+						swap_if_greater(p_keys, p_compare, 0, 1);
+						return;
+					}
+					if (l_partition_size == 3) {
+						swap_if_greater(p_keys, p_compare, 0, 1);
+						swap_if_greater(p_keys, p_compare, 0, 2);
+						swap_if_greater(p_keys, p_compare, 1, 2);
+						return;
+					}
+					insertion_sort(p_keys, l_partition_size, p_compare);
+					return;
+				}
+				if (p_depth_limit == 0) {
+					heap_sort(p_keys, l_partition_size, p_compare);
+					return;
+				}
+				p_depth_limit--;
+				const int l_p = pick_pivot_and_partition(p_keys, l_partition_size, p_compare);
+				intro_sort(p_keys + l_p + 1, l_partition_size - (l_p + 1), p_depth_limit, p_compare);
+				l_partition_size = l_p;
+			}
+		}
+
+	} // namespace detail
+
+	/**
+	 * As List<T>.Sort() of .NET: the introspective sort of ArraySortHelper (insertion sort up to 16 elements, median of
+	 * three partitions, heap sort past the depth limit), not stable: equal elements end where .NET leaves them.
+	 * @param p_items The items, sorted in place
+	 * @param p_compare As CompareTo: negative, zero or positive
+	 **/
+	template<typename T, typename Compare>
+	void list_sort(std::vector<T>& p_items, const Compare& p_compare) {
+		const auto l_length = static_cast<int>(p_items.size());
+		if (l_length > 1) {
+			int l_log2 = 0;
+			while ((1u << (l_log2 + 1)) <= static_cast<unsigned>(l_length)) {
+				l_log2++;
+			}
+			detail::intro_sort(p_items.data(), l_length, 2 * (l_log2 + 1), p_compare);
+		}
 	}
 
 	/**

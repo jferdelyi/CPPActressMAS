@@ -1,0 +1,25 @@
+# E08 Contract Net Protocol: parallel; the three postmen print their status and the protocol in any order between them
+# (a status block is written at once, but which postman comes first depends on the interleaving). Compared as
+# multisets: the status lines (names, tours solved by the TSP of the example, payoffs), the messages of the protocol,
+# and what each postman does with them. One CNPMessage object is shared by every receiver of a broadcast and changed
+# in place by each (X13): the values a receiver prints depend on who handled the object first, in the C# as in the
+# C++, so the messages are compared without them; the values are compared where the agent that computes them prints
+# them.
+ignore ^$
+cover all
+fact name ^(postman\d)$
+fact tour ^Tour: (.*)$
+fact payoff ^Payoff: (.*)$
+fact message ^(postman\d) -> (postman\d): (\w+) (L\d\d) -?\d+\.\d\d -?\d+\.\d\d -?\d+\.\d\d$
+fact cfp ^(postman\d) receives cfp (L\d\d) with (.*)$
+fact proposal ^(postman\d) receives proposal (L\d\d) with (.*)$
+fact given ^(postman\d) is given (L\d\d) with (.*)$
+same name bag
+same tour bag
+same payoff bag
+same message bag
+same cfp bag
+same proposal bag
+same given bag
+check name count == 6
+check name distinct(0) == 3

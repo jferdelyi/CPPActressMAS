@@ -43,7 +43,7 @@ endfunction()
 
 foreach (l_project IN ITEMS Agents1 Agents2 Agents3 Agents4 Agents5 MultipleMessages SendingObjects ColorGame NumberGame
 		MechanismDesign PrisonerDilemma BDI GameOfLife PingPong Skynet SkynetNumeric Zeuthen Voting EnglishWithBroadcast
-		FictitiousPlay ReplicatorDynamics LrtaStar EnglishWithoutBroadcast Vickrey YellowPages Shapley)
+		FictitiousPlay ReplicatorDynamics LrtaStar EnglishWithoutBroadcast Vickrey YellowPages Shapley ContractNet)
 	cam_add_iso_port(${l_project})
 endforeach()
 # GameOfLife reads its initial pattern from the working directory, as the C#
@@ -103,6 +103,7 @@ cam_add_iso(EnglishWithoutBroadcast)
 cam_add_iso(Vickrey)
 cam_add_iso(YellowPages)
 cam_add_iso(Shapley)
+cam_add_iso(ContractNet)
 # Known defect: when an agent stops before the others read its last messages, the library formats these messages with
 # its identifier instead of its name, if the agent is already removed when they are read, which depends on the
 # interleaving. Such a test accepts the behaviour of the C#, or that difference alone (the multiset of the messages);

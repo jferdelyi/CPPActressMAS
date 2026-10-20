@@ -7,6 +7,7 @@
 //   S|<UTF-16 code units of the input, hex>|<number of words of String.Split()>|<code units of each word, ';' between>
 //   T|<UTF-16 code units of the input, hex>|<code units of String.Trim()>
 //   C|<IEEE-754 bits>|<ToString("F2)")>, the custom format of a line of E16 Replicator Dynamics
+//   L|<size>|<keys>|<tags after List<T>.Sort()>, an unstable sort: equal keys keep the order .NET leaves them in
 using System;
 using System.Globalization;
 using System.Linq;
@@ -41,6 +42,13 @@ internal static class Program
         "a b", "a  b", "", " ", " a ", "\ta\nb", "a\u00A0b", "x\u2003y", "3 1 4 0 2", "a\u200Bb", "a\u0085b", "a\u3000b"
     };
 
+    private sealed class Item : IComparable<Item>
+    {
+        public int Key;
+        public int Tag;
+        public int CompareTo(Item other) => Key.CompareTo(other.Key);
+    }
+
     private static string Units(string s) => string.Join(" ", s.Select(c => ((int)c).ToString("X4")));
 
     private static void Main()
@@ -74,6 +82,18 @@ internal static class Program
         foreach (string s in Splits)
         {
             Console.WriteLine($"T|{Units(s)}|{Units(s.Trim())}");
+        }
+        foreach (int size in new[] { 2, 3, 4, 8, 16, 17, 20, 25, 33, 64, 100 })
+        {
+            foreach (int mod in new[] { 2, 3, 7, 1000 })
+            {
+                var items = new System.Collections.Generic.List<Item>();
+                for (int i = 0; i < size; i++)
+                    items.Add(new Item { Key = (int)(((uint)i * 2654435761u + (uint)(size * 13 + mod)) % (uint)mod), Tag = i });
+                string keys = string.Join(" ", items.Select(x => x.Key));
+                items.Sort();
+                Console.WriteLine($"L|{size}|{keys}|{string.Join(" ", items.Select(x => x.Tag))}");
+            }
         }
         foreach (string s in Ints)
         {
