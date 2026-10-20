@@ -1,0 +1,19 @@
+# E07 Zeuthen Strategy: sequential, fixed order; the agents draw only on equal risks, from the seeds of the oracle, so
+# the C# fixes every line (exact trace). "line" checks the whole trace, the other facts each kind: proposals (shortest
+# round trip text of a double), risks (F4), concessions and acceptances (F1).
+cover all
+fact line ^(.*)$
+fact message ^\t\[(agent\d) -> (agent\d)\]: (.*)$
+fact risk ^\[(agent\d)\]: My risk is (-?\d+\.\d{4}) and the other's risk is (-?\d+\.\d{4})$
+fact concede ^\[(agent\d)\]: I will concede with new proposal (-?\d+\.\d)$
+fact refuse ^\[(agent\d)\]: I will not concede$
+fact accept ^\[(agent\d)\]: I accept (-?\d+\.\d)$
+# Equal risks may end in a refusal, depending on the draw: none with the seed of the oracle
+optional refuse
+same line seq
+same message seq
+same risk seq
+same concede seq
+same refuse seq
+same accept seq
+check accept count == 2

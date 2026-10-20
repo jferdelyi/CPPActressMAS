@@ -2,6 +2,11 @@
 // harness (InvariantGlobalization). One line per case:
 //   D|<IEEE-754 bits>|<F2>|<F3>|<F4>|<ToString()>
 //   I|<UTF-16 code units of the input, hex>|<Convert.ToInt32 result, or the exception name>
+//   X|<IEEE-754 bits>|<F0>|<F1>|<F5>|<F6>
+//   R|<UTF-16 code units of the input, hex>|<IEEE-754 bits of the Convert.ToDouble result, or the exception name>
+//   S|<UTF-16 code units of the input, hex>|<number of words of String.Split()>|<code units of each word, ';' between>
+//   T|<UTF-16 code units of the input, hex>|<code units of String.Trim()>
+//   C|<IEEE-754 bits>|<ToString("F2)")>, the custom format of a line of E16 Replicator Dynamics
 using System;
 using System.Globalization;
 using System.Linq;
@@ -24,12 +29,51 @@ internal static class Program
         "007", "1.0", "0x10", "−5", " 12", "- 3", "+-3", "  "
     };
 
+    private static readonly string[] Reals =
+    {
+        "0.1", "4.9", "1", " 2.5 ", "-0.5", "+3.25", "1e3", "1E-3", "1.5e+2", "4.4999999999999991", "0.30000000000000004",
+        "1.7976931348623157E+308", "1e309", "-1e309", "1e-400", "5E-324", "NaN", "Infinity", "-Infinity", "\u221E",
+        "1,5", "1,000.5", "1.5.2", "", "  ", "abc", "0x10", ".5", "5.", "-0", "\t7\n", "1 000", "--1", "1e", "e5"
+    };
+
+    private static readonly string[] Splits =
+    {
+        "a b", "a  b", "", " ", " a ", "\ta\nb", "a\u00A0b", "x\u2003y", "3 1 4 0 2", "a\u200Bb", "a\u0085b", "a\u3000b"
+    };
+
+    private static string Units(string s) => string.Join(" ", s.Select(c => ((int)c).ToString("X4")));
+
     private static void Main()
     {
         Console.WriteLine("# runtime: " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription);
         foreach (double d in Doubles)
         {
             Console.WriteLine($"D|0x{BitConverter.DoubleToInt64Bits(d):X16}|{d.ToString("F2")}|{d.ToString("F3")}|{d.ToString("F4")}|{d}");
+        }
+        foreach (double d in Doubles)
+        {
+            Console.WriteLine($"X|0x{BitConverter.DoubleToInt64Bits(d):X16}|{d.ToString("F0")}|{d.ToString("F1")}|{d.ToString("F5")}|{d.ToString("F6")}");
+        }
+        foreach (double d in Doubles)
+        {
+            Console.WriteLine($"C|0x{BitConverter.DoubleToInt64Bits(d):X16}|{d.ToString("F2)")}");
+        }
+        foreach (string s in Reals)
+        {
+            string units = string.Join(" ", s.Select(c => ((int)c).ToString("X4")));
+            string result;
+            try { result = $"0x{BitConverter.DoubleToInt64Bits(Convert.ToDouble(s)):X16}"; }
+            catch (Exception e) { result = e.GetType().Name; }
+            Console.WriteLine($"R|{units}|{result}");
+        }
+        foreach (string s in Splits)
+        {
+            string[] words = s.Split();
+            Console.WriteLine($"S|{Units(s)}|{words.Length}|{string.Join(";", words.Select(Units))}");
+        }
+        foreach (string s in Splits)
+        {
+            Console.WriteLine($"T|{Units(s)}|{Units(s.Trim())}");
         }
         foreach (string s in Ints)
         {

@@ -96,6 +96,90 @@ TEST_SUITE("dotnet_format") {
 		}
 	}
 
+	TEST_CASE("F0, F1, F5 and F6 of every double print as in .NET") {
+		const auto l_lines = lines('X');
+		REQUIRE(l_lines.size() > 40);
+		for (const auto& l_line: l_lines) {
+			CAPTURE(l_line);
+			const auto l_fields = fields(l_line);
+			REQUIRE(l_fields.size() == 6);
+			const double l_value = std::bit_cast<double>(static_cast<std::uint64_t>(std::stoull(l_fields[1], nullptr, 16)));
+			CHECK(cam::dotnet::format_fixed(l_value, 0) == l_fields[2]);
+			CHECK(cam::dotnet::format_fixed(l_value, 1) == l_fields[3]);
+			CHECK(cam::dotnet::format_fixed(l_value, 5) == l_fields[4]);
+			CHECK(cam::dotnet::format_fixed(l_value, 6) == l_fields[5]);
+		}
+	}
+
+	TEST_CASE("the custom format F2) of every double prints as in .NET") {
+		const auto l_lines = lines('C');
+		REQUIRE(l_lines.size() > 40);
+		for (const auto& l_line: l_lines) {
+			CAPTURE(l_line);
+			const auto l_fields = fields(l_line);
+			REQUIRE(l_fields.size() == 3);
+			const double l_value = std::bit_cast<double>(static_cast<std::uint64_t>(std::stoull(l_fields[1], nullptr, 16)));
+			CHECK(cam::dotnet::format_custom_f2_paren(l_value) == l_fields[2]);
+		}
+	}
+
+	TEST_CASE("to_double reads, or refuses, every text as Convert.ToDouble") {
+		const auto l_lines = lines('R');
+		REQUIRE(l_lines.size() == 35);
+		for (const auto& l_line: l_lines) {
+			CAPTURE(l_line);
+			const auto l_fields = fields(l_line);
+			REQUIRE(l_fields.size() == 3);
+			const std::string l_text = utf8(l_fields[1]);
+			if (l_fields[2] == "FormatException") {
+				CHECK_THROWS_AS(cam::dotnet::to_double(l_text), std::invalid_argument);
+			} else {
+				const auto l_expected = static_cast<std::uint64_t>(std::stoull(l_fields[2], nullptr, 16));
+				const double l_value = cam::dotnet::to_double(l_text);
+				// Every NaN is the same NaN for .NET, whatever its bits
+				if (std::isnan(l_value)) {
+					CHECK(std::isnan(std::bit_cast<double>(l_expected)));
+				} else {
+					CHECK(std::bit_cast<std::uint64_t>(l_value) == l_expected);
+				}
+			}
+		}
+	}
+
+	TEST_CASE("split cuts every text into the words of String.Split()") {
+		const auto l_lines = lines('S');
+		REQUIRE(l_lines.size() == 12);
+		for (const auto& l_line: l_lines) {
+			CAPTURE(l_line);
+			const auto l_fields = fields(l_line);
+			REQUIRE(l_fields.size() == 4);
+			std::vector<std::string> l_expected(1);
+			for (const char l_char: l_fields[3]) {
+				if (l_char == ';') {
+					l_expected.emplace_back();
+				} else {
+					l_expected.back() += l_char;
+				}
+			}
+			for (auto& l_word: l_expected) {
+				l_word = utf8(l_word);
+			}
+			REQUIRE(l_expected.size() == std::stoul(l_fields[2]));
+			CHECK(cam::dotnet::split(utf8(l_fields[1])) == l_expected);
+		}
+	}
+
+	TEST_CASE("trim removes the white spaces around every text as String.Trim()") {
+		const auto l_lines = lines('T');
+		REQUIRE(l_lines.size() == 12);
+		for (const auto& l_line: l_lines) {
+			CAPTURE(l_line);
+			const auto l_fields = fields(l_line);
+			REQUIRE(l_fields.size() == 3);
+			CHECK(cam::dotnet::trim(utf8(l_fields[1])) == utf8(l_fields[2]));
+		}
+	}
+
 	TEST_CASE("to_int32 reads, or refuses, every text as Convert.ToInt32") {
 		const auto l_lines = lines('I');
 		REQUIRE(l_lines.size() == 20);

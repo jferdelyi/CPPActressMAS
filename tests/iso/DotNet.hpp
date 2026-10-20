@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <charconv>
 #include <cmath>
 #include <cstdint>
@@ -25,11 +26,13 @@
 #include <functional>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 /**
  * Number formatting and parsing of .NET, as the C# examples print and read numbers, so that a port prints the same text
@@ -55,6 +58,22 @@ namespace cam::dotnet {
 		char l_text[512];  // 309 integer digits at most, a sign, a point and the digits
 		const auto l_result = std::to_chars(std::begin(l_text), std::end(l_text), p_value, std::chars_format::fixed, p_digits);
 		return std::string(l_text, l_result.ptr);
+	}
+
+	/**
+	 * As Double.ToString("F2)"), the custom format a C# example writes for F2 ("{sum:F2)}"): no digit placeholder, so
+	 * .NET prints the text "F2)" with the sign of the value only; NaN, Infinity and -Infinity named.
+	 * @param p_value The value
+	 * @return The text
+	 **/
+	inline std::string format_custom_f2_paren(const double p_value) {
+		if (std::isnan(p_value)) {
+			return "NaN";
+		}
+		if (std::isinf(p_value)) {
+			return p_value > 0 ? "Infinity" : "-Infinity";
+		}
+		return std::signbit(p_value) ? "-F2)" : "F2)";
 	}
 
 	/**
@@ -148,6 +167,155 @@ namespace cam::dotnet {
 			throw std::out_of_range("to_int32: out of the int range: \"" + std::string(p_text) + "\"");
 		}
 		return static_cast<std::int32_t>(l_negative ? -l_value : l_value);
+	}
+
+	/**
+	 * As Char.IsWhiteSpace: the Unicode white spaces.
+	 * @param p_code The code point
+	 * @return True for a white space
+	 **/
+	inline bool is_white_space(const char32_t p_code) noexcept {
+		return (p_code >= 0x09 && p_code <= 0x0D) || p_code == 0x20 || p_code == 0x85 || p_code == 0xA0 || p_code == 0x1680 ||
+			   (p_code >= 0x2000 && p_code <= 0x200A) || p_code == 0x2028 || p_code == 0x2029 || p_code == 0x202F || p_code == 0x205F ||
+			   p_code == 0x3000;
+	}
+
+	/**
+	 * As String.Trim(): the UTF-8 text without the Unicode white spaces at both ends.
+	 * @param p_text The text
+	 * @return The trimmed text
+	 **/
+	inline std::string trim(const std::string_view p_text) {
+		// Code points of the text with their byte ranges, decoded as in split
+		std::size_t l_begin = p_text.size();
+		std::size_t l_end = 0;
+		std::size_t i = 0;
+		while (i < p_text.size()) {
+			const auto l_byte = static_cast<unsigned char>(p_text[i]);
+			std::size_t l_length = l_byte < 0x80 ? 1 : (l_byte >> 5) == 0x6 ? 2 : (l_byte >> 4) == 0xE ? 3 : (l_byte >> 3) == 0x1E ? 4 : 1;
+			if (i + l_length > p_text.size()) {
+				l_length = 1;
+			}
+			char32_t l_code = l_length == 1 ? l_byte : l_byte & (0x7F >> l_length);
+			for (std::size_t k = 1; k < l_length; k++) {
+				l_code = (l_code << 6) | (static_cast<unsigned char>(p_text[i + k]) & 0x3F);
+			}
+			if (!is_white_space(l_code)) {
+				l_begin = std::min(l_begin, i);
+				l_end = i + l_length;
+			}
+			i += l_length;
+		}
+		return l_begin < l_end ? std::string(p_text.substr(l_begin, l_end - l_begin)) : std::string();
+	}
+
+	/**
+	 * As String.Split() without argument: the UTF-8 text cut at every Unicode white space, empty words kept.
+	 * @param p_text The text
+	 * @return The words, one at least
+	 **/
+	inline std::vector<std::string> split(const std::string_view p_text) {
+		std::vector<std::string> l_words(1);
+		std::size_t i = 0;
+		while (i < p_text.size()) {
+			const auto l_byte = static_cast<unsigned char>(p_text[i]);
+			std::size_t l_length = l_byte < 0x80 ? 1 : (l_byte >> 5) == 0x6 ? 2 : (l_byte >> 4) == 0xE ? 3 : (l_byte >> 3) == 0x1E ? 4 : 1;
+			if (i + l_length > p_text.size()) {
+				l_length = 1;
+			}
+			char32_t l_code = l_length == 1 ? l_byte : l_byte & (0x7F >> l_length);
+			for (std::size_t k = 1; k < l_length; k++) {
+				l_code = (l_code << 6) | (static_cast<unsigned char>(p_text[i + k]) & 0x3F);
+			}
+			if (is_white_space(l_code)) {
+				l_words.emplace_back();
+			} else {
+				l_words.back().append(p_text.substr(i, l_length));
+			}
+			i += l_length;
+		}
+		return l_words;
+	}
+
+	/**
+	 * As Convert.ToDouble(string), invariant culture: ASCII white space around, one sign, digits with ',' between the
+	 * digits of the integer part, an optional '.' and fraction, an optional exponent; "NaN" and "Infinity" in any
+	 * case (not the sign ∞). A value too large is an infinity and a value too small a zero, as since .NET Core 3.0.
+	 * @param p_text The text
+	 * @return The value
+	 * @throw std::invalid_argument Where .NET throws FormatException
+	 **/
+	inline double to_double(const std::string_view p_text) {
+		const auto l_white = [](const char p_char) { return p_char == ' ' || (p_char >= '\t' && p_char <= '\r'); };
+		const auto l_digit = [](const char p_char) { return p_char >= '0' && p_char <= '9'; };
+		const auto l_fail = [&p_text]() { return std::invalid_argument("to_double: not a number: \"" + std::string(p_text) + "\""); };
+		std::size_t l_begin = 0;
+		std::size_t l_end = p_text.size();
+		while (l_begin < l_end && l_white(p_text[l_begin])) {
+			l_begin++;
+		}
+		while (l_end > l_begin && l_white(p_text[l_end - 1])) {
+			l_end--;
+		}
+		bool l_negative = false;
+		if (l_begin < l_end && (p_text[l_begin] == '+' || p_text[l_begin] == '-')) {
+			l_negative = p_text[l_begin] == '-';
+			l_begin++;
+		}
+		const std::string_view l_rest = p_text.substr(l_begin, l_end - l_begin);
+		std::string l_lower;
+		for (const char l_char: l_rest) {
+			l_lower += (l_char >= 'A' && l_char <= 'Z') ? static_cast<char>(l_char - 'A' + 'a') : l_char;
+		}
+		if (l_lower == "infinity") {
+			return l_negative ? -std::numeric_limits<double>::infinity() : std::numeric_limits<double>::infinity();
+		}
+		if (l_lower == "nan") {
+			return std::numeric_limits<double>::quiet_NaN();
+		}
+		// The number without its group separators, for from_chars
+		std::string l_number;
+		std::size_t i = 0;
+		bool l_digits = false;
+		while (i < l_rest.size() && (l_digit(l_rest[i]) || (l_rest[i] == ',' && l_digits))) {
+			if (l_rest[i] != ',') {
+				l_number += l_rest[i];
+				l_digits = true;
+			}
+			i++;
+		}
+		if (i < l_rest.size() && l_rest[i] == '.') {
+			l_number += l_rest[i++];
+			while (i < l_rest.size() && l_digit(l_rest[i])) {
+				l_number += l_rest[i++];
+				l_digits = true;
+			}
+		}
+		if (!l_digits) {
+			throw l_fail();
+		}
+		if (i < l_rest.size() && (l_rest[i] == 'e' || l_rest[i] == 'E')) {
+			l_number += l_rest[i++];
+			if (i < l_rest.size() && (l_rest[i] == '+' || l_rest[i] == '-')) {
+				l_number += l_rest[i++];
+			}
+			const std::size_t l_exponent = i;
+			while (i < l_rest.size() && l_digit(l_rest[i])) {
+				l_number += l_rest[i++];
+			}
+			if (i == l_exponent) {
+				throw l_fail();
+			}
+		}
+		if (i != l_rest.size()) {
+			throw l_fail();
+		}
+		double l_value = 0;
+		if (std::from_chars(l_number.data(), l_number.data() + l_number.size(), l_value).ec == std::errc::result_out_of_range) {
+			// Too large or too small: strtod of the C locale gives the infinity or the zero
+			l_value = std::strtod(l_number.c_str(), nullptr);
+		}
+		return l_negative ? -l_value : l_value;
 	}
 
 	/**

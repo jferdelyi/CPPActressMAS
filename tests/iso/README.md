@@ -19,8 +19,12 @@ A program is registered with `cam_add_iso(<Project> [NAME <test>] [ORACLE <oracl
 are copied, with the arguments that match the oracle (the number of turns of an example that never stops, a scenario).
 
 **Comparison levels.**
-- **Exact trace**, for a sequential example: every line in order (`Agents2`, `ColorGame`, `NumberGame`, `MechanismDesign`, `PrisonerDilemma`, `BDI`, `GameOfLife`).
-- **Invariants**, for a parallel one: what does not depend on the interleaving, such as the lines of each agent in order, multisets, counts, sums and turn barriers (`Agents1`, `Agents3`, `Agents4`, `Agents5`, `MultipleMessages`, `SendingObjects`, `PingPong`, `Skynet`).
+- **Exact trace**, for a sequential example: every line in order (`Agents2`, `ColorGame`, `NumberGame`, `MechanismDesign`, `PrisonerDilemma`, `BDI`, `GameOfLife`, `Zeuthen`, `Voting`, `EnglishWithBroadcast`).
+- **Invariants**, for a parallel one: what does not depend on the interleaving, such as the lines of each agent in order, multisets, counts, sums and turn barriers (`Agents1`, `Agents3`, `Agents4`, `Agents5`, `MultipleMessages`, `SendingObjects`, `PingPong`, `Skynet`), or an example that prints only a result (`SkynetNumeric`, its sum).
+
+**Durations are never compared.** A run of the C# and a run of the C++ take different times: a rule checks only that a
+duration is printed, and in what form (for instance `fact duration ^\d+\.000 ms$` and `same duration count`), never its
+value.
 
 **Random draws.** A C# example creates its `System.Random` without a seed; the oracle seeds each one from its call site
 (`tests/tools/csharp-ref/README.md`), and the port draws from the same seed (`cam::dotnet::next_site_seed`). `CAM_SEED` in

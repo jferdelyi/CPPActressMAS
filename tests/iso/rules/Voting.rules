@@ -1,0 +1,26 @@
+# E14 Voting: sequential, fixed order; the preferences come from the seed of the oracle, drawn from one generator
+# shared by the voters, so the C# fixes every line (exact trace): the 99 votes in the order the teller receives them,
+# then the Condorcet winner if there is one, the winner of Copeland's method and the winner of the Borda count.
+cover all
+fact line ^(.*)$
+fact vote ^(\d( \d)*)$
+fact verdict ^(Candidate \d is the Condorcet winner|There is no Condorcet winner)$
+fact condorcet ^Candidate (\d) is the Condorcet winner$
+fact no_condorcet ^There is no Condorcet winner$
+fact copeland ^Using Copeland's method, candidate (-?\d+) is the winner$
+fact borda ^Using Borda count, candidate (-?\d+) is the winner$
+# Whether a Condorcet winner exists depends on the draw (one with the seed of the oracle, none with CAM_SEED=42): one
+# verdict either way
+optional condorcet
+optional no_condorcet
+same line seq
+same vote seq
+same verdict seq
+same condorcet seq
+same no_condorcet seq
+same copeland seq
+same borda seq
+check vote count == 99
+check verdict count == 1
+check copeland count == 1
+check borda count == 1

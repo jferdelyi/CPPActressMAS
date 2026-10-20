@@ -42,7 +42,7 @@ function(cam_add_iso_port p_project)
 endfunction()
 
 foreach (l_project IN ITEMS Agents1 Agents2 Agents3 Agents4 Agents5 MultipleMessages SendingObjects ColorGame NumberGame
-		MechanismDesign PrisonerDilemma BDI GameOfLife PingPong Skynet)
+		MechanismDesign PrisonerDilemma BDI GameOfLife PingPong Skynet SkynetNumeric Zeuthen Voting EnglishWithBroadcast)
 	cam_add_iso_port(${l_project})
 endforeach()
 # GameOfLife reads its initial pattern from the working directory, as the C#
@@ -90,6 +90,11 @@ cam_add_iso(GameOfLife 60 0)
 # The benchmarks, durations ignored
 cam_add_iso(PingPong)
 cam_add_iso(Skynet)
+cam_add_iso(SkynetNumeric)
+# Sequential, fixed order, with draws from the seeds of their oracles: exact traces
+cam_add_iso(Zeuthen)
+cam_add_iso(Voting)
+cam_add_iso(EnglishWithBroadcast)
 # Millions of calls: with gcc, whose ASan detects stack-use-after-return by default (fake stacks), GameOfLife (390 000
 # calls of the perception filter per turn) took more than 1 200 s, 39 s without, and PingPong (10 million messages per
 # trial) more than 300 s, 37 s without; clang leaves that detection off by default

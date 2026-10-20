@@ -34,6 +34,7 @@
 #include <utility>
 #include <vector>
 
+#include <DotNet.hpp>
 #include <Environment.h>
 
 enum class TurnType {
@@ -176,19 +177,6 @@ class GridAgent final : public cam::Agent {
 		}
 };
 
-// Words of a line split at every white space, empty words kept, as String.Split() (patterns.txt is ASCII)
-std::vector<std::string> split(const std::string& p_line) {
-	std::vector<std::string> l_words(1);
-	for (const char l_char: p_line) {
-		if (l_char == ' ' || (l_char >= '\t' && l_char <= '\r')) {
-			l_words.emplace_back();
-		} else {
-			l_words.back() += l_char;
-		}
-	}
-	return l_words;
-}
-
 int main(int argc, char** argv) {
 	const int l_turns = argc > 1 ? std::atoi(argv[1]) : 0;
 	const int l_delay = argc > 2 ? std::atoi(argv[2]) : 10;
@@ -209,7 +197,7 @@ int main(int argc, char** argv) {
 
 	for (int y = 0; y < l_size; y++) {
 		std::string l_line;
-		const std::vector<std::string> l_line_tokens = std::getline(l_patterns, l_line) ? split(l_line) : std::vector<std::string>();
+		const std::vector<std::string> l_line_tokens = std::getline(l_patterns, l_line) ? cam::dotnet::split(l_line) : std::vector<std::string>();
 		if (l_line_tokens.size() < static_cast<std::size_t>(l_size)) {
 			std::cerr << "patterns.txt: line " << y + 1 << " has less than " << l_size << " cells" << std::endl;
 			return 1;
