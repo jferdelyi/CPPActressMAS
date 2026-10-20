@@ -1,0 +1,33 @@
+# E20 MasMobileConsole: one process per container in the C#, three environments on the loopback transport in the C++;
+# the console of each container is compared in its own section. The lines of the C# Container class (connection to
+# the server, registration, "Running MAS...") are not compared: the server and the containers are not ported, the
+# transport plays their part. Parallel: the static agents start, answer and are answered in any order within a
+# container; the trip, its itinerary and the report are compared in order, the information received as a multiset.
+section ^This is Container\d$
+ignore ^$
+ignore ^Container connecting to server\.\.\.$
+ignore ^Container connected to server\.$
+ignore ^Container\d registered\.$
+ignore ^Running MAS\.\.\.$
+cover all
+fact enter ^Press ENTER to start MAS in container (Container\d)$
+fact static ^Static agent (\S+) starting$
+fact home ^Mobile agent starting at home$
+fact itinerary ^(Container\d)$
+fact moving ^I'm moving to (Container\d)$
+fact moved ^I have moved to (Container\d)$
+fact message ^\t\[(\S+) -> (\S+)\]: (.+)$
+fact report ^(Reporting:|Moving to Container\d|Arrived to Container\d|Stopping)$
+fact info ^Received info: (.+)$
+same enter seq
+same static bag by 0
+same home seq
+same itinerary seq
+same moving seq
+same moved seq
+same message bag by 0
+same report seq
+same info bag
+check static count == 6
+check message count == 12
+check info count == 6

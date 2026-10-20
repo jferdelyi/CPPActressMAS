@@ -1,0 +1,72 @@
+#cam oracle MasMobileConsole
+#cam csharp ActressMas eb0bb73, Examples/E20 Mobile Examples/MasMobileConsole/ (the shipped binaries of bin/)
+#cam runtime Mono 6.8 (.NET Framework 4.7.2 binaries), the shipped MyServerConsole
+#cam capture logs/e20mono-20261018-095926 (csharp-ref.sh e20 or e20mono): one process per container, its console below
+#cam container Container1
+Container connecting to server...
+Container connected to server.
+Container1 registered.
+Press ENTER to start MAS in container Container1
+This is Container1
+Running MAS...
+
+Static agent a1-k1 starting
+Mobile agent starting at home
+Container2
+Container3
+Container1
+I'm moving to Container2
+I have moved to Container1
+	[mobile-k1 -> a1-k1]: request-info
+	[a1-k1 -> mobile-k1]: Info from agent a1-k1 in container Container1
+
+Reporting:
+Moving to Container2
+Arrived to Container2
+Received info: Info from agent b2-k1 in container Container2
+Received info: Info from agent b1-k1 in container Container2
+Moving to Container3
+Arrived to Container3
+Received info: Info from agent c3-k3 in container Container3
+Received info: Info from agent c1-k3 in container Container3
+Received info: Info from agent c2-k3 in container Container3
+Moving to Container1
+Arrived to Container1
+Received info: Info from agent a1-k1 in container Container1
+Stopping
+
+#cam container Container2
+Container connecting to server...
+Container connected to server.
+Container2 registered.
+Press ENTER to start MAS in container Container2
+This is Container2
+Running MAS...
+
+Static agent b2-k1 starting
+Static agent b1-k1 starting
+I have moved to Container2
+	[mobile-k1 -> b2-k1]: request-info
+	[mobile-k1 -> b1-k1]: request-info
+	[b2-k1 -> mobile-k1]: Info from agent b2-k1 in container Container2
+	[b1-k1 -> mobile-k1]: Info from agent b1-k1 in container Container2
+I'm moving to Container3
+#cam container Container3
+Container connecting to server...
+Container connected to server.
+Container3 registered.
+Press ENTER to start MAS in container Container3
+This is Container3
+Running MAS...
+
+Static agent c3-k3 starting
+Static agent c1-k3 starting
+Static agent c2-k3 starting
+I have moved to Container3
+	[mobile-k1 -> c3-k3]: request-info
+	[mobile-k1 -> c1-k3]: request-info
+	[mobile-k1 -> c2-k3]: request-info
+	[c3-k3 -> mobile-k1]: Info from agent c3-k3 in container Container3
+	[c1-k3 -> mobile-k1]: Info from agent c1-k3 in container Container3
+	[c2-k3 -> mobile-k1]: Info from agent c2-k3 in container Container3
+I'm moving to Container1

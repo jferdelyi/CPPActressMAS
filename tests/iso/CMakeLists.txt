@@ -49,7 +49,7 @@ endfunction()
 foreach (l_project IN ITEMS Agents1 Agents2 Agents3 Agents4 Agents5 MultipleMessages SendingObjects ColorGame NumberGame
 		MechanismDesign PrisonerDilemma BDI GameOfLife PingPong Skynet SkynetNumeric Zeuthen Voting EnglishWithBroadcast
 		FictitiousPlay ReplicatorDynamics LrtaStar EnglishWithoutBroadcast Vickrey YellowPages Shapley ContractNet
-		Reactive PredatorPrey PredatorPreyGui)
+		Reactive PredatorPrey PredatorPreyGui RemoteMessages MasMobileConsole MasMobileGui)
 	cam_add_iso_port(${l_project})
 endforeach()
 # GameOfLife reads its initial pattern from the working directory, as the C#
@@ -117,6 +117,9 @@ cam_add_iso(PredatorPrey)
 # version prints it back at the end
 cam_add_iso(PredatorPreyGui 0)
 set_tests_properties(iso.PredatorPrey iso.PredatorPreyGui PROPERTIES RESOURCE_LOCK world-state.txt)
+# E20: one environment per container of the C#, on the loopback transport, stopped once the scenario is over
+cam_add_iso(RemoteMessages)
+cam_add_iso(MasMobileConsole)
 # Known defect: when an agent stops before the others read its last messages, the library formats these messages with
 # its identifier instead of its name, if the agent is already removed when they are read, which depends on the
 # interleaving. Such a test accepts the behaviour of the C#, or that difference alone (the multiset of the messages);

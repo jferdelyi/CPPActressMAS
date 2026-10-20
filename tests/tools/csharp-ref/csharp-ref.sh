@@ -17,6 +17,10 @@
 #                        WORKDIR/logs/oracles/<Name>.txt, the raw outputs to version in tests/iso/oracles/
 #             e20build | capture | e20 | e20mono   (ContainerServer harness, ref/E20; always net8: BinaryFormatter throws
 #             on net9+; e20mono adds the SHIPPED .NET Framework server and mobile containers under Mono, ref/mono/e20-mono.sh)
+#             e20gui   : MasMobileGui without WinForms (ref/E20/MasMobileGui.Console), server and three containers; its
+#                        agent cannot move on .NET 8 (Agent.Move serializes a System.Type)
+#             e20oracles: WORKDIR/logs/oracles/RemoteMessages.txt and MasMobileConsole.txt from the captures of e20 and
+#                        of the latest e20mono (no container run): the console of each container in turn
 #   flavor  : net10 (default, image mcr.microsoft.com/dotnet/sdk:10.0) or net8 (image mcr.microsoft.com/dotnet/sdk:8.0)
 # Outputs : WORKDIR/logs/*.txt|*.log ; compare rng/trace outputs with ref/expected/*.txt from line 2 (line 1 = runtime banner).
 set -euo pipefail
@@ -178,7 +182,7 @@ E20_TFM=net8.0
 e20() { podman run --rm --pull=never --network=host --name "cam-csref-e20-$$-$RANDOM" -e DOTNET_CLI_TELEMETRY_OPTOUT=1 \
           -e DOTNET_NOLOGO=1 -v "$W":/w -w /w/ref/E20 mcr.microsoft.com/dotnet/sdk:8.0 "$@"; }
 do_e20build() {
-  e20 bash -c "for p in ServerConsole RemoteMessages.Console BfCapture Tap; do dotnet build \$p -c Release -p:RefTfm=$E20_TFM || exit 1; done" \
+  e20 bash -c "for p in ServerConsole RemoteMessages.Console MasMobileGui.Console BfCapture Tap; do dotnet build \$p -c Release -p:RefTfm=$E20_TFM || exit 1; done" \
     > "$W/logs/e20-build.log" 2>&1 || { tail -30 "$W/logs/e20-build.log"; exit 1; }
   grep -E 'Warning\(s\)|Error\(s\)' "$W/logs/e20-build.log"
 }
@@ -221,10 +225,46 @@ do_e20mono() {  # runtime cross-check: shipped .NET Framework Server + MasMobile
   echo "logs: $W/logs/e20mono-$run"
   for f in mono-side dotnet-side c1 c2 c3 container2 container1; do echo "== $f"; cat "$W/logs/e20mono-$run/$f.txt" 2>/dev/null; done
 }
+do_e20gui() {  # E20 MasMobileGui without WinForms (ref/E20/MasMobileGui.Console): ServerConsole :5000, Container2 and
+               # Container3, then Container1 (the original readme: 2 and 3 before 1); "Run MAS" 10 s after "Connect".
+               # The first move fails on .NET 8: Agent.Move serializes a System.Type, which BinaryFormatter refuses
+               # outside .NET Framework; an oracle of this example needs Mono.
+  mkdir -p "$W/logs/e20gui"
+  e20 bash -c "B=bin/Release/$E20_TFM; L=/w/logs/e20gui
+    timeout 45 dotnet ServerConsole/\$B/ServerConsole.dll 5000 3000 40 > \$L/server.txt 2>&1 &
+    sleep 3
+    for n in 2 3; do timeout 40 dotnet MasMobileGui.Console/\$B/MasMobileGui.Console.dll 127.0.0.1 5000 Container\$n 10000 24 > \$L/c\$n.txt 2>&1 & done
+    sleep 4
+    timeout 36 dotnet MasMobileGui.Console/\$B/MasMobileGui.Console.dll 127.0.0.1 5000 Container1 10000 20 > \$L/c1.txt 2>&1 &
+    wait; echo done"
+  for f in server c1 c2 c3; do echo "== $f"; cat "$W/logs/e20gui/$f.txt"; done
+}
+do_e20oracles() {
+  local mono; mono="$(ls -d "$W"/logs/e20mono-* | sort | tail -1)"
+  mkdir -p "$W/logs/oracles"
+  e20_oracle RemoteMessages "$W/logs/e20" "E20 Mobile Examples/RemoteMessages/ (agents and MasSetup unchanged in ref/E20/RemoteMessages.Console, the form replaced by the console)" \
+    "Microsoft.NETCore.App 8 (ActressMas.Wire), ref/E20/ServerConsole" container1:Container1 container2:Container2
+  e20_oracle MasMobileConsole "$mono" "E20 Mobile Examples/MasMobileConsole/ (the shipped binaries of bin/)" \
+    "Mono 6.8 (.NET Framework 4.7.2 binaries), the shipped MyServerConsole" c1:Container1 c2:Container2 c3:Container3
+}
+e20_oracle() {  # name, capture folder, sources, runtime, then file:container for each process
+  local name="$1" dir="$2" sources="$3" runtime="$4"; shift 4
+  {
+    echo "#cam oracle $name"
+    echo "#cam csharp ActressMas $REF_COMMIT, Examples/$sources"
+    echo "#cam runtime $runtime"
+    echo "#cam capture logs/$(basename "$dir") (csharp-ref.sh e20 or e20mono): one process per container, its console below"
+    for part in "$@"; do
+      echo "#cam container ${part#*:}"
+      tr -d '\r' < "$dir/${part%%:*}.txt"
+    done
+  } > "$W/logs/oracles/$name.txt"
+  echo "$name: $(grep -vc '^#cam' "$W/logs/oracles/$name.txt") lines"
+}
 case "$ACTION" in
   build) do_build ;; rng) do_rng ;; trace) do_trace ;; format) do_format ;; bench) do_bench ;; benchref) do_benchref ;; e00) do_e00 ;; probe) do_probe ;; mono) do_mono ;;
   shimcheck) do_shimcheck ;; oracles) do_oracles ;;
-  e20build) do_e20build ;; capture) do_capture ;; e20) do_e20 ;; e20mono) do_e20mono ;;
+  e20build) do_e20build ;; capture) do_capture ;; e20) do_e20 ;; e20mono) do_e20mono ;; e20gui) do_e20gui ;; e20oracles) do_e20oracles ;;
   all) do_build; do_rng; do_trace; do_format; do_bench; do_e00; do_probe; do_shimcheck; do_oracles ;;
   *) echo "unknown action $ACTION" >&2; exit 2 ;;
 esac

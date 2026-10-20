@@ -28,6 +28,8 @@ tests/tools/csharp-ref/csharp-ref.sh WORKDIR ACTION [net10|net8]
 | `shimcheck` | `RngVectors` compiled through the seed shim: must equal `ref/expected/rng-vectors.txt` |
 | `oracles` | runs every project of `ref/Oracles/`, from its output folder, into `WORKDIR/logs/oracles/<Name>.txt` |
 | `e20build`, `capture`, `e20`, `e20mono` | the ContainerServer harness of E20 (.NET 8 and Mono) |
+| `e20gui` | MasMobileGui without WinForms, server and three containers (.NET 8: the agent cannot move, `Agent.Move` serializes a `System.Type`) |
+| `e20oracles` | `logs/oracles/RemoteMessages.txt` and `MasMobileConsole.txt` from the captures of `e20` and `e20mono`, the console of each container in turn |
 
 `CAM_DOTNET=native` runs the `dotnet` of the host instead of a container, from `WORKDIR/ref` as well: the CI uses it
 for `build` and `benchref`, on a runner where the job installs .NET.
