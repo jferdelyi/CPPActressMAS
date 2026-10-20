@@ -90,8 +90,9 @@ cam_add_iso(GameOfLife 60 0)
 # The benchmarks, durations ignored
 cam_add_iso(PingPong)
 cam_add_iso(Skynet)
-# 390 000 calls of the perception filter per turn: with gcc, whose ASan detects stack-use-after-return by default (fake
-# stacks), the test took more than 1 200 s, 39 s without; clang leaves that detection off by default
+# Millions of calls: with gcc, whose ASan detects stack-use-after-return by default (fake stacks), GameOfLife (390 000
+# calls of the perception filter per turn) took more than 1 200 s, 39 s without, and PingPong (10 million messages per
+# trial) more than 300 s, 37 s without; clang leaves that detection off by default
 if (CAM_SANITIZER STREQUAL "asan")
-	set_property(TEST iso.GameOfLife APPEND PROPERTY ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=0")
+	set_property(TEST iso.GameOfLife iso.PingPong APPEND PROPERTY ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=0")
 endif()
