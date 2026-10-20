@@ -37,4 +37,32 @@ if (CAM_BUILD_TESTS)
 	set_tests_properties(perf.smoke.Transport PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "msg/ms" TIMEOUT 300)
 	add_test(NAME perf.smoke.Envelope COMMAND bench_Envelope --count 2000)
 	set_tests_properties(perf.smoke.Envelope PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "json content=1024 encode_ns" TIMEOUT 300)
+
+	# Not worse than the C# (label perf): a benchmark runs 10 times and the median of its runs is compared with the median
+	# of its C# original measured on the same machine (CAM_BENCH_REFERENCE, written by tools/csharp-ref benchref);
+	# skipped without that reference. Run alone, so that no other test shares the machine.
+	add_executable(cam_bench_compare ${CMAKE_CURRENT_LIST_DIR}/compare.cpp)
+	function(cam_add_bench_comparison p_name p_program)
+		add_test(NAME perf.vs_csharp.${p_name} COMMAND cam_bench_compare ${p_name} 10 -- $<TARGET_FILE:bench_${p_program}> ${ARGN})
+		set_tests_properties(perf.vs_csharp.${p_name} PROPERTIES LABELS perf SKIP_RETURN_CODE 77 RUN_SERIAL ON TIMEOUT 1800)
+	endfunction()
+	cam_add_bench_comparison(Skynet Skynet)
+	cam_add_bench_comparison(SkynetNumeric SkynetNumeric)
+	cam_add_bench_comparison(PingPong PingPong)
+	cam_add_bench_comparison(PingPongSequential PingPong --sequential)
+
+	# The comparison tool on fixture references: skipped without a reference, then each verdict on small runs
+	set(l_fixtures ${CMAKE_CURRENT_LIST_DIR}/fixtures)
+	add_test(NAME perf.compare.skip COMMAND cam_bench_compare Skynet 2 -- $<TARGET_FILE:bench_Skynet> --sequential --agents 100)
+	set_tests_properties(perf.compare.skip PROPERTIES LABELS perf ENVIRONMENT "CAM_BENCH_REFERENCE=" PASS_REGULAR_EXPRESSION "SKIP no C# reference")
+	foreach (l_case IN ITEMS "slow|not worse than the C#" "fast|FAIL worse than the C#")
+		string(REPLACE "|" ";" l_parts "${l_case}")
+		list(GET l_parts 0 l_reference)
+		list(GET l_parts 1 l_expected)
+		add_test(NAME perf.compare.time_${l_reference} COMMAND cam_bench_compare Skynet 3 -- $<TARGET_FILE:bench_Skynet> --sequential --agents 100)
+		add_test(NAME perf.compare.throughput_${l_reference}
+			COMMAND cam_bench_compare PingPongSequential 2 -- $<TARGET_FILE:bench_PingPong> --sequential --turns 3000 --trials 3)
+		set_tests_properties(perf.compare.time_${l_reference} perf.compare.throughput_${l_reference} PROPERTIES LABELS perf
+			ENVIRONMENT "CAM_BENCH_REFERENCE=${l_fixtures}/reference-${l_reference}.txt" PASS_REGULAR_EXPRESSION "${l_expected}" TIMEOUT 300)
+	endforeach()
 endif()

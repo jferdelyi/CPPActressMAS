@@ -8,7 +8,8 @@
 #   --linux   runs the same in a Linux container of the Podman machine: connection CAM_PODMAN_CONNECTION (cam by
 #             default), image CAM_LINUX_IMAGE (localhost/cam-linux-dev:24.04-zenoh by default), build folder
 #             build/linux-<compiler>-<preset>
-# The network tests skip without their broker: CAM_MQTT_HOST and CAM_MQTT_PORT give it.
+# The network tests skip without their broker: CAM_MQTT_HOST and CAM_MQTT_PORT give it. The perf.vs_csharp tests skip
+# without the C# reference of the machine: CAM_BENCH_REFERENCE (tests/bench/README.md).
 #
 # Examples: tests/run.sh                  every test of the debug preset
 #           tests/run.sh asan unit iso    the unit and oracle tests under AddressSanitizer
@@ -51,13 +52,19 @@ if [ "$l_linux" = 1 ]; then
 		clang) l_cc=clang; l_cxx=clang++ ;;
 		*) echo "unknown compiler: $l_compiler (gcc or clang)" >&2; exit 2 ;;
 	esac
+	# The C# reference of the perf tests is a file of the host: mounted where the container reads it
+	l_reference=()
+	if [ -n "${CAM_BENCH_REFERENCE:-}" ]; then
+		l_reference=(-v "$CAM_BENCH_REFERENCE:/cam-bench-reference.txt:ro" -e CAM_BENCH_REFERENCE=/cam-bench-reference.txt)
+	fi
 	exec podman --connection "${CAM_PODMAN_CONNECTION:-cam}" run --rm --pull=never --network=host \
 		-e CC="$l_cc" -e CXX="$l_cxx" -e CAM_BUILD_PREFIX="linux-$l_compiler-" -e CAM_MQTT_HOST -e CAM_MQTT_PORT \
-		-v "$s_root:/src" -w /src "${CAM_LINUX_IMAGE:-localhost/cam-linux-dev:24.04-zenoh}" \
+		${l_reference[@]+"${l_reference[@]}"} -v "$s_root:/src" -w /src "${CAM_LINUX_IMAGE:-localhost/cam-linux-dev:24.04-zenoh}" \
 		bash tests/run.sh "$l_preset" ${l_selected[@]+"${l_selected[@]}"}
 fi
 
 cd "$s_root"
+export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)}"
 cmake --preset "$l_preset"
 cmake --build --preset "$l_preset"
 if [ ${#l_selected[@]} -eq 0 ]; then

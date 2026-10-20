@@ -1,0 +1,37 @@
+# Benchmarks of CPPActressMAS against their C# originals measured on the same runner: "not worse than the C#"
+# (tests/bench/README.md). Started by hand: a shared runner is noisy, so this is a check, not a measurement.
+name: bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: Executions of each benchmark, on each side
+        default: "10"
+
+jobs:
+  linux:
+    name: Linux, gcc, against .NET 10
+    runs-on: ubuntu-24.04
+    env:
+      CC: gcc
+      CXX: g++
+      CAM_DOTNET: native
+      CAM_BENCH_RUNS: ${{ inputs.runs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: C# reference, ActressMAS v3.1 on this runner
+        run: |
+          mkdir -p "$HOME/csharp-ref"
+          bash tests/tools/csharp-ref/csharp-ref.sh "$HOME/csharp-ref" build net10
+          bash tests/tools/csharp-ref/csharp-ref.sh "$HOME/csharp-ref" benchref net10
+          echo "CAM_BENCH_REFERENCE=$HOME/csharp-ref/logs/bench-reference-net10.txt" >> "$GITHUB_ENV"
+      - name: Configure and build the benchmarks
+        run: cmake --preset bench && cmake --build --preset bench
+      - name: C++ against the C# reference
+        run: ctest --preset bench -L perf

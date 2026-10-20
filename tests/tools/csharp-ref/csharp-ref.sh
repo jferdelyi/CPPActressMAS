@@ -7,7 +7,10 @@
 #   WORKDIR : work folder outside the repository; ref/ (next to this script) is copied into WORKDIR/ref at each run,
 #             builds stay there. ActressMas/ is cloned there if missing, then only read.
 #             Must live under $HOME or /private/tmp: plain /tmp is NOT shared with the VM (podman: "statfs ...: no such file").
-#   ACTION  : build | rng | trace | format | bench | e00 | probe | mono | shimcheck | oracles | all
+#   ACTION  : build | rng | trace | format | bench | benchref | e00 | probe | mono | shimcheck | oracles | all
+#             benchref : runs Skynet, SkynetNumeric, PingPong and PingPong.Seq CAM_BENCH_RUNS times (10 by default) and
+#                        writes their medians into WORKDIR/logs/bench-reference-<flavor>.txt, the C# reference of the
+#                        perf.vs_csharp tests on this machine (CAM_BENCH_REFERENCE)
 #             format   : FormatVectors (number formatting and parsing of .NET), for tests/iso/vectors/format.txt
 #             shimcheck: RngVectors through the seed shim, must equal ref/expected/rng-vectors.txt
 #             oracles  : runs every project of ref/Oracles (seed shim, CAM_SEED or 0) from its output folder into
@@ -63,14 +66,21 @@ for gen in "$W"/ref/Oracles/*/Patched/*.cs; do
   [ -e "$(dirname "$(dirname "$gen")")/$(basename "$gen").sed" ] || { echo "$gen has no $(basename "$gen").sed any more: remove it" >&2; exit 1; }
 done
 
-# one-shot .NET SDK container, WORKDIR mounted on /w, removed on exit
-dn() { podman run --rm --pull=never --name "cam-csref-$$-$RANDOM" -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 \
-         -v "$W":/w -w /w/ref "$IMG" "$@"; }
+# one-shot .NET SDK container, WORKDIR mounted on /w, removed on exit; with CAM_DOTNET=native, the dotnet of the host
+# instead, from WORKDIR/ref too (the CI, where the job installs .NET; actions build, bench and benchref)
+if [ "${CAM_DOTNET:-}" = native ]; then
+  dn() { (cd "$W/ref" && DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1 "$@"); }
+  dn_sdk10() { dn "$@"; }
+else
+  dn() { podman run --rm --pull=never --name "cam-csref-$$-$RANDOM" -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 \
+           -v "$W":/w -w /w/ref "$IMG" "$@"; }
+  dn_sdk10() { podman run --rm --pull=never --name "cam-csref-sln-$$" -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 \
+                 -v "$W":/w -w /w/ref mcr.microsoft.com/dotnet/sdk:10.0 "$@"; }
+fi
 
 do_build() {
   # generated at each build (SDK 10 CLI) instead of shipping a GUID-laden .sln, so that new projects are included
-  podman run --rm --pull=never --name "cam-csref-sln-$$" -e DOTNET_CLI_TELEMETRY_OPTOUT=1 -e DOTNET_NOLOGO=1 -v "$W":/w -w /w/ref \
-    mcr.microsoft.com/dotnet/sdk:10.0 bash -c \
+  dn_sdk10 bash -c \
     'dotnet new sln -n ActressMasRef --format sln --force >/dev/null && dotnet sln ActressMasRef.sln add $(find . -name "*.csproj" -not -path "./BfProbe/*" -not -path "./E20/*" | sort) >/dev/null' 
   dn dotnet build ActressMasRef.sln -c Release -p:RefTfm="$TFM" > "$W/logs/build-$FLAVOR.log" 2>&1 \
     || { tail -30 "$W/logs/build-$FLAVOR.log"; exit 1; }
@@ -83,6 +93,29 @@ do_bench() {
   dn bash -c "TIMEFORMAT='process wall=%Rs user=%Us sys=%Ss'; echo nproc=\$(nproc);
     for b in Skynet SkynetNumeric PingPong; do echo \"== \$b\"; time dotnet \$b.Ref/bin/Release/$TFM/\$b.dll; done" 2>&1 \
     | tee "$W/logs/bench-$FLAVOR.txt"
+}
+do_benchref() {  # medians of the C# benchmarks on this machine, read by the perf.vs_csharp tests (tests/bench/README.md)
+  local runs="${CAM_BENCH_RUNS:-10}" out="$W/logs/bench-reference-$FLAVOR.txt" spec name metric dll i
+  {
+    echo "#cam bench reference: ActressMas $REF_COMMIT, $(dn bash -c 'dotnet --list-runtimes | grep Microsoft.NETCore.App | tail -1 | cut -d" " -f1,2; echo "$(uname -m), $(nproc) CPUs"' | tr -d '\r' | paste -sd, - | sed 's/,/, /'), $runs runs"
+    for spec in "Skynet ms Skynet.Ref/bin/Release/$TFM/Skynet.dll" "SkynetNumeric ms SkynetNumeric.Ref/bin/Release/$TFM/SkynetNumeric.dll" \
+                "PingPong msg_per_ms PingPong.Ref/bin/Release/$TFM/PingPong.dll" "PingPongSequential msg_per_ms PingPong.Seq/bin/Release/$TFM/PingPongSeq.dll"; do
+      read -r name metric dll <<< "$spec"
+      # a run gives its time ("<t> ms"), or the mean msg/ms of its trials but the first ("<n> msg" then "<t> ms")
+      for i in $(seq 1 "$runs"); do
+        dn timeout 600 dotnet "$dll" | tr -d '\r' | awk -v metric="$metric" '
+          /^[0-9]+ msg$/ { m = $1; next }
+          /^[0-9]+(\.[0-9]+)? ms$/ { t = $1; if (m != "" && t > 0) { n++; if (n > 1) { s += m / t; k++ } } m = "" }
+          END { if (metric == "ms") print t; else if (k > 0) print s / k }'
+      done | awk -v name="$name" -v metric="$metric" '
+        metric == "ms" && NR == 1 { next }   # the first run of a time warms up
+        { v[++n] = $1 }
+        END {
+          for (i = 2; i <= n; i++) { x = v[i]; for (j = i - 1; j >= 1 && v[j] > x; j--) v[j + 1] = v[j]; v[j + 1] = x }
+          printf "%s %s %.3f\n", name, metric, (n % 2) ? v[(n + 1) / 2] : (v[n / 2] + v[n / 2 + 1]) / 2 }'
+    done
+  } > "$out"
+  cat "$out"
 }
 do_e00() {
   dn bash -c "for d in E00/*/; do n=\$(basename \$d); timeout 60 dotnet E00/\$n/bin/Release/$TFM/\$n.dll > /w/logs/e00-\$n-$FLAVOR.txt 2>&1;
@@ -189,7 +222,7 @@ do_e20mono() {  # runtime cross-check: shipped .NET Framework Server + MasMobile
   for f in mono-side dotnet-side c1 c2 c3 container2 container1; do echo "== $f"; cat "$W/logs/e20mono-$run/$f.txt" 2>/dev/null; done
 }
 case "$ACTION" in
-  build) do_build ;; rng) do_rng ;; trace) do_trace ;; format) do_format ;; bench) do_bench ;; e00) do_e00 ;; probe) do_probe ;; mono) do_mono ;;
+  build) do_build ;; rng) do_rng ;; trace) do_trace ;; format) do_format ;; bench) do_bench ;; benchref) do_benchref ;; e00) do_e00 ;; probe) do_probe ;; mono) do_mono ;;
   shimcheck) do_shimcheck ;; oracles) do_oracles ;;
   e20build) do_e20build ;; capture) do_capture ;; e20) do_e20 ;; e20mono) do_e20mono ;;
   all) do_build; do_rng; do_trace; do_format; do_bench; do_e00; do_probe; do_shimcheck; do_oracles ;;

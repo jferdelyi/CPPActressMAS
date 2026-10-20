@@ -41,6 +41,8 @@ Environment variables read by the tests:
 - `CAM_MQTT_HOST`, `CAM_MQTT_PORT`, `CAM_MQTT_BROKER_CONTROL`: the MQTT broker of `network.mqtt`.
 - `CAM_SEED`: the base of the seeds of the oracle tests (0 by default, as their oracles; see `iso/README.md`).
 - `CAM_WRITE_VECTORS=1`: writes the binary vectors of the envelope codecs again (`unit/vectors/`).
+- `CAM_BENCH_REFERENCE`, `CAM_BENCH_RUNS`: the C# reference of the machine and the number of runs of the
+  `perf.vs_csharp` tests (`bench/README.md`).
 
 ## Platforms
 
@@ -59,6 +61,9 @@ neither a broker nor Zenoh, so the network tests skip):
 | Linux | gcc and clang, Debug and Release, warnings as errors | every type |
 | Linux sanitizers | gcc, `asan` and `tsan` presets | every type |
 | Windows | MSVC, `msvc` preset (Debug) | `unit` and `iso` |
+
+`.github/workflows/bench.yml`, started by hand, measures the C# benchmarks on a Linux runner, then runs the `perf`
+tests of the C++ against them on the same runner (`bench/README.md`).
 
 ## Windows
 

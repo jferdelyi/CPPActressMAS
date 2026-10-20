@@ -21,3 +21,32 @@ cmake --workflow --preset bench
 build/bench/tests/bench/bench_Skynet
 build/bench/tests/bench/bench_PingPong --sequential --trials 3
 ```
+
+## Not worse than the C#
+
+`perf.vs_csharp.<benchmark>` compares a benchmark with its C# original measured **on the same machine**
+(`compare.cpp`, `cam_bench_compare`): the C++ program runs 10 times (`CAM_BENCH_RUNS`), and the median of its runs must
+not be worse than the C# median of the reference.
+
+| Test | C++ | C# (ActressMAS v3.1, E30) | Metric |
+|---|---|---|---|
+| `perf.vs_csharp.Skynet` | `bench_Skynet` | `Skynet` | time, ms (lower is better) |
+| `perf.vs_csharp.SkynetNumeric` | `bench_SkynetNumeric` | `SkynetNumeric` | time, ms |
+| `perf.vs_csharp.PingPong` | `bench_PingPong` | `PingPong` | msg/ms (higher is better) |
+| `perf.vs_csharp.PingPongSequential` | `bench_PingPong --sequential` | `PingPong` in a fixed sequential order (`tools/csharp-ref/ref/PingPong.Seq`) | msg/ms |
+
+On both sides, the first run of a time and the first trial of each PingPong run warm up and are dropped; a PingPong run
+gives the mean msg/ms of its other trials. The parallel PingPong compares throughputs only: the C# stops at its 10 000
+turns, with fewer messages than the C++.
+
+The reference is a text file, one line per benchmark (`<benchmark> ms|msg_per_ms <median>`), named by
+`CAM_BENCH_REFERENCE`; without it the tests are skipped. It belongs to one machine, so it is not versioned:
+- **Podman machine**: `tools/csharp-ref/csharp-ref.sh <workdir> benchref` measures the C# in a .NET container of the
+  machine and writes `<workdir>/logs/bench-reference-net10.txt`; then
+  `CAM_BENCH_REFERENCE=<that file> tests/run.sh --linux bench perf` runs the C++ in a Linux container of the same
+  machine.
+- **CI**: the `bench` workflow (`.github/workflows/bench.yml`, started by hand) installs .NET on the runner, measures
+  the C# there (`CAM_DOTNET=native`), then builds and runs the C++ against it.
+
+The reference is measured before the C++, not interleaved with it: on a shared or busy machine, measure both again
+before reading a failure as a regression. `perf.compare.*` check the tool itself on fixture references (`fixtures/`).

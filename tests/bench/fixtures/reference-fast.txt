@@ -1,0 +1,3 @@
+# Self-test of cam_bench_compare: C# figures that no C++ run can reach, the comparison must fail
+Skynet ms 0.000001
+PingPongSequential msg_per_ms 1000000000000
