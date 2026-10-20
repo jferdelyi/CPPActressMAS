@@ -1,0 +1,18 @@
+# E15 Fictitious Play: parallel; the game agent and the two players print in the same turns, in any order between them,
+# and a message sent during a turn may be read in that turn or the next: where a player's line falls between the round
+# lines of the game agent depends on the interleaving. Compared: the lines of the game agent in order (round lines
+# included), the lines of each player in order, and all the messages as a multiset.
+ignore ^$
+cover all
+fact game ^(Starting fictitious play .*|--- Round \d+ ---|Joint action: .*|Game finished\.|Total payoff for .*)$
+fact play ^(player\d) \(round (\d+)\) plays ([CD])$
+fact observe ^(player\d) observes opponent played ([CD]), payoff = (.*)$
+fact player ^(player\d)(: stopping\.|: belief about .*|: empirical strategy: .*)$
+fact message ^\t\[(\w+) -> (\w+)\]: (.*)$
+same game seq
+same play seq by 0
+same observe seq by 0
+same player seq by 0
+same message bag
+check play count == 100
+check observe count == 100

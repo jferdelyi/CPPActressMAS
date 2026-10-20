@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E16 Replicator Dynamics: original sources unchanged, see ../Oracle.props -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E16 Replicator Dynamics/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

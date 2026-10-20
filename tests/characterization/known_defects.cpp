@@ -379,6 +379,30 @@ TEST_SUITE("characterization") {
 		CHECK(l_lookup[0] == g_receivers[0]);  // insertion order for the lookup, hash order for the send
 	}
 
+	// ---------------------------------------------------------------- sender of a message from a removed agent
+	std::string g_formatted;
+	struct Farewell final : cam::Agent {  // says goodbye at its first action, then stops
+		explicit Farewell(const std::string& p_name) : Agent(p_name) {}
+		void default_action() override {
+			send_by_name("listener", "bye");
+			stop();
+		}
+	};
+
+	struct Listener final : cam::Agent {
+		explicit Listener(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override { g_formatted = format(p_message); }
+	};
+
+	TEST_CASE("the format of a message names its sender, even once the sender is removed" * doctest::should_fail()) {
+		g_formatted.clear();
+		cam::Environment l_env(3, Mode::Sequential);
+		l_env.add<Listener>("listener");
+		l_env.add<Farewell>("farewell");
+		l_env.start();  // turn 1: farewell sends and stops, removed at the boundary; turn 2: listener formats the message
+		CHECK(g_formatted == "[farewell -> listener]: bye");  // C#: the message carries the name of its sender
+	}
+
 	// ---------------------------------------------------------------- threads of a Sequential environment
 #if defined(__APPLE__) || defined(__linux__)
 	int thread_count() {

@@ -1,0 +1,15 @@
+# E03 LRTA Search: parallel, but the two agents strictly alternate (each waits for the other's message), and the moves
+# among equal costs come from the seed of the oracle, so the C# fixes every line (exact trace). "line" checks the whole
+# trace, the other facts each kind.
+cover all
+fact line ^(.*)$
+fact message ^\t\[(\w+) -> (\w+)\]: (.*)$
+fact move ^(agent1) moves to state (\w+)$
+fact update ^(agent1) updates h\((\w+)\) = (\d+)$
+fact goal ^(agent1) reached goal state (\w+)$
+same line seq
+same message seq
+same move seq
+same update seq
+same goal seq
+check goal count == 1

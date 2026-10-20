@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E03 LRTA Search, see ../Oracle.props: original sources unchanged; the map Pendulum.grx and
+       its heuristics Pendulum.grh, shipped only next to the original binary, are copied next to this one (read from the
+       working directory). -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E03 LRTA Search/</OracleSources>
+    <OracleData>$(OracleSources)bin/Release/Pendulum.grx;$(OracleSources)bin/Release/Pendulum.grh</OracleData>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>
