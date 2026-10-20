@@ -1,0 +1,23 @@
+# E06 Yellow Pages: parallel. The searches of the first clients leave at their setup, as the registrations of the
+# providers: a search that reaches the broker before any provider of its service gets no answer, and the client never
+# asks again; which ones depends on the interleaving, in the C# as in the C++. Compared: the registrations, searches and
+# unregistration as multisets, the forced unregistration, and as many requests, responses and results as answered
+# searches (the clients added for the last run are always answered).
+cover all
+fact register ^\t\[(provider\d) -> broker\]: register (Add|Sub)$
+fact search ^\t\[(client\d) -> broker\]: search (Add|Sub)$
+fact unregister ^\t\[(provider\d) -> broker\]: unregister (Add|Sub)$
+fact force ^\t\[provider1 -> provider1\]: force-unregister$
+fact providers ^\t\[broker -> (client\d)\]: providers (.*)$
+fact request ^\t\[(client\d) -> (provider\d)\]: request (\d+) (\d+)$
+fact response ^\t\[(provider\d) -> (client\d)\]: response (-?\d+)$
+fact result ^\[(client\d)\]: (Add|Sub)\((\d+), (\d+)\) = (-?\d+)$
+same register bag
+same search bag
+same unregister bag
+same force count
+check providers count in [2,6]
+check request count == providers.count
+check response count == request.count
+check result count == response.count
+check result distinct(0) >= 2
