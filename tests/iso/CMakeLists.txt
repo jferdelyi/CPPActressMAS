@@ -133,7 +133,9 @@ cam_iso_expect_removed_sender_name(EnglishWithoutBroadcast)
 cam_iso_expect_removed_sender_name(Vickrey)
 # Millions of calls: with gcc, whose ASan detects stack-use-after-return by default (fake stacks), GameOfLife (390 000
 # calls of the perception filter per turn) took more than 1 200 s, 39 s without, and PingPong (10 million messages per
-# trial) more than 300 s, 37 s without; clang leaves that detection off by default
+# trial) more than 300 s, 37 s without; clang leaves that detection off by default. Predator-Prey too (thousands of
+# insects, small vectors at each move): the GUI version more than 300 s, 3 s without
 if (CAM_SANITIZER STREQUAL "asan")
-	set_property(TEST iso.GameOfLife iso.PingPong APPEND PROPERTY ENVIRONMENT "ASAN_OPTIONS=detect_stack_use_after_return=0")
+	set_property(TEST iso.GameOfLife iso.PingPong iso.PredatorPrey iso.PredatorPreyGui APPEND PROPERTY ENVIRONMENT
+				 "ASAN_OPTIONS=detect_stack_use_after_return=0")
 endif()
