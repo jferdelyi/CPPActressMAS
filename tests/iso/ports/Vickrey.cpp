@@ -24,7 +24,6 @@
 
 #include <algorithm>
 #include <exception>
-#include <functional>
 #include <limits>
 #include <string>
 #include <vector>

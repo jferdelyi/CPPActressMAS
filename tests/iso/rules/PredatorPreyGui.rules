@@ -1,8 +1,8 @@
 # E11 Predator-Prey, GUI version: the stub of the form prints the turn its text box shows, then the populations it loads
 # from world-state.txt at the end; 20 x 20 grid, 200 turns, sequential in a random order. The draws come from the seed
 # of the oracle, so the C# fixes the populations until the first insects leave: from then on, the C# Dictionary reuses
-# their places and changes the order of the following turns, which the C++ does not reproduce (divergence d of the
-# C#). The first insects born (ants, turn 3) act from turn 4, so the first four turns are the same for any seed.
+# their places and changes the order of the following turns, which the C++ does not reproduce (a known divergence of
+# the library). The first insects born (ants, turn 3) act from turn 4, so the first four turns are the same for any seed.
 # Compared: the turns shown, the populations of the first four turns exactly, then their number, populations that fit on
 # the grid, and the end of the simulation.
 ignore ^$

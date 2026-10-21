@@ -33,7 +33,7 @@
 
 class Colors {
 	public:
-		static std::string GenerateColor() {
+		static std::string generate_color() {
 			static const std::vector<std::string> s_colors{"red", "green", "blue"};
 			static cam::DotnetRandom s_rand(cam::dotnet::next_site_seed("Program.cs:119"));
 			return s_colors[s_rand.next(static_cast<std::int32_t>(s_colors.size()))];
@@ -63,7 +63,7 @@ class MyAgent : public cam::Agent {
 				}
 			}
 
-			(*m_observables)["Color"] = Colors::GenerateColor();
+			(*m_observables)["Color"] = Colors::generate_color();
 
 			std::cout << "\r\nMy color is now " << m_observables->at("Color").get<std::string>() << std::endl;
 			std::cout << "-------------------------------------------" << std::endl;

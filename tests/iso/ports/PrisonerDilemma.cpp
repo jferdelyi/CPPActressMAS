@@ -22,10 +22,8 @@
 // police, which computes the outcome of each round; tit for tat cooperates first, then copies the other prisoner.
 // The environment announces the rounds and tells the prisoners when the game ends.
 
-#include <cstdint>
 #include <exception>
 #include <iostream>
-#include <random>
 #include <string>
 #include <utility>
 #include <vector>
@@ -106,8 +104,8 @@ class ConfessPrisonerAgent final : public PrisonerAgent {
 
 class RandomPrisonerAgent final : public PrisonerAgent {
 	private:
-		// Unseeded in the C# (static Random)
-		static inline cam::DotnetRandom s_random{static_cast<std::int32_t>(std::random_device()())};
+		// The static Random of the C#, with the seed of its oracle (unused: Main plays tit for tat, as the C#)
+		static inline cam::DotnetRandom s_random{cam::dotnet::next_site_seed("RandomPrisonerAgent.cs:22")};
 
 	protected:
 		std::string choose_action(int) override {

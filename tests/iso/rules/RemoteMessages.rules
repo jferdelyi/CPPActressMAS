@@ -2,7 +2,7 @@
 # console of each container is compared in its own section. The lines of the C# Container class (connection to the
 # server, registration, "Running MAS...") are not compared: the server and the containers are not ported, the
 # transport plays their part. A message from another container names its sender "name@container" in the C#, by its
-# id in the C++ (the receiver does not know its name, divergence ad of the C#): its sender is not compared.
+# id in the C++ (the receiver does not know its name, a known divergence of the library): its sender is not compared.
 section ^This is Container\d$
 ignore ^$
 ignore ^Container connecting to server\.\.\.$

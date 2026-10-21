@@ -1,8 +1,9 @@
 # E01 Reactive Architecture: parallel, 100 turns (the oracle bounds the turns, the example never stops); the explorers
 # draw their moves from one generator in any order, and a message sent during a turn is read in that turn only if its
 # receiver has not acted yet: how many exchanges fit in 100 turns depends on the scheduling, in the C# as in the C++.
-# Compared: who starts, the five first positions, the vocabulary of the protocol (cover all), and its order: a sample
-# is picked up only after the planet told the explorer of it, and unloaded only after it was picked up.
+# Compared: who starts, one first position per explorer (their values depend on the order of the draws), the
+# vocabulary of the protocol (cover all), and its counts: no more pick-ups than samples found, no more unloads than
+# pick-ups, at most the 10 samples, at least 50 moves (the C# makes about twice as many as the C++).
 cover all
 fact start ^Starting (planet|explorer\d)$
 fact position ^\t\[(explorer\d) -> planet\]: position (\d+) (\d+)$

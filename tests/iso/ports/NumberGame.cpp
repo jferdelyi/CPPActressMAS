@@ -23,7 +23,6 @@
 // Sequential, fixed order, 10 turns; the numbers are drawn as the C# draws them (the seed of its oracle).
 
 #include <cmath>
-#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -34,7 +33,7 @@
 
 class Numbers {
 	public:
-		static double GenerateNumber() {
+		static double generate_number() {
 			static cam::DotnetRandom s_rand(cam::dotnet::next_site_seed("Program.cs:90"));
 			return s_rand.next_double() * 30;
 		}
@@ -44,9 +43,9 @@ class MyAgent final : public cam::Agent {
 	private:
 		std::vector<cam::ObservablesPointer> m_observable_agents;
 
-		// The number is kept as its text with two decimals, and read back for the comparison, as the C# does
+		// The number is kept as its text with two decimals, and read back for the comparison (Convert.ToDouble)
 		[[nodiscard]] static double to_double(const cam::ObservablesPointer& p_observables) {
-			return std::strtod(p_observables->at("Number").get<std::string>().c_str(), nullptr);
+			return cam::dotnet::to_double(p_observables->at("Number").get<std::string>());
 		}
 
 	public:
@@ -54,7 +53,7 @@ class MyAgent final : public cam::Agent {
 
 		void setup() override {
 			(*m_observables)["Name"] = get_name();
-			(*m_observables)["Number"] = cam::dotnet::format_fixed(Numbers::GenerateNumber(), 2);
+			(*m_observables)["Number"] = cam::dotnet::format_fixed(Numbers::generate_number(), 2);
 		}
 
 		[[nodiscard]] bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
@@ -79,7 +78,7 @@ class MyAgent final : public cam::Agent {
 				}
 			}
 
-			(*m_observables)["Number"] = cam::dotnet::format_fixed(Numbers::GenerateNumber(), 2);
+			(*m_observables)["Number"] = cam::dotnet::format_fixed(Numbers::generate_number(), 2);
 
 			std::cout << "My number is now " << m_observables->at("Number").get<std::string>() << std::endl;
 			std::cout << "----------------------------------------------" << std::endl;

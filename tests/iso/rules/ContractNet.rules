@@ -2,7 +2,7 @@
 # (a status block is written at once, but which postman comes first depends on the interleaving). Compared as
 # multisets: the status lines (names, tours solved by the TSP of the example, payoffs), the messages of the protocol,
 # and what each postman does with them. One CNPMessage object is shared by every receiver of a broadcast and changed
-# in place by each (X13): the values a receiver prints depend on who handled the object first, in the C# as in the
+# in place by each: the values a receiver prints depend on who handled the object first, in the C# as in the
 # C++, so the messages are compared without them; the values are compared where the agent that computes them prints
 # them.
 ignore ^$

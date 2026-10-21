@@ -1,8 +1,8 @@
 # E11 Predator-Prey, console version: sequential in a random order, 1 000 turns. The draws come from the seed of the
 # oracle, so the C# fixes every line until the first insects leave: from then on, the C# Dictionary reuses their places
-# and changes the order of the following turns, which the C++ does not reproduce (divergence d of the C#). Compared: the
-# populations of the first four turns exactly, then the number of turns, populations that fit on the 50 x 50 grid, and
-# the end of the simulation.
+# and changes the order of the following turns, which the C++ does not reproduce (a known divergence of the library).
+# Compared: the populations of the first four turns exactly, then the number of turns, populations that fit on the
+# 50 x 50 grid, and the end of the simulation.
 ignore ^$
 cover all
 fact early ^Turn ([1-4]): (\d+) doodlebugs, (\d+) ants$

@@ -76,8 +76,7 @@ class Agent2 final : public cam::Agent {
 		void setup() override {
 			for (int i = 0; i < 3; i++) {
 				cam::dotnet::write_line("a2 sending: setup: " + std::to_string(i + 1) + " from a2");
-				// By identifier here, where the C# sends by name: same receiver
-				send(get_first_agent_by_name("a1").value(), json(ContentInfo(i + 1, "setup a2")));
+				send_by_name("a1", json(ContentInfo(i + 1, "setup a2")));
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 		}
