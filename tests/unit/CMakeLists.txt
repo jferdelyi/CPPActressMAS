@@ -31,6 +31,9 @@ cam_add_doctest(agent_id cam_agent_id_tests agent_id.cpp)
 # Removal of agents: deferred to the turn boundary during a turn, at once outside a turn.
 cam_add_doctest(removal cam_removal_tests removal.cpp)
 
+# Observables: what an agent sees of the others before each action, as the C#.
+cam_add_doctest(observables cam_observables_tests observables.cpp)
+
 # Generator of the seeded System.Random of .NET, against the series of the C#.
 cam_add_doctest(dotnet_random cam_dotnet_random_tests dotnet_random.cpp)
 target_compile_definitions(cam_dotnet_random_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")

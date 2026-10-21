@@ -731,6 +731,47 @@ TEST_SUITE("envelope_codec") {
 			std::get<Presence>(l_presence.m_payload).m_namespace = "Lab 1";
 			CHECK_FALSE(validate_envelope(l_presence, MAX_BYTES));
 		}
+		SUBCASE("another major version") {
+			l_envelope.m_version_major = 2;
+			const auto l_result = validate_envelope(l_envelope, MAX_BYTES);
+			REQUIRE_FALSE(l_result);
+			CHECK(l_result.error().m_code == ErrorCode::UnsupportedVersion);
+		}
+		SUBCASE("kinds, scope and encoding out of their enumerations") {
+			// Values a decoder may read from the wire, beyond the last one of each enumeration
+			Envelope l_kind = l_envelope;
+			l_kind.m_kind = static_cast<EnvelopeKind>(200);
+			CHECK_FALSE(validate_envelope(l_kind, MAX_BYTES));
+			Envelope l_stream = l_envelope;
+			l_stream.m_stream_kind = static_cast<StreamKind>(200);
+			CHECK_FALSE(validate_envelope(l_stream, MAX_BYTES));
+			Envelope l_target = l_envelope;
+			l_target.m_target_kind = static_cast<TargetKind>(200);
+			CHECK_FALSE(validate_envelope(l_target, MAX_BYTES));
+			Envelope l_scope = l_envelope;
+			l_scope.m_scope = static_cast<Scope>(200);
+			CHECK_FALSE(validate_envelope(l_scope, MAX_BYTES));
+			Envelope l_encoding = l_envelope;
+			l_encoding.m_content_encoding = static_cast<cam::MessageBinaryFormat>(200);
+			CHECK_FALSE(validate_envelope(l_encoding, MAX_BYTES));
+		}
+		SUBCASE("origin environment with a slash") {
+			l_envelope.m_origin_environment = "a/b";
+			CHECK_FALSE(validate_envelope(l_envelope, MAX_BYTES));
+		}
+		SUBCASE("message without its sender agent") {
+			l_envelope.m_sender_agent.clear();
+			CHECK_FALSE(validate_envelope(l_envelope, MAX_BYTES));
+		}
+		SUBCASE("message by id without a target") {
+			l_envelope.m_target_id.clear();
+			CHECK_FALSE(validate_envelope(l_envelope, MAX_BYTES));
+		}
+		SUBCASE("message to an environment without its identifier") {
+			l_envelope.m_target_kind = TargetKind::Environment;
+			l_envelope.m_target_id = "a/b";
+			CHECK_FALSE(validate_envelope(l_envelope, MAX_BYTES));
+		}
 	}
 
 	TEST_CASE("identifiers and keys") {

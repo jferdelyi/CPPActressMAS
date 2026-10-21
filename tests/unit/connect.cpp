@@ -162,6 +162,35 @@ TEST_SUITE("connect") {
 		}
 	}
 
+	TEST_CASE("a malformed URL is refused before anything opens, whatever the transports compiled in") {
+		cam::Environment l_env(1, cam::EnvironmentMasMode::Sequential);
+		// Every scheme is parsed before its transport is looked for: the MQTT and Zenoh URLs below never reach a socket
+		for (const char* l_url: {"no-scheme", "://no-scheme", "mqtt://", "mqtt://127.0.0.1:1/unit?mqtt=4", "zenoh://?mode=router",
+								 "zenoh://?scouting=gossip", "loopback://unit-connect-bad?colour=red", "loopback://unit-connect-bad?ns=a+b",
+								 "mqtt://127.0.0.1:1/unit?listen=tcp/127.0.0.1:1"}) {
+			CAPTURE(l_url);
+			const auto l_result = l_env.connect(l_url);
+			REQUIRE_FALSE(l_result);
+			CHECK(l_result.error().m_code == ErrorCode::InvalidConfiguration);
+			CHECK_FALSE(l_env.is_connected());
+		}
+		const auto l_codec = l_env.connect("loopback://unit-connect-bad?codec=morse");
+		REQUIRE_FALSE(l_codec);
+		CHECK(l_codec.error().m_code == ErrorCode::UnsupportedCodec);
+	}
+
+	TEST_CASE("a loopback namespace keeps the codec of the transport that opened it") {
+		cam::Environment l_a(1, cam::EnvironmentMasMode::Sequential);
+		cam::Environment l_b(1, cam::EnvironmentMasMode::Sequential);
+		REQUIRE(l_a.connect("loopback://unit-connect-codec?codec=json"));
+		const auto l_other = l_b.connect("loopback://unit-connect-codec?codec=compact");
+		REQUIRE_FALSE(l_other);
+		CHECK(l_other.error().m_code == ErrorCode::InvalidConfiguration);
+		REQUIRE(l_b.connect("loopback://unit-connect-codec?codec=json"));  // the same codec shares the transport
+		REQUIRE(l_a.disconnect());
+		REQUIRE(l_b.disconnect());
+	}
+
 	TEST_CASE("a custom factory adds a scheme and falls back on the default for the others") {
 		int l_calls = 0;
 		auto l_shared = std::make_shared<LoopbackTransport>();

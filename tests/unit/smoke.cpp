@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <memory>
 #include <set>
 #include <type_traits>
 
@@ -71,6 +72,10 @@ namespace {
 				send_by_name(m_target, json("by name"), m_first_only);
 			} else if (m_mode == "fragment") {
 				send_by_fragment_name(m_target, json("by fragment"), m_first_only);
+			} else if (m_mode == "fragment string") {
+				send_by_fragment_name(m_target, std::string("string by fragment"), m_first_only);
+			} else if (m_mode == "fragment chars") {
+				send_by_fragment_name(m_target, "chars by fragment", m_first_only);
 			} else if (m_mode == "broadcast") {
 				broadcast(json("to all"));
 			}
@@ -104,6 +109,17 @@ namespace {
 			broadcast(std::string("broadcast text"));
 			broadcast(raw(l_broadcast_bytes), l_broadcast_bytes.size());
 			broadcast(json("broadcast json"));
+		}
+	};
+
+	// Looks agents up from inside, at setup: records the name found for a name, or "none".
+	struct Finder final : cam::Agent {
+		explicit Finder(const std::string& p_name) : Agent(p_name) {}
+		void setup() override {
+			for (const std::string l_name: {"agent-2", "nobody"}) {
+				const auto l_id = get_first_agent_by_name(l_name);
+				g_recorder.record("found:" + (l_id ? get_agent_name(*l_id).value_or("?") : std::string("none")));
+			}
 		}
 	};
 
@@ -327,6 +343,21 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.count_of("manager:\"by fragment\"") == 0);
 	}
 
+	TEST_CASE("send_by_fragment_name sends a text as well, from a string or from characters") {
+		g_recorder.clear();
+		cam::Environment l_env(2, Mode::Sequential);
+		l_env.add<KindReceiver>("worker-1");
+		l_env.add<KindReceiver>("worker-2");
+		l_env.add<KindReceiver>("manager");
+		l_env.add<Addresser>("string", "fragment string", "worker", false);
+		l_env.add<Addresser>("chars", "fragment chars", "worker", true);
+		l_env.start();
+		CHECK(g_recorder.count_of("worker-1:text:string by fragment") == 1);
+		CHECK(g_recorder.count_of("worker-2:text:string by fragment") == 1);
+		CHECK(g_recorder.count_of("worker-1:text:chars by fragment") + g_recorder.count_of("worker-2:text:chars by fragment") == 1);  // first only
+		CHECK(g_recorder.count() == 3);
+	}
+
 	TEST_CASE("send by name reaches its agents among many, by key, and by fragment") {
 		g_recorder.clear();
 		cam::Environment l_env(2, Mode::Sequential);
@@ -434,6 +465,44 @@ TEST_SUITE("unit") {
 		CHECK(l_env.get_filtered_agents("agent-", true).size() == 1);
 		CHECK(l_env.get_agent_name(l_a1) == "agent-1");
 		CHECK_FALSE(l_env.get_agent_name("unknown").has_value());
+	}
+
+	TEST_CASE("an agent looks the others up by name, and finds nothing for an unknown name") {
+		g_recorder.clear();
+		cam::Environment l_env(1, Mode::Sequential);
+		l_env.add<Receiver>("agent-1");
+		l_env.add<Receiver>("agent-2");
+		l_env.add<Finder>("finder");
+		l_env.start();
+		CHECK(g_recorder.entries() == std::vector<std::string>{"found:agent-2", "found:none"});
+	}
+
+	TEST_CASE("global data is set, replaced, read and removed by key") {
+		cam::Environment l_env(1, Mode::Sequential);
+		l_env.set_global_data("Size", 11);
+		l_env.set_global_data("Name", "planet");
+		l_env.set_global_data("Size", 15);
+		CHECK(l_env.get_global_data().at("Size") == 15);
+		CHECK(l_env.get_global_data().at("Name") == "planet");
+		l_env.remove_global_data("Size");
+		l_env.remove_global_data("absent");  // nothing to remove: no effect
+		CHECK_FALSE(l_env.get_global_data().contains("Size"));
+		CHECK(l_env.get_global_data().size() == 1);
+	}
+
+	TEST_CASE("a message built by hand carries its sender, receiver and content, whatever the constructor") {
+		const cam::AgentId l_sender("sender");
+		const cam::AgentId l_receiver("receiver");
+		const cam::Message l_shared_json(l_sender, l_receiver, std::make_shared<const json>(json{{"k", 1}}));
+		CHECK(l_shared_json.get_sender() == l_sender);
+		CHECK(l_shared_json.get_receiver() == l_receiver);
+		CHECK(l_shared_json.kind() == cam::ContentKind::Json);
+		CHECK(l_shared_json.as_json().at("k") == 1);
+		const cam::Message l_content(l_sender, l_receiver, cam::MessageContent(cam::Text("shared text")));
+		CHECK(l_content.kind() == cam::ContentKind::Text);
+		CHECK(l_content.as_text() == "shared text");
+		const cam::Message l_empty;
+		CHECK(l_empty.kind() == cam::ContentKind::None);
 	}
 
 	TEST_CASE("an agent that stops before the last turn is removed and the simulation ends when empty") {

@@ -45,12 +45,16 @@ namespace {
 		}
 	};
 
-	// Keeps every message it receives, through a copy then a move, and reads them back at its next empty turn.
+	// Keeps every message it receives, through a copy, an assignment then a move, and reads them back at its next empty
+	// turn.
 	struct Keeper final : cam::Agent {
 		explicit Keeper(const std::string& p_name) : Agent(p_name) {}
 		void action(const cam::MessagePointer& p_message) override {
 			cam::MessagePointer l_copy = p_message;
 			g_recorder.record(l_copy == p_message ? "copy shares" : "copy differs");
+			cam::MessagePointer l_assigned;
+			l_assigned = p_message;
+			g_recorder.record(l_assigned == p_message && (*l_assigned).as_text() == p_message->as_text() ? "assignment shares" : "assignment differs");
 			cam::MessagePointer l_moved = std::move(l_copy);
 			g_recorder.record(l_copy == nullptr && !l_copy ? "moved-from is null" : "moved-from is not null");
 			m_kept.push_back(std::move(l_moved));
@@ -95,13 +99,14 @@ TEST_SUITE("unit") {
 		CHECK(l_null == l_other);
 	}
 
-	TEST_CASE("message pointers copied, moved and kept after the action stay valid") {
+	TEST_CASE("message pointers copied, assigned, moved and kept after the action stay valid") {
 		g_recorder.clear();
 		cam::Environment l_env(4, Mode::Sequential);
 		l_env.add<Keeper>("keeper");
 		l_env.add<Speaker>("speaker");
 		l_env.start();
 		CHECK(g_recorder.count_of("copy shares") == 3);
+		CHECK(g_recorder.count_of("assignment shares") == 3);
 		CHECK(g_recorder.count_of("moved-from is null") == 3);
 		for (int i = 1; i <= 3; i++) {
 			CHECK(g_recorder.count_of("kept text " + std::to_string(i)) == 1);
