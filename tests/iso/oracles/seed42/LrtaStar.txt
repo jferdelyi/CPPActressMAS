@@ -1,0 +1,28 @@
+#cam oracle LrtaStar
+#cam csharp ActressMas eb0bb73, Examples/E03 LRTA Search/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/LrtaStar/bin/Release/net10.0 && dotnet LrtaStar.dll
+#cam seed 42
+	[agent1 -> map]: expand A
+	[map -> agent1]: neighbors B | 14 | C | 2 | D | 9
+	[agent1 -> map]: heuristicsQuery E B C D 
+	[map -> agent1]: heuristicsReply 0 0 0 
+agent1 moves to state C
+agent1 updates h(A) = 2
+	[agent1 -> map]: expand C
+	[map -> agent1]: neighbors A | 2 | B | 8
+agent1 moves to state A
+agent1 updates h(C) = 4
+agent1 moves to state C
+agent1 updates h(A) = 6
+agent1 moves to state A
+agent1 updates h(C) = 8
+agent1 moves to state D
+agent1 updates h(A) = 9
+	[agent1 -> map]: expand D
+	[map -> agent1]: neighbors A | 9 | E | 5
+	[agent1 -> map]: heuristicsQuery E E 
+	[map -> agent1]: heuristicsReply 0 
+agent1 moves to state E
+agent1 reached goal state E
+	[agent1 -> map]: finished

@@ -69,24 +69,46 @@ endforeach()
 # GameOfLife reads its initial pattern from the working directory, as the C#
 add_custom_command(TARGET iso_GameOfLife POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/Examples/GameOfLife/patterns.txt $<TARGET_FILE_DIR:iso_GameOfLife>)
+# LrtaStar reads its map from the working directory, as the C#: the map files of the C# example (data/README.md), when
+# they are in data/
+set(CAM_ISO_LRTA_MAPS ${CMAKE_CURRENT_LIST_DIR}/data/Pendulum.grx ${CMAKE_CURRENT_LIST_DIR}/data/Pendulum.grh)
+set(CAM_ISO_HAS_LRTA_MAPS ON)
+foreach (l_map IN LISTS CAM_ISO_LRTA_MAPS)
+	if (NOT EXISTS ${l_map})
+		set(CAM_ISO_HAS_LRTA_MAPS OFF)
+	endif()
+endforeach()
+if (CAM_ISO_HAS_LRTA_MAPS)
+	add_custom_command(TARGET iso_LrtaStar POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CAM_ISO_LRTA_MAPS} $<TARGET_FILE_DIR:iso_LrtaStar>)
+endif()
 
 # Runs the port of a C# project and compares its facts with the output of the C# original (oracles/<oracle>.txt) under
 # rules/<oracle>.rules. The oracle is named after the project unless ORACLE names another one (a scenario of the same
-# project), the test is iso.<oracle> unless NAME says otherwise; the other arguments go to the program, which runs from
+# project), the test is iso.<oracle> unless NAME says otherwise; SEED runs it with CAM_SEED=<seed> against the oracle of
+# that seed (oracles/seed<seed>/, test iso.<name>.seed<seed>); the other arguments go to the program, which runs from
 # its own folder, where its data files are copied.
 function(cam_add_iso p_project)
-	cmake_parse_arguments(PARSE_ARGV 1 l "" "NAME;ORACLE" "")
+	cmake_parse_arguments(PARSE_ARGV 1 l "" "NAME;ORACLE;SEED" "")
 	if (NOT l_ORACLE)
 		set(l_ORACLE ${p_project})
 	endif()
 	if (NOT l_NAME)
 		set(l_NAME ${l_ORACLE})
 	endif()
+	set(l_oracle_file ${CMAKE_CURRENT_LIST_DIR}/oracles/${l_ORACLE}.txt)
+	if (DEFINED l_SEED)
+		set(l_NAME ${l_NAME}.seed${l_SEED})
+		set(l_oracle_file ${CMAKE_CURRENT_LIST_DIR}/oracles/seed${l_SEED}/${l_ORACLE}.txt)
+	endif()
 	add_test(NAME iso.${l_NAME}
-		COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/rules/${l_ORACLE}.rules ${CMAKE_CURRENT_LIST_DIR}/oracles/${l_ORACLE}.txt
+		COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/rules/${l_ORACLE}.rules ${l_oracle_file}
 			-- $<TARGET_FILE:iso_${p_project}> ${l_UNPARSED_ARGUMENTS}
 		WORKING_DIRECTORY $<TARGET_FILE_DIR:iso_${p_project}>)
 	set_tests_properties(iso.${l_NAME} PROPERTIES LABELS iso TIMEOUT 300)
+	if (DEFINED l_SEED)
+		set_property(TEST iso.${l_NAME} APPEND PROPERTY ENVIRONMENT "CAM_SEED=${l_SEED}")
+	endif()
 	cam_apply_tsan_suppressions(iso.${l_NAME})
 endfunction()
 
@@ -132,16 +154,42 @@ cam_add_iso(PredatorPrey)
 # Without the pause of 100 ms after each turn; both versions write world-state.txt next to the programs, and the GUI
 # version prints it back at the end
 cam_add_iso(PredatorPreyGui 0)
-set_tests_properties(iso.PredatorPrey iso.PredatorPreyGui PROPERTIES RESOURCE_LOCK world-state.txt)
 # E20: one environment per container of the C#, on the loopback transport, stopped once the scenario is over
 cam_add_iso(RemoteMessages)
 cam_add_iso(MasMobileConsole)
+if (CAM_ISO_HAS_LRTA_MAPS)
+	cam_add_iso(LrtaStar)
+endif()
+
+# The same comparisons with the oracles of two other seeds, for the examples whose output depends on the draws (a
+# program fitted to one seed fails them). Not at seed 7: Agents2 (the same output as seed 0), ContractNet (the C# race on
+# the shared CNPMessage: a letter assigned twice inside one tour, which the port cannot reproduce without undefined
+# behaviour) and EnglishWithoutBroadcast (two bidders at the last price: the winner depends on the order of arrival).
+set(CAM_ISO_SEEDED Agents1 Agents2 Agents3 Agents4 Agents5 MultipleMessages SendingObjects ColorGame NumberGame Voting
+	EnglishWithBroadcast ReplicatorDynamics FictitiousPlay EnglishWithoutBroadcast Vickrey YellowPages Shapley ContractNet
+	SkynetNumeric "Reactive 100 0" PredatorPrey "PredatorPreyGui 0")
+foreach (l_seed IN ITEMS 42 7)
+	foreach (l_entry IN LISTS CAM_ISO_SEEDED)
+		separate_arguments(l_words UNIX_COMMAND "${l_entry}")
+		list(GET l_words 0 l_project)
+		if (l_seed STREQUAL "7" AND l_project MATCHES "^(Agents2|ContractNet|EnglishWithoutBroadcast)$")
+			continue()
+		endif()
+		cam_add_iso(${l_words} SEED ${l_seed})
+	endforeach()
+	if (CAM_ISO_HAS_LRTA_MAPS)
+		cam_add_iso(LrtaStar SEED ${l_seed})
+	endif()
+endforeach()
+set_tests_properties(iso.PredatorPrey iso.PredatorPreyGui iso.PredatorPrey.seed42 iso.PredatorPreyGui.seed42 iso.PredatorPrey.seed7
+	iso.PredatorPreyGui.seed7 PROPERTIES RESOURCE_LOCK world-state.txt)
 
 # Millions of calls: with gcc, whose ASan detects stack-use-after-return by default (fake stacks), GameOfLife (390 000
 # calls of the perception filter per turn) took more than 1 200 s, 39 s without, and PingPong (10 million messages per
 # trial) more than 300 s, 37 s without; clang leaves that detection off by default. Predator-Prey too (thousands of
 # insects, small vectors at each move): the GUI version more than 300 s, 3 s without
 if (CAM_SANITIZER STREQUAL "asan")
-	set_property(TEST iso.GameOfLife iso.PingPong iso.PredatorPrey iso.PredatorPreyGui APPEND PROPERTY ENVIRONMENT
+	set_property(TEST iso.GameOfLife iso.PingPong iso.PredatorPrey iso.PredatorPreyGui iso.PredatorPrey.seed42
+				 iso.PredatorPreyGui.seed42 iso.PredatorPrey.seed7 iso.PredatorPreyGui.seed7 APPEND PROPERTY ENVIRONMENT
 				 "ASAN_OPTIONS=detect_stack_use_after_return=0")
 endif()

@@ -1,0 +1,167 @@
+#cam oracle EnglishWithoutBroadcast
+#cam csharp ActressMas eb0bb73, Examples/E05 Auctions/English without broadcast/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/EnglishWithoutBroadcast/bin/Release/net10.0 && dotnet EnglishWithoutBroadcast.dll
+#cam seed 42
+[bidder03]: My valuation is 223
+[bidder01]: My valuation is 493
+[bidder02]: My valuation is 310
+[bidder04]: My valuation is 105
+[bidder05]: My valuation is 254
+	[auctioneer -> bidder02]: price 100
+	[auctioneer -> bidder05]: price 100
+	[auctioneer -> bidder01]: price 100
+	[auctioneer -> bidder04]: price 100
+	[auctioneer -> bidder03]: price 100
+	[bidder05 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder03 -> auctioneer]: bid
+	[bidder04 -> auctioneer]: bid
+	[bidder02 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 110
+	[auctioneer -> bidder03]: price 110
+	[auctioneer -> bidder01]: price 110
+	[auctioneer -> bidder05]: price 110
+	[bidder02 -> auctioneer]: bid
+	[bidder03 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder04]: price 110
+	[auctioneer -> bidder03]: price 120
+	[auctioneer -> bidder02]: price 120
+	[auctioneer -> bidder01]: price 120
+	[auctioneer -> bidder05]: price 120
+	[bidder03 -> auctioneer]: bid
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 130
+	[auctioneer -> bidder03]: price 130
+	[auctioneer -> bidder01]: price 130
+	[auctioneer -> bidder05]: price 130
+	[bidder02 -> auctioneer]: bid
+	[bidder03 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 140
+	[auctioneer -> bidder03]: price 140
+	[auctioneer -> bidder01]: price 140
+	[auctioneer -> bidder05]: price 140
+	[bidder02 -> auctioneer]: bid
+	[bidder03 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 150
+	[auctioneer -> bidder03]: price 150
+	[auctioneer -> bidder01]: price 150
+	[auctioneer -> bidder05]: price 150
+	[bidder02 -> auctioneer]: bid
+	[bidder03 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 160
+	[auctioneer -> bidder03]: price 160
+	[auctioneer -> bidder01]: price 160
+	[bidder02 -> auctioneer]: bid
+	[bidder03 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[auctioneer -> bidder05]: price 160
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder03]: price 170
+	[auctioneer -> bidder02]: price 170
+	[auctioneer -> bidder01]: price 170
+	[auctioneer -> bidder05]: price 170
+	[bidder03 -> auctioneer]: bid
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder03]: price 180
+	[auctioneer -> bidder02]: price 180
+	[auctioneer -> bidder01]: price 180
+	[auctioneer -> bidder05]: price 180
+	[bidder03 -> auctioneer]: bid
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder03]: price 190
+	[auctioneer -> bidder02]: price 190
+	[auctioneer -> bidder01]: price 190
+	[auctioneer -> bidder05]: price 190
+	[bidder03 -> auctioneer]: bid
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder03]: price 200
+	[auctioneer -> bidder02]: price 200
+	[auctioneer -> bidder01]: price 200
+	[auctioneer -> bidder05]: price 200
+	[bidder03 -> auctioneer]: bid
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder03]: price 210
+	[auctioneer -> bidder02]: price 210
+	[auctioneer -> bidder01]: price 210
+	[auctioneer -> bidder05]: price 210
+	[bidder03 -> auctioneer]: bid
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder03]: price 220
+	[auctioneer -> bidder02]: price 220
+	[auctioneer -> bidder01]: price 220
+	[auctioneer -> bidder05]: price 220
+	[bidder03 -> auctioneer]: bid
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder03]: price 230
+	[auctioneer -> bidder02]: price 230
+	[auctioneer -> bidder01]: price 230
+	[auctioneer -> bidder05]: price 230
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 240
+	[auctioneer -> bidder01]: price 240
+	[auctioneer -> bidder05]: price 240
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 250
+	[auctioneer -> bidder01]: price 250
+	[auctioneer -> bidder05]: price 250
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[bidder05 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 260
+	[auctioneer -> bidder01]: price 260
+	[auctioneer -> bidder05]: price 260
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 270
+	[auctioneer -> bidder01]: price 270
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 280
+	[auctioneer -> bidder01]: price 280
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 290
+	[auctioneer -> bidder01]: price 290
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 300
+	[auctioneer -> bidder01]: price 300
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 310
+	[auctioneer -> bidder01]: price 310
+	[bidder02 -> auctioneer]: bid
+	[bidder01 -> auctioneer]: bid
+	[auctioneer -> bidder02]: price 320
+	[auctioneer -> bidder01]: price 320
+	[bidder01 -> auctioneer]: bid
+[auctioneer]: Auction finished. Sold to bidder01 for price 320
+	[auctioneer -> bidder01]: winner bidder01
+[bidder01]: I have won.

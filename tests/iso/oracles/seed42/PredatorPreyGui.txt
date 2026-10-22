@@ -1,0 +1,409 @@
+#cam oracle PredatorPreyGui
+#cam csharp ActressMas eb0bb73, Examples/E11 Predator-Prey/PredatorPreyGui/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam stub MainForm.cs (form replaced, prints its state)
+#cam command cd Oracles/PredatorPreyGui/bin/Release/net10.0 && dotnet PredatorPreyGui.dll
+#cam seed 42
+Turn 0 / 200
+Turn 1 / 200
+Turn 2 / 200
+Turn 3 / 200
+Turn 4 / 200
+Turn 5 / 200
+Turn 6 / 200
+Turn 7 / 200
+Turn 8 / 200
+Turn 9 / 200
+Turn 10 / 200
+Turn 11 / 200
+Turn 12 / 200
+Turn 13 / 200
+Turn 14 / 200
+Turn 15 / 200
+Turn 16 / 200
+Turn 17 / 200
+Turn 18 / 200
+Turn 19 / 200
+Turn 20 / 200
+Turn 21 / 200
+Turn 22 / 200
+Turn 23 / 200
+Turn 24 / 200
+Turn 25 / 200
+Turn 26 / 200
+Turn 27 / 200
+Turn 28 / 200
+Turn 29 / 200
+Turn 30 / 200
+Turn 31 / 200
+Turn 32 / 200
+Turn 33 / 200
+Turn 34 / 200
+Turn 35 / 200
+Turn 36 / 200
+Turn 37 / 200
+Turn 38 / 200
+Turn 39 / 200
+Turn 40 / 200
+Turn 41 / 200
+Turn 42 / 200
+Turn 43 / 200
+Turn 44 / 200
+Turn 45 / 200
+Turn 46 / 200
+Turn 47 / 200
+Turn 48 / 200
+Turn 49 / 200
+Turn 50 / 200
+Turn 51 / 200
+Turn 52 / 200
+Turn 53 / 200
+Turn 54 / 200
+Turn 55 / 200
+Turn 56 / 200
+Turn 57 / 200
+Turn 58 / 200
+Turn 59 / 200
+Turn 60 / 200
+Turn 61 / 200
+Turn 62 / 200
+Turn 63 / 200
+Turn 64 / 200
+Turn 65 / 200
+Turn 66 / 200
+Turn 67 / 200
+Turn 68 / 200
+Turn 69 / 200
+Turn 70 / 200
+Turn 71 / 200
+Turn 72 / 200
+Turn 73 / 200
+Turn 74 / 200
+Turn 75 / 200
+Turn 76 / 200
+Turn 77 / 200
+Turn 78 / 200
+Turn 79 / 200
+Turn 80 / 200
+Turn 81 / 200
+Turn 82 / 200
+Turn 83 / 200
+Turn 84 / 200
+Turn 85 / 200
+Turn 86 / 200
+Turn 87 / 200
+Turn 88 / 200
+Turn 89 / 200
+Turn 90 / 200
+Turn 91 / 200
+Turn 92 / 200
+Turn 93 / 200
+Turn 94 / 200
+Turn 95 / 200
+Turn 96 / 200
+Turn 97 / 200
+Turn 98 / 200
+Turn 99 / 200
+Turn 100 / 200
+Turn 101 / 200
+Turn 102 / 200
+Turn 103 / 200
+Turn 104 / 200
+Turn 105 / 200
+Turn 106 / 200
+Turn 107 / 200
+Turn 108 / 200
+Turn 109 / 200
+Turn 110 / 200
+Turn 111 / 200
+Turn 112 / 200
+Turn 113 / 200
+Turn 114 / 200
+Turn 115 / 200
+Turn 116 / 200
+Turn 117 / 200
+Turn 118 / 200
+Turn 119 / 200
+Turn 120 / 200
+Turn 121 / 200
+Turn 122 / 200
+Turn 123 / 200
+Turn 124 / 200
+Turn 125 / 200
+Turn 126 / 200
+Turn 127 / 200
+Turn 128 / 200
+Turn 129 / 200
+Turn 130 / 200
+Turn 131 / 200
+Turn 132 / 200
+Turn 133 / 200
+Turn 134 / 200
+Turn 135 / 200
+Turn 136 / 200
+Turn 137 / 200
+Turn 138 / 200
+Turn 139 / 200
+Turn 140 / 200
+Turn 141 / 200
+Turn 142 / 200
+Turn 143 / 200
+Turn 144 / 200
+Turn 145 / 200
+Turn 146 / 200
+Turn 147 / 200
+Turn 148 / 200
+Turn 149 / 200
+Turn 150 / 200
+Turn 151 / 200
+Turn 152 / 200
+Turn 153 / 200
+Turn 154 / 200
+Turn 155 / 200
+Turn 156 / 200
+Turn 157 / 200
+Turn 158 / 200
+Turn 159 / 200
+Turn 160 / 200
+Turn 161 / 200
+Turn 162 / 200
+Turn 163 / 200
+Turn 164 / 200
+Turn 165 / 200
+Turn 166 / 200
+Turn 167 / 200
+Turn 168 / 200
+Turn 169 / 200
+Turn 170 / 200
+Turn 171 / 200
+Turn 172 / 200
+Turn 173 / 200
+Turn 174 / 200
+Turn 175 / 200
+Turn 176 / 200
+Turn 177 / 200
+Turn 178 / 200
+Turn 179 / 200
+Turn 180 / 200
+Turn 181 / 200
+Turn 182 / 200
+Turn 183 / 200
+Turn 184 / 200
+Turn 185 / 200
+Turn 186 / 200
+Turn 187 / 200
+Turn 188 / 200
+Turn 189 / 200
+Turn 190 / 200
+Turn 191 / 200
+Turn 192 / 200
+Turn 193 / 200
+Turn 194 / 200
+Turn 195 / 200
+Turn 196 / 200
+Turn 197 / 200
+Turn 198 / 200
+Turn 199 / 200
+
+Simulation finished.
+Doodlebugs	Ants
+2	100
+2	98
+2	97
+2	189
+2	187
+2	186
+2	267
+1	320
+2	322
+2	347
+2	379
+2	387
+2	388
+2	395
+2	396
+2	396
+3	396
+4	396
+4	396
+4	395
+4	395
+4	393
+4	393
+4	394
+5	393
+7	390
+8	389
+8	386
+8	386
+8	386
+8	387
+8	384
+9	383
+12	384
+15	381
+16	375
+16	372
+16	371
+16	364
+16	361
+17	366
+21	361
+27	356
+31	345
+32	332
+32	321
+31	306
+30	294
+30	282
+32	281
+40	269
+45	258
+47	247
+44	233
+39	218
+37	204
+37	192
+40	176
+48	164
+59	155
+63	138
+65	111
+57	91
+50	79
+41	69
+35	57
+37	53
+38	44
+41	37
+37	33
+29	38
+21	39
+8	43
+7	52
+6	62
+7	69
+8	79
+7	94
+6	105
+6	118
+6	134
+6	146
+7	163
+9	175
+11	192
+12	199
+12	210
+12	221
+12	228
+12	238
+13	253
+15	264
+17	274
+20	277
+21	290
+20	300
+19	298
+19	301
+20	307
+24	310
+28	314
+33	304
+37	295
+38	296
+37	291
+36	277
+35	270
+39	266
+45	258
+52	249
+58	238
+59	209
+59	192
+58	176
+50	154
+48	134
+50	129
+53	116
+58	102
+61	92
+56	81
+51	60
+44	41
+36	37
+33	38
+32	32
+29	29
+29	26
+22	25
+17	23
+11	23
+8	24
+9	24
+12	23
+12	26
+11	31
+8	35
+3	42
+1	51
+1	60
+2	72
+2	88
+2	102
+2	122
+2	144
+2	162
+2	185
+2	208
+3	227
+4	248
+4	268
+4	290
+4	305
+4	324
+4	337
+4	346
+5	356
+7	364
+8	369
+8	373
+8	374
+8	376
+8	373
+8	378
+9	382
+12	383
+15	379
+16	378
+16	372
+16	371
+16	367
+16	371
+17	370
+21	370
+27	356
+31	353
+32	341
+32	326
+31	318
+31	301
+32	290
+37	278
+46	267
+52	260
+55	242
+53	220
+50	208
+41	192
+37	175
+39	162
+48	152
+55	143
+56	126
+54	110
+50	95
+42	78
+33	59
+30	49
+25	46
+25	39
