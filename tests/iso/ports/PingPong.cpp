@@ -22,6 +22,7 @@
 // answer every message they receive, until 10 000 000 messages; five trials, a new environment for each. Parallel,
 // 10 000 turns. The C# counts the messages in a volatile int, which parallel agents increment without atomicity: here
 // the counter is atomic (ISO), and the C# check-then-send is kept (a few messages over the limit).
+// Arguments: none for the example; "sequential-random" for the variant commented in its Program.cs (100 000 turns).
 
 #include <atomic>
 #include <chrono>
@@ -63,18 +64,19 @@ class MyAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	constexpr int l_n = 5;
+	const cam::EnvironmentMasMode l_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel);
 	double l_sum = 0;
 	for (int t = 0; t < l_n; t++) {
 		cam::dotnet::write_line("Trial " + std::to_string(t + 1));
 		Global::s_no_messages = 0;
 		const auto l_start = std::chrono::steady_clock::now();
 
-		cam::Environment l_environment({.m_turns = 10000,
-										.m_mode = cam::EnvironmentMasMode::Parallel,
+		cam::Environment l_environment({.m_turns = l_mode == cam::EnvironmentMasMode::Parallel ? 10000 : 100000,
+										.m_mode = l_mode,
 										.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-										.m_random = cam::RandomEngine::DotNet});
+										.m_random = cam::dotnet::random_engine()});
 		for (int i = 0; i < Global::s_no_agents; i++) {
 			l_environment.add<MyAgent>("a" + std::to_string(i), i);
 		}

@@ -1,0 +1,11 @@
+# E00 Agents1 in a sequential, fixed order: a variant of the oracles, the original sources but its line (tests/tools/csharp-ref/ref/Oracles/Agents1Seq/).
+# Sequential, so the C# fixes every line: the whole trace in order, the sender of a message aside ("trace"), and the
+# senders as a multiset; a sender removed before its last messages are read is shown by its identifier in the C++ (a
+# known divergence of the library), which "alias" pairs with its C# counterpart.
+ignore ^$
+cover all
+fact trace ^\t?\[[^\s\]]+( -> [^\]]+\]: .*)$|^(.+)$
+fact message ^\t?\[([^\s\]]+) -> ([^\]]+)\]: (.*)$
+optional message
+same trace seq
+same message bag alias 0 ^[A-Za-z0-9]{15}$

@@ -100,7 +100,7 @@ class World final : public cam::Environment {
 				Environment({.m_turns = p_no_turns,
 							 .m_mode = cam::EnvironmentMasMode::SequentialRandom,
 							 .m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-							 .m_random = cam::RandomEngine::DotNet}),
+							 .m_random = cam::dotnet::random_engine()}),
 				m_map(Settings::s_grid_size),
 				m_sw(Settings::s_world_state_file_name),
 				m_pause(p_pause) {

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of a variant of the C# example E05 Auctions/English without broadcast, see ../Oracle.props: sequential, fixed order, so that the C# fixes every line (Program.cs.sed). -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E05 Auctions/English without broadcast/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

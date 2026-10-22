@@ -22,6 +22,7 @@
 // four agents; the environment reports the end of each turn and of the simulation. Parallel, 10 turns, 100 ms after
 // each turn. The monitor addresses the agents in the order of the environment, the order of insertion in C++ (the C#
 // follows its ConcurrentDictionary).
+// Arguments: none for the example; "sequential" for the variant commented in its Program.cs (fixed order).
 
 #include <algorithm>
 #include <map>
@@ -33,12 +34,12 @@
 
 class MyEnvironment final : public cam::Environment {
 	public:
-		MyEnvironment() :
+		explicit MyEnvironment(const cam::EnvironmentMasMode p_mode) :
 				Environment({.m_turns = 10,
-							 .m_mode = cam::EnvironmentMasMode::Parallel,
+							 .m_mode = p_mode,
 							 .m_delay_after_turn = 100,
 							 .m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-							 .m_random = cam::RandomEngine::DotNet}) {}
+							 .m_random = cam::dotnet::random_engine()}) {}
 
 		void turn_finished(const int p_turn) override {
 			cam::dotnet::write_line("\nTurn " + std::to_string(p_turn + 1) + " finished\n");
@@ -119,8 +120,8 @@ class MonitorAgent final : public cam::Agent {
 		}
 };
 
-int main() {
-	MyEnvironment l_environment;
+int main(int argc, char** argv) {
+	MyEnvironment l_environment(cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel));
 
 	constexpr int l_no_agents = 4;
 	for (int i = 1; i <= l_no_agents; i++) {

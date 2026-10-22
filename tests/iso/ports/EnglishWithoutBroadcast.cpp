@@ -22,6 +22,7 @@
 // only talks to the auctioneer; the auctioneer raises the price while two bidders or more still bid. Parallel, no turn
 // limit; the valuations come from the seed of the C# oracle. Among the bidders of a round, the first whose bid arrives
 // is kept, as in the C#: with equal bids, the winner depends on the interleaving.
+// Arguments: none for the example; "sequential" for its sequential variant (fixed order).
 
 #include <exception>
 #include <string>
@@ -155,12 +156,12 @@ class BidderAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	// more efficient, each bidder only talks to the auctioneer
 	cam::Environment l_environment({.m_turns = 0,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	cam::DotnetRandom l_rand(cam::dotnet::next_site_seed("Program.cs:30"));
 

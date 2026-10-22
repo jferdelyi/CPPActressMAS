@@ -310,7 +310,7 @@ int main() {
 	cam::Environment l_environment({.m_turns = 0,
 									.m_mode = cam::EnvironmentMasMode::Parallel,
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 	l_environment.add<MapAgent>("map");
 	l_environment.add<SearchAgent>("agent1");
 

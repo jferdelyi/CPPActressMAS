@@ -21,6 +21,7 @@
 // Port of the C# example E16 Replicator Dynamics (ActressMAS v3.1): each round, the game agent collects the proportion
 // of each strategy, prints the expected payoffs, and each strategy agent updates its proportion by the discrete
 // replicator rule. A 2x2 coordination game, 50 rounds. Parallel, no turn limit.
+// Arguments: none for the example; "sequential" for its sequential variant (fixed order).
 
 #include <cmath>
 #include <exception>
@@ -276,7 +277,7 @@ class StrategyAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	// 2x2 coordination game
 	//          A     B
 	//   A    3.0   0.0
@@ -291,9 +292,9 @@ int main() {
 	const std::vector<double> l_initial_proportions = {0.5, 0.5};
 
 	cam::Environment l_environment({.m_turns = 0,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	std::vector<std::string> l_strategy_names(static_cast<std::size_t>(l_n));
 	for (int i = 0; i < l_n; i++) {

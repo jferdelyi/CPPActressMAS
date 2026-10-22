@@ -22,6 +22,7 @@
 // monitor during their setup, with random pauses of 10 to 99 ms; the monitor prints what it receives. Parallel,
 // 100 turns. The pauses come from the seed of the C# oracle; both agents draw from one generator, as from the
 // static Random of the C#, but under a lock: the C# draws without one, which C++ cannot do without undefined behaviour.
+// Arguments: none for the example; "sequential" for its sequential variant (fixed order).
 
 #include <chrono>
 #include <cstdint>
@@ -66,11 +67,11 @@ class MonitorAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	cam::Environment l_environment({.m_turns = 100,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	l_environment.add<MyAgent>("agent1");
 	l_environment.add<MyAgent>("agent2");

@@ -184,18 +184,48 @@ endforeach()
 set_tests_properties(iso.PredatorPrey iso.PredatorPreyGui iso.PredatorPrey.seed42 iso.PredatorPreyGui.seed42 iso.PredatorPrey.seed7
 	iso.PredatorPreyGui.seed7 PROPERTIES RESOURCE_LOCK world-state.txt)
 
+# The variants of the oracles: the original sources but one line (tests/tools/csharp-ref/ref/Oracles/<Variant>/), the
+# variants commented in the C# examples, and a sequential version of the parallel ones, where the C# fixes every line;
+# the port takes the argument of the variant (DotNet.hpp, scenario_mode and has_scenario)
+foreach (l_variant IN ITEMS "Agents5 Agents5Seq sequential" "Agents3 Agents3Seq sequential" "PrisonerDilemma PrisonerDilemmaConfess confess"
+		"PrisonerDilemma PrisonerDilemmaRandom random" "Vickrey VickreySeqRandom sequential-random" "SkynetNumeric SkynetNumericParallel parallel"
+		"Skynet SkynetSeqRandom sequential-random" "PingPong PingPongSeqRandom sequential-random" "Shapley ShapleySeq sequential"
+		"ContractNet ContractNetSeq sequential" "YellowPages YellowPagesSeq sequential" "FictitiousPlay FictitiousPlaySeq sequential"
+		"ReplicatorDynamics ReplicatorDynamicsSeq sequential" "EnglishWithoutBroadcast EnglishWithoutBroadcastSeq sequential"
+		"MultipleMessages MultipleMessagesSeq sequential" "Agents1 Agents1Seq sequential" "SendingObjects SendingObjectsSeq sequential"
+		"Reactive ReactiveSeq 100 0 sequential")
+	separate_arguments(l_words UNIX_COMMAND "${l_variant}")
+	list(POP_FRONT l_words l_project l_oracle)
+	cam_add_iso(${l_project} ORACLE ${l_oracle} ${l_words})
+endforeach()
+
 # ---------------------------------------------------------------- oracles published with the examples
 # The game of life of the port of E13 against the patterns of Gardner (1970), generation by generation
 cam_add_doctest(gardner cam_iso_gardner gardner.cpp)
 target_compile_definitions(cam_iso_gardner PRIVATE CAM_GAME_OF_LIFE="$<TARGET_FILE:iso_GameOfLife>")
 add_dependencies(cam_iso_gardner iso_GameOfLife)
 set_tests_properties(iso.gardner PROPERTIES TIMEOUT 900)
+# The calculator of E04 alone on the examples of the Shapley value: 2 players (1, 3, 6: 2 and 4) and 3 players (0, 0, 0,
+# 2, 4, 6, 7: 4/3, 7/3, 10/3), normalized; the calculator takes times, the inverse of the values (1e9 for a value of 0)
+add_test(NAME iso.shapley.two COMMAND iso_Shapley calculate 1 0.3333333333333333 1000 0.16666666666666666 1000 1000 1000)
+set_tests_properties(iso.shapley.two PROPERTIES LABELS iso
+	PASS_REGULAR_EXPRESSION "\\[shapley -> manager\\]: results 0\\.333333333333333[0-9]* 0\\.666666666666666[0-9]* 0\n")
+add_test(NAME iso.shapley.three COMMAND iso_Shapley calculate 1000000000 1000000000 1000000000 0.5 0.25 0.16666666666666666 0.14285714285714285)
+set_tests_properties(iso.shapley.three PROPERTIES LABELS iso
+	PASS_REGULAR_EXPRESSION "\\[shapley -> manager\\]: results 0\\.190476190[0-9]* 0\\.33333333[0-9]* 0\\.476190476[0-9]*\n")
+
 # Millions of calls: with gcc, whose ASan detects stack-use-after-return by default (fake stacks), GameOfLife (390 000
 # calls of the perception filter per turn) took more than 1 200 s, 39 s without, and PingPong (10 million messages per
 # trial) more than 300 s, 37 s without; clang leaves that detection off by default. Predator-Prey too (thousands of
 # insects, small vectors at each move): the GUI version more than 300 s, 3 s without
 if (CAM_SANITIZER STREQUAL "asan")
-	set_property(TEST iso.GameOfLife iso.gardner iso.PingPong iso.PredatorPrey iso.PredatorPreyGui iso.PredatorPrey.seed42
+	set_property(TEST iso.GameOfLife iso.gardner iso.PingPong iso.PingPongSeqRandom iso.PredatorPrey iso.PredatorPreyGui iso.PredatorPrey.seed42
 				 iso.PredatorPreyGui.seed42 iso.PredatorPrey.seed7 iso.PredatorPreyGui.seed7 APPEND PROPERTY ENVIRONMENT
 				 "ASAN_OPTIONS=detect_stack_use_after_return=0")
 endif()
+# Ten million messages in a sequential order take about four times the parallel PingPong: more than 300 s under TSan
+if (CAM_SANITIZER)
+	set_tests_properties(iso.PingPongSeqRandom PROPERTIES TIMEOUT 1500)
+endif()
+# A test that passes on a regular expression ignores its exit code: a report of a sanitizer still fails it
+cam_fail_on_sanitizer_report(iso.shapley.two iso.shapley.three)

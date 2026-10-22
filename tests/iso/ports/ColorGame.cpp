@@ -116,7 +116,7 @@ int main() {
 	cam::Environment l_environment({.m_turns = 10,
 									.m_mode = cam::EnvironmentMasMode::Sequential,
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	l_environment.add<Agent1>("Agent1");
 	l_environment.add<Agent2>("Agent2");

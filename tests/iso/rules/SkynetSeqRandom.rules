@@ -1,0 +1,7 @@
+# E30 Skynet, the variant commented in its Program.cs: sequential, random order: a variant of the oracles (tests/tools/csharp-ref/ref/Oracles/SkynetSeqRandom/), compared as Skynet (rules/Skynet.rules).
+cover all
+fact sum ^Sum = (\d+)$
+fact duration ^\d+\.000 ms$
+same sum seq
+same duration count
+check sum count == 1

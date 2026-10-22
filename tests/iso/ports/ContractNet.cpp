@@ -26,6 +26,7 @@
 // As in the C#, one CNPMessage object is shared by every receiver of a broadcast and changed in place by each of them:
 // the messages carry the index of the object in a table of the program, which keeps the references of the C#. The
 // postmen act under one lock, so that these changes are a sequence the C# may also produce, without data race.
+// Arguments: none for the example; "sequential" for its sequential variant (fixed order).
 
 #include <cmath>
 #include <deque>
@@ -533,11 +534,11 @@ class PostmanAgent final : public cam::Agent {
 
 class MyEnv final : public cam::Environment {
 	public:
-		explicit MyEnv(const int p_no_turns) :
+		MyEnv(const int p_no_turns, const cam::EnvironmentMasMode p_mode) :
 				Environment({.m_turns = p_no_turns,
-							 .m_mode = cam::EnvironmentMasMode::Parallel,
+							 .m_mode = p_mode,
 							 .m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-							 .m_random = cam::RandomEngine::DotNet}) {
+							 .m_random = cam::dotnet::random_engine()}) {
 			set_global_data("Turn", 0);
 		}
 
@@ -546,8 +547,8 @@ class MyEnv final : public cam::Environment {
 		}
 };
 
-int main() {
-	MyEnv l_environment(100);
+int main(int argc, char** argv) {
+	MyEnv l_environment(100, cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel));
 
 	constexpr int l_no_postmen = 3;
 	constexpr int l_no_letters = 20;

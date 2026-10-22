@@ -21,6 +21,7 @@
 // Port of the C# example E05 Auctions/Vickrey (ActressMAS v3.1): a sealed-bid second-price auction; every bidder bids
 // its valuation once, the highest bidder wins and pays the second highest bid. Parallel, no turn limit; the valuations
 // come from the seed of the C# oracle.
+// Arguments: none for the example; "sequential-random" for the variant commented in its Program.cs.
 
 #include <algorithm>
 #include <exception>
@@ -150,11 +151,11 @@ class BidderAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	cam::Environment l_environment({.m_turns = 0,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	cam::DotnetRandom l_rand(cam::dotnet::next_site_seed("Program.cs:28"));
 

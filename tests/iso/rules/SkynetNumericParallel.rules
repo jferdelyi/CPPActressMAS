@@ -1,0 +1,7 @@
+# E30 SkynetNumeric, the variant commented in its Program.cs: parallel: a variant of the oracles (tests/tools/csharp-ref/ref/Oracles/SkynetNumericParallel/), compared as SkynetNumeric (rules/SkynetNumeric.rules).
+cover all
+fact sum ^Long Sum = (\d+)$
+fact duration ^\d+\.000 ms$
+same sum seq
+same duration count
+check sum count == 1

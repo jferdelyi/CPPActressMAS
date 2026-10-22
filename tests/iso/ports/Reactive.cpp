@@ -24,7 +24,8 @@
 // replaced, as in the oracle, by nothing. The explorers draw from one generator and the planet from another, as from
 // the static Random of the C#, with the seeds of its oracle, but under a lock: the C# draws without one, which C++
 // cannot do without undefined behaviour.
-// Arguments: [turns, 0 for no end] [delay after each turn in ms], 0 and 100 by default as the C#.
+// Arguments: [turns, 0 for no end] [delay after each turn in ms], 0 and 100 by default as the C#; then "sequential"
+// for its sequential variant (fixed order).
 
 #include <algorithm>
 #include <cmath>
@@ -319,10 +320,10 @@ int main(int argc, char** argv) {
 
 	// no turn limit, run in parallel
 	cam::Environment l_environment({.m_turns = l_turns,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_delay_after_turn = l_delay,
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	l_environment.add<PlanetAgent>("planet");
 

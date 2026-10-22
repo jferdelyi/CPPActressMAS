@@ -1,0 +1,11 @@
+# E10 Iterated Prisoner Dilemma with the first prisoner of the variant commented in its Program.cs: always confess, against tit for tat: a variant of the oracles, the original sources but its line (tests/tools/csharp-ref/ref/Oracles/PrisonerDilemmaConfess/).
+# Sequential, so the C# fixes every line: the whole trace in order, the sender of a message aside ("trace"), and the
+# senders as a multiset; a sender removed before its last messages are read is shown by its identifier in the C++ (a
+# known divergence of the library), which "alias" pairs with its C# counterpart.
+ignore ^$
+cover all
+fact trace ^\t?\[[^\s\]]+( -> [^\]]+\]: .*)$|^(.+)$
+fact message ^\t?\[([^\s\]]+) -> ([^\]]+)\]: (.*)$
+optional message
+same trace seq
+same message bag alias 0 ^[A-Za-z0-9]{15}$

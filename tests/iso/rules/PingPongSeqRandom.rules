@@ -1,0 +1,14 @@
+# E30 PingPong, the variant commented in its Program.cs: sequential, random order, 100 000 turns: a variant of the oracles (tests/tools/csharp-ref/ref/Oracles/PingPongSeqRandom/), compared as PingPong (rules/PingPong.rules).
+ignore ^$
+cover all
+fact trial ^Trial (\d)$
+fact messages ^(\d+) msg$
+fact duration ^\d+ ms$
+fact rate ^\d+\.\d{3} msg/ms$
+same trial seq
+same messages count
+same duration count
+same rate count
+check trial count == 5
+check messages max(0) <= 10000010
+check messages min(0) >= 90

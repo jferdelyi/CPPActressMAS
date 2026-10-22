@@ -21,6 +21,7 @@
 // Port of the C# benchmark E30 Benchmarks/SkynetNumeric (ActressMAS v3.1): Skynet with 20 000 agents, whose messages
 // carry numbers (a JSON integer stands for the long of ContentObj); the root prints the sum of 0 to 19 999.
 // Sequential in a random order (parallel: false), no turn limit.
+// Arguments: none for the example; "parallel" for the variant commented in its Program.cs.
 
 #include <chrono>
 #include <cstdint>
@@ -76,12 +77,12 @@ class MyAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	const auto l_start = std::chrono::steady_clock::now();
 	cam::Environment l_environment({.m_turns = 0,
-									.m_mode = cam::EnvironmentMasMode::SequentialRandom,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::SequentialRandom),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 	l_environment.add<MyAgent>("a0", 0, -1);  // the root agent
 	l_environment.start();
 	const auto l_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - l_start).count();

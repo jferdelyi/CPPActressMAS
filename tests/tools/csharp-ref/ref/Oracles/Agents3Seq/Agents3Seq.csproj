@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of a variant of the C# example E00 Simple Examples/Agents3, see ../Oracle.props: the variant commented in its Program.cs: sequential, fixed order (Program.cs.sed). -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E00 Simple Examples/Agents3/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

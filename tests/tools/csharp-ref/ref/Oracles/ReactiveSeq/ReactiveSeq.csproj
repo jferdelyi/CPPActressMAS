@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of a variant of the C# example E01 Reactive Architecture, see ../Oracle.props: sequential, fixed order, 100 turns (the example never stops); the form replaced as for Reactive (Program.cs.sed). -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E01 Reactive Architecture/</OracleSources>
+    <OracleExcludes>$(OracleSources)PlanetForm.cs;$(OracleSources)PlanetForm.Designer.cs</OracleExcludes>
+    <OracleStubs>$(MSBuildProjectDirectory)/../Reactive/Stubs/</OracleStubs>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

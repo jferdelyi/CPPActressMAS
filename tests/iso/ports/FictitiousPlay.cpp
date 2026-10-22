@@ -22,6 +22,7 @@
 // rounds; each plays the best response to the frequencies of its opponent's past actions, and the game agent pays them.
 // Parallel, no turn limit. A player draws only on equal expected payoffs, never reached (defection dominates); the
 // generators come from the seeds of the C# oracle.
+// Arguments: none for the example; "sequential" for its sequential variant (fixed order).
 
 #include <cmath>
 #include <exception>
@@ -302,11 +303,11 @@ class PlayerAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	cam::Environment l_environment({.m_turns = 0,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	const std::string l_player1_name = "player1";
 	const std::string l_player2_name = "player2";

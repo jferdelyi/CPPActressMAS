@@ -23,12 +23,14 @@
 // best coalition. Parallel, 1 000 turns. Draws from the seeds of the C# oracle: the agents drawn by RandomAgent and the
 // difficulties of the tasks. As in the C#, the manager matches the i-th time estimate it receives with the i-th worker
 // it picked, whatever the worker that sent it.
+// Arguments: none for the example; "calculate" and seven times for the scenario of iso.shapley.*, the calculator alone.
 
 #include <algorithm>
 #include <cmath>
 #include <exception>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <DotNet.hpp>
@@ -335,11 +337,43 @@ class WorkerAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+// Scenario of iso.shapley.* (not in the C#): the calculator alone, asked once by a probe in place of the manager, for
+// the published examples of the Shapley value
+class CalculationProbe final : public cam::Agent {
+	private:
+		std::string m_request;
+
+	public:
+		CalculationProbe(const std::string& p_name, std::string p_request) : Agent(p_name), m_request(std::move(p_request)) {}
+
+		void setup() override {
+			send_by_name("shapley", m_request);
+		}
+
+		void action(const cam::MessagePointer& p_message) override {
+			cam::dotnet::write_line("\t" + format(p_message));
+			stop();
+		}
+};
+
+int main(int argc, char** argv) {
+	// Arguments of the scenario: calculate, then the seven times of the request (1, 2, 3, 12, 13, 23, 123)
+	if (argc == 9 && std::string(argv[1]) == "calculate") {
+		std::string l_request = "calculate";
+		for (int i = 2; i < argc; i++) {
+			l_request += " " + std::string(argv[i]);
+		}
+		cam::Environment l_environment({.m_turns = 3, .m_mode = cam::EnvironmentMasMode::Sequential});
+		l_environment.add<CalculatorAgent>("shapley");
+		l_environment.add<CalculationProbe>("manager", l_request);
+		l_environment.start();
+		return 0;
+	}
+
 	cam::Environment l_environment({.m_turns = 1000,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	for (int i = 1; i <= 3; i++) {  // MaxLevel
 		for (int j = 1; j <= 3; j++) {

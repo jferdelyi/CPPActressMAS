@@ -23,6 +23,7 @@
 // to unregister and new providers and clients are added. Parallel, 100 turns per run. The clients draw from one
 // generator, as from the static Random of the C#, with the seed of its oracle, but under a lock: the C# draws without
 // one, which C++ cannot do without undefined behaviour.
+// Arguments: none for the example; "sequential" for its sequential variant (fixed order).
 
 #include <algorithm>
 #include <cstdint>
@@ -185,11 +186,11 @@ class ProviderAgent final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	cam::Environment l_environment({.m_turns = 100,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	l_environment.add<BrokerAgent>("broker");
 

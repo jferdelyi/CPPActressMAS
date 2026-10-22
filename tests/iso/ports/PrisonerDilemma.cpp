@@ -21,6 +21,7 @@
 // Port of the C# example E10 Iterated Prisoner Dilemma (ActressMAS v3.1): two prisoners play ten rounds against the
 // police, which computes the outcome of each round; tit for tat cooperates first, then copies the other prisoner.
 // The environment announces the rounds and tells the prisoners when the game ends.
+// Arguments: none for the example; "confess" and "random" for the prisoners of the variant commented in its Program.cs.
 
 #include <exception>
 #include <iostream>
@@ -186,12 +187,19 @@ class IPDEnvironment final : public cam::Environment {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	IPDEnvironment l_environment(10);
-	l_environment.add<TitForTatPrisonerAgent>("p1-TitForTatPrisonerAgent");
-	l_environment.add<TitForTatPrisonerAgent>("p2-TitForTatPrisonerAgent");
-	// l_environment.add<ConfessPrisonerAgent>("p1-ConfessPrisonerAgent");
-	// l_environment.add<RandomPrisonerAgent>("p2-RandomPrisonerAgent");
+	// The prisoners of the variant commented in the C#, one per scenario of the oracles: "confess", "random"
+	if (cam::dotnet::has_scenario(argc, argv, "confess")) {
+		l_environment.add<ConfessPrisonerAgent>("p1-ConfessPrisonerAgent");
+	} else {
+		l_environment.add<TitForTatPrisonerAgent>("p1-TitForTatPrisonerAgent");
+	}
+	if (cam::dotnet::has_scenario(argc, argv, "random")) {
+		l_environment.add<RandomPrisonerAgent>("p2-RandomPrisonerAgent");
+	} else {
+		l_environment.add<TitForTatPrisonerAgent>("p2-TitForTatPrisonerAgent");
+	}
 	l_environment.add<PoliceAgent>("police");
 	l_environment.start();
 	return 0;

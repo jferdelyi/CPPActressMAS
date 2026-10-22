@@ -35,6 +35,8 @@
 #include <utility>
 #include <vector>
 
+#include <Environment.h>
+
 /**
  * Number formatting and parsing of .NET, as the C# examples print and read numbers, so that a port prints the same text
  * as its original. Invariant culture, checked against tests/iso/vectors/format.txt (FormatVectors, .NET 10).
@@ -560,6 +562,56 @@ namespace cam::dotnet {
 			std::cerr << "#camrng " << p_site << " " << l_instance << " " << l_seed << std::endl;
 		}
 		return l_seed;
+	}
+
+	/**
+	 * Generator of the environment of a port: DotNet, the System.Random of its oracle, unless CAM_RANDOM_ENGINE is
+	 * "mt19937", the default generator of the library (the distribution tests run the ports with both).
+	 * @return The generator
+	 **/
+	inline cam::RandomEngine random_engine() {
+		const char* l_text = std::getenv("CAM_RANDOM_ENGINE");
+		return l_text != nullptr && std::string_view(l_text) == "mt19937" ? cam::RandomEngine::Mt19937 : cam::RandomEngine::DotNet;
+	}
+
+	/**
+	 * Mode of a port: the mode of its C# original, unless the arguments name the mode of a variant of its oracle
+	 * ("sequential" in a fixed order, "sequential-random", "parallel").
+	 * @param p_argc Number of arguments
+	 * @param p_argv The arguments
+	 * @param p_mode The mode of the C# original
+	 * @return The mode
+	 **/
+	inline cam::EnvironmentMasMode scenario_mode(const int p_argc, char** p_argv, const cam::EnvironmentMasMode p_mode) {
+		for (int i = 1; i < p_argc; i++) {
+			const std::string_view l_argument(p_argv[i]);
+			if (l_argument == "sequential") {
+				return cam::EnvironmentMasMode::Sequential;
+			}
+			if (l_argument == "sequential-random") {
+				return cam::EnvironmentMasMode::SequentialRandom;
+			}
+			if (l_argument == "parallel") {
+				return cam::EnvironmentMasMode::Parallel;
+			}
+		}
+		return p_mode;
+	}
+
+	/**
+	 * Whether the arguments of a port name a scenario of its oracle ("confess" for a prisoner that always confesses...).
+	 * @param p_argc Number of arguments
+	 * @param p_argv The arguments
+	 * @param p_name The scenario
+	 * @return True if one argument is p_name
+	 **/
+	inline bool has_scenario(const int p_argc, char** p_argv, const std::string_view p_name) {
+		for (int i = 1; i < p_argc; i++) {
+			if (std::string_view(p_argv[i]) == p_name) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 } // namespace cam::dotnet

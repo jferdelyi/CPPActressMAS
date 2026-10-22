@@ -69,7 +69,7 @@ int main() {
 	cam::Environment l_environment({.m_turns = 100,
 									.m_mode = cam::EnvironmentMasMode::SequentialRandom,
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	l_environment.add<MyAgent1>("agent1");
 	l_environment.add<MyAgent2>("agent2");

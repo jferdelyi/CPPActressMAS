@@ -21,6 +21,7 @@
 // Port of the C# example E00 Simple Examples/SendingObjects (ActressMAS v3.1): two agents send objects to each other
 // during their setup and print the objects they receive. Parallel, 10 turns. The C# sends the object itself
 // (ContentObj); here it travels as a JSON object, read back on arrival (as_json).
+// Arguments: none for the example; "sequential" for its sequential variant (fixed order).
 
 #include <chrono>
 #include <string>
@@ -88,11 +89,11 @@ class Agent2 final : public cam::Agent {
 		}
 };
 
-int main() {
+int main(int argc, char** argv) {
 	cam::Environment l_environment({.m_turns = 10,
-									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	l_environment.add<Agent1>("a1");
 	l_environment.add<Agent2>("a2");

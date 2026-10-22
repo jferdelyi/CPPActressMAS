@@ -410,7 +410,7 @@ class WorldEnvironment final : public cam::Environment {
 				Environment({.m_turns = p_no_turns,
 							 .m_mode = cam::EnvironmentMasMode::SequentialRandom,
 							 .m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-							 .m_random = cam::RandomEngine::DotNet}),
+							 .m_random = cam::dotnet::random_engine()}),
 				m_sw("world-state.txt") {
 			m_sw << "Doodlebugs\tAnts\n";
 		}

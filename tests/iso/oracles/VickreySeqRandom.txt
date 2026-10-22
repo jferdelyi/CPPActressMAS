@@ -1,0 +1,28 @@
+#cam oracle VickreySeqRandom
+#cam csharp ActressMas eb0bb73, Examples/E05 Auctions/Vickrey/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var env = new EnvironmentMas();/var env = new EnvironmentMas(parallel: false, randomOrder: true);/
+#cam command cd Oracles/VickreySeqRandom/bin/Release/net10.0 && dotnet VickreySeqRandom.dll
+#cam seed 0
+[bidder02]: My valuation is 288
+[bidder03]: My valuation is 65
+[bidder05]: My valuation is 245
+[bidder04]: My valuation is 197
+[bidder01]: My valuation is 92
+	[auctioneer -> bidder01]: start
+	[auctioneer -> bidder03]: start
+	[auctioneer -> bidder04]: start
+	[auctioneer -> bidder05]: start
+	[auctioneer -> bidder02]: start
+	[bidder01 -> auctioneer]: bid 92
+	[bidder03 -> auctioneer]: bid 65
+	[bidder04 -> auctioneer]: bid 197
+	[bidder05 -> auctioneer]: bid 245
+	[bidder02 -> auctioneer]: bid 288
+[auctioneer]: Auction finished. Sold to bidder02 for price 245.
+	[auctioneer -> bidder02]: winner bidder02
+[bidder02]: I have won.
+	[auctioneer -> bidder04]: winner bidder02
+	[auctioneer -> bidder01]: winner bidder02
+	[auctioneer -> bidder03]: winner bidder02
+	[auctioneer -> bidder05]: winner bidder02

@@ -61,7 +61,7 @@ int main() {
 									.m_mode = cam::EnvironmentMasMode::Parallel,
 									.m_delay_after_turn = 1000,
 									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
-									.m_random = cam::RandomEngine::DotNet});
+									.m_random = cam::dotnet::random_engine()});
 
 	l_environment.add<WriterAgent>("writer");
 	for (int i = 1; i <= l_no_agents; i++) {
