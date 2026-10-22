@@ -25,6 +25,7 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstdio>
 #include <filesystem>
