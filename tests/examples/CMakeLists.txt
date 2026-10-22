@@ -32,6 +32,7 @@ if (TARGET Skynet)
 	add_test(NAME examples.Skynet.sum COMMAND Skynet)
 	set_tests_properties(examples.Skynet.sum PROPERTIES LABELS examples PASS_REGULAR_EXPRESSION "Sum 49995000" TIMEOUT 300)
 	cam_apply_tsan_suppressions(examples.Skynet.sum)
+	cam_fail_on_sanitizer_report(examples.Skynet.sum)
 endif()
 
 # ---------------------------------------------------------------- corrected behaviour
@@ -55,16 +56,19 @@ if (TARGET Exemple4)
 	add_test(NAME examples.Exemple4.fixed COMMAND Exemple4 fixed)
 	set_tests_properties(examples.Exemple4.fixed PROPERTIES LABELS examples TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "Agent a5 turn 3 index 3" FAIL_REGULAR_EXPRESSION "turn 4")
+	cam_fail_on_sanitizer_report(examples.Exemple4.fixed)
 endif()
 if (TARGET MultipleMessages)
 	add_test(NAME examples.MultipleMessages.fixed COMMAND MultipleMessages fixed)
 	set_tests_properties(examples.MultipleMessages.fixed PROPERTIES LABELS examples TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "\\[Manager\\]: Worker[0-9] replying" FAIL_REGULAR_EXPRESSION "out of range|Exception")
+	cam_fail_on_sanitizer_report(examples.MultipleMessages.fixed)
 endif()
 if (TARGET BDI)
 	add_test(NAME examples.BDI.fixed_adjacent COMMAND BDI 120 0 fixed-adjacent)
 	set_tests_properties(examples.BDI.fixed_adjacent PROPERTIES LABELS examples TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "fire-out\n\t\\[terrain -> patrol\\]: percepts 3 0 0 0" FAIL_REGULAR_EXPRESSION "out of range")
+	cam_fail_on_sanitizer_report(examples.BDI.fixed_adjacent)
 endif()
 
 # ---------------------------------------------------------------- features of the C++ port
@@ -73,10 +77,12 @@ if (TARGET TransportRoundTrip)
 	add_test(NAME examples.TransportRoundTrip COMMAND TransportRoundTrip loopback://smoke-roundtrip loopback://smoke-roundtrip 50)
 	set_tests_properties(examples.TransportRoundTrip PROPERTIES LABELS examples PASS_REGULAR_EXPRESSION "50 round trips in" TIMEOUT 120)
 	cam_apply_tsan_suppressions(examples.TransportRoundTrip)
+	cam_fail_on_sanitizer_report(examples.TransportRoundTrip)
 endif()
 if (TARGET SharedText)
 	add_test(NAME examples.SharedText COMMAND SharedText 10 4)
 	set_tests_properties(examples.SharedText PROPERTIES LABELS examples PASS_REGULAR_EXPRESSION "cam::Text [^\n]* 40960 characters received"
 		FAIL_REGULAR_EXPRESSION "MISSING" TIMEOUT 120)
 	cam_apply_tsan_suppressions(examples.SharedText)
+	cam_fail_on_sanitizer_report(examples.SharedText)
 endif()

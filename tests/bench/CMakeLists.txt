@@ -37,8 +37,15 @@ if (CAM_BUILD_TESTS)
 	set_tests_properties(perf.smoke.Transport PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "msg/ms" TIMEOUT 300)
 	add_test(NAME perf.smoke.Envelope COMMAND bench_Envelope --count 2000)
 	set_tests_properties(perf.smoke.Envelope PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "json content=1024 encode_ns" TIMEOUT 300)
+	# The sum of Skynet is N(N - 1) / 2 for N agents, whatever their number
+	add_test(NAME perf.smoke.Skynet.N1000 COMMAND bench_Skynet --agents 1000)
+	set_tests_properties(perf.smoke.Skynet.N1000 PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Sum = 499500\n" TIMEOUT 300)
+	add_test(NAME perf.smoke.Skynet.N50000 COMMAND bench_Skynet --agents 50000)
+	set_tests_properties(perf.smoke.Skynet.N50000 PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Sum = 1249975000\n" TIMEOUT 300)
+	cam_fail_on_sanitizer_report(perf.smoke.Skynet perf.smoke.Skynet.N1000 perf.smoke.Skynet.N50000 perf.smoke.SkynetNumeric perf.smoke.PingPong
+		perf.smoke.Transport perf.smoke.Envelope)
 
-	# Not worse than the C# (label perf): a benchmark runs 10 times and the median of its runs is compared with the median
+	# Faster than the C# (label perf): a benchmark runs 10 times and the median of its runs is compared with the median
 	# of its C# original measured on the same machine (CAM_BENCH_REFERENCE, written by tools/csharp-ref benchref);
 	# skipped without that reference. Run alone, so that no other test shares the machine.
 	add_executable(cam_bench_compare ${CMAKE_CURRENT_LIST_DIR}/compare.cpp)
@@ -55,7 +62,7 @@ if (CAM_BUILD_TESTS)
 	set(l_fixtures ${CMAKE_CURRENT_LIST_DIR}/fixtures)
 	add_test(NAME perf.compare.skip COMMAND cam_bench_compare Skynet 2 -- $<TARGET_FILE:bench_Skynet> --sequential --agents 100)
 	set_tests_properties(perf.compare.skip PROPERTIES LABELS perf ENVIRONMENT "CAM_BENCH_REFERENCE=" PASS_REGULAR_EXPRESSION "SKIP no C# reference")
-	foreach (l_case IN ITEMS "slow|not worse than the C#" "fast|FAIL worse than the C#")
+	foreach (l_case IN ITEMS "slow|\nfaster than the C#" "fast|FAIL not faster than the C#")
 		string(REPLACE "|" ";" l_parts "${l_case}")
 		list(GET l_parts 0 l_reference)
 		list(GET l_parts 1 l_expected)
@@ -65,4 +72,6 @@ if (CAM_BUILD_TESTS)
 		set_tests_properties(perf.compare.time_${l_reference} perf.compare.throughput_${l_reference} PROPERTIES LABELS perf
 			ENVIRONMENT "CAM_BENCH_REFERENCE=${l_fixtures}/reference-${l_reference}.txt" PASS_REGULAR_EXPRESSION "${l_expected}" TIMEOUT 300)
 	endforeach()
+	cam_fail_on_sanitizer_report(perf.compare.skip perf.compare.time_slow perf.compare.time_fast perf.compare.throughput_slow
+		perf.compare.throughput_fast)
 endif()

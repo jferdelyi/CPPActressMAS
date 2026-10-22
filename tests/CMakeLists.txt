@@ -38,6 +38,19 @@ function(cam_apply_tsan_suppressions p_test)
 	endif()
 endfunction()
 
+# A test that passes on a regular expression ignores its exit code (CTest): a report of a sanitizer printed after the
+# expected line must still fail it. Called after the properties of the tests are set, never for the crash probes.
+function(cam_fail_on_sanitizer_report)
+	foreach (l_test IN LISTS ARGN)
+		get_test_property(${l_test} FAIL_REGULAR_EXPRESSION l_fail)
+		if (NOT l_fail)
+			set_tests_properties(${l_test} PROPERTIES FAIL_REGULAR_EXPRESSION "Sanitizer;runtime error")
+		else()
+			set_tests_properties(${l_test} PROPERTIES FAIL_REGULAR_EXPRESSION "${l_fail};Sanitizer;runtime error")
+		endif()
+	endforeach()
+endfunction()
+
 # A doctest program of the type of its folder (CAM_TEST_TYPE): target p_target built from the other arguments, test
 # <type>.<p_name>, label <type>.
 function(cam_add_doctest p_name p_target)

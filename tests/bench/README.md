@@ -22,11 +22,12 @@ build/bench/tests/bench/bench_Skynet
 build/bench/tests/bench/bench_PingPong --sequential --trials 3
 ```
 
-## Not worse than the C#
+## Faster than the C#
 
 `perf.vs_csharp.<benchmark>` compares a benchmark with its C# original measured **on the same machine**
 (`compare.cpp`, `cam_bench_compare`): the C++ program runs 10 times (`CAM_BENCH_RUNS`), and the median of its runs must
-not be worse than the C# median of the reference.
+be faster than the C# median of the reference: a speedup above `CAM_BENCH_MIN_SPEEDUP` (1 when not set). The
+measure is meant for a Release build (the `bench` preset), the C# reference and the C++ runs on the same machine.
 
 | Test | C++ | C# (ActressMAS v3.1, E30) | Metric |
 |---|---|---|---|

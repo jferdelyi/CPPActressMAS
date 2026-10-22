@@ -16,7 +16,7 @@
  *                                                                        *
  **************************************************************************/
 
-// Comparison of a benchmark with its C# original measured on the same machine: "not worse than the C#".
+// Comparison of a benchmark with its C# original measured on the same machine: "faster than the C#".
 //
 // Usage: cam_bench_compare <benchmark> <runs> -- <command> [args...]
 //
@@ -26,8 +26,8 @@
 //   <benchmark> msg_per_ms <median>  higher is better: each trial prints "<messages> msg" then "<time> ms"; the first
 //                                    trial of each run warms up and is dropped, a run gives the mean msg/ms of the others
 // The command runs <runs> times (CAM_BENCH_RUNS in the environment, if set, as on the C# side); the test passes when the
-// median of the C++ runs is not worse than the C# median.
-// Exit code: 0 not worse, 1 worse, 2 usage or a run that fails, 77 no reference for this benchmark (skipped).
+// median of the C++ runs is faster than the C# median: a speedup above CAM_BENCH_MIN_SPEEDUP (1 when not set).
+// Exit code: 0 faster, 1 not faster, 2 usage or a run that fails, 77 no reference for this benchmark (skipped).
 
 #include <algorithm>
 #include <array>
@@ -178,11 +178,13 @@ int main(int argc, char** argv) {
 
 	const double l_median = median(l_values);
 	const bool l_lower_is_better = l_reference->m_metric == "ms";
-	const bool l_not_worse = l_lower_is_better ? l_median <= l_reference->m_median : l_median >= l_reference->m_median;
 	const double l_speedup = l_lower_is_better ? l_reference->m_median / l_median : l_median / l_reference->m_median;
+	const char* l_minimum_text = std::getenv("CAM_BENCH_MIN_SPEEDUP");
+	const double l_minimum = l_minimum_text && *l_minimum_text ? std::atof(l_minimum_text) : 1.0;
+	const bool l_faster = l_speedup > l_minimum;
 	std::cout << std::fixed << std::setprecision(3) << l_benchmark << ": C++ median " << l_median << " " << l_reference->m_metric
 			  << " over " << l_values.size() << " runs, C# median " << l_reference->m_median << ", C++ " << std::setprecision(2)
 			  << l_speedup << "x the C#\n"
-			  << (l_not_worse ? "not worse than the C#\n" : "FAIL worse than the C#\n");
-	return l_not_worse ? 0 : 1;
+			  << (l_faster ? "faster than the C#\n" : "FAIL not faster than the C#\n");
+	return l_faster ? 0 : 1;
 }
