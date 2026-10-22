@@ -45,11 +45,12 @@ namespace {
 		return reinterpret_cast<const std::uint8_t*>(p_text.data());
 	}
 
-	// Records every message it receives as "<name>:<content>".
+	// Records every message it receives as "<name>:<content>", and its format as "from:<format>".
 	struct Receiver final : cam::Agent {
 		explicit Receiver(const std::string& p_name) : Agent(p_name) {}
 		void action(const cam::MessagePointer& p_message) override {
 			g_recorder.record(get_name() + ":" + p_message->to_string());
+			g_recorder.record("from:" + format(p_message));
 		}
 	};
 
@@ -235,6 +236,7 @@ namespace {
 		l_b.start();  // the message is applied at the boundary and handled in the turn
 		CHECK(g_recorder.contains("r:hello"));
 		CHECK(g_recorder.count_of("r:hello") == 1);
+		CHECK(g_recorder.contains("from:[s -> r]: hello"));  // the name of the sender crossed the transport
 
 		CHECK(l_a.statistics().m_sent >= 1);
 		CHECK(l_b.statistics().m_delivered >= 1);

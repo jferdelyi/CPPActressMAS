@@ -13,3 +13,10 @@ header (magic, codec id, version); a transport uses one codec, chosen by the URL
 | `ContentCodec.{h,cpp}` | Encoding of a message content at the network boundary: once when it leaves the node, once when it arrives. |
 
 The binary vectors of each envelope codec are under `tests/unit/vectors/envelope/<codec>/v1/`.
+
+Minor versions of the envelope (`version_minor`, the same major version for every codec):
+- 1.0: the first version.
+- 1.1: the name of the sender agent of a message (`sender_name`), so that a receiver names it once the sender is gone
+  or when it lives in another environment. Compact: a text right after `sender_agent`, present from 1.1 only; protobuf:
+  field 24, absent when empty; JSON: key `sender_name`, absent when empty. A 1.1 decoder reads a 1.0 envelope (no
+  name). A compact 1.0 decoder refuses a 1.1 envelope (trailing bytes); protobuf and JSON 1.0 decoders ignore the name.

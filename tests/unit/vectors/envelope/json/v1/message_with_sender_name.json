@@ -1,0 +1,25 @@
+{
+  "content": "82a568656c6c6fa5776f726c64a16e07",
+  "content_encoding": 4,
+  "conversation_id": "",
+  "epoch": 16909060,
+  "first_only": false,
+  "kind": 0,
+  "origin_environment": "",
+  "payload": {
+    "type": "none"
+  },
+  "priority": 0,
+  "scope": 0,
+  "sender_agent": "11111111-2222-4333-8444-555555555555",
+  "sender_environment": "0f3c9d6e-1a2b-4c3d-8e9f-a0b1c2d3e4f5",
+  "sender_name": "alice",
+  "sequence": 44,
+  "stream_kind": 0,
+  "stream_target": "9e8d7c6b-5a4f-4e3d-9c2b-1a0f9e8d7c6b",
+  "target_id": "66666666-7777-4888-9999-aaaaaaaaaaaa",
+  "target_kind": 0,
+  "target_name": "",
+  "version_major": 1,
+  "version_minor": 1
+}

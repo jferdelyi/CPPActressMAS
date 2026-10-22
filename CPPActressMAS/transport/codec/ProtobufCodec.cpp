@@ -33,7 +33,7 @@ namespace cam::transport {
 			constexpr std::uint64_t VERSION_MAJOR = 1, VERSION_MINOR = 2, KIND = 3, SENDER_ENVIRONMENT = 4, ORIGIN_ENVIRONMENT = 5,
 								   EPOCH = 6, STREAM_KIND = 7, STREAM_TARGET = 8, SEQUENCE = 9, CONVERSATION_ID = 10, SENDER_AGENT = 11,
 								   TARGET_KIND = 12, TARGET_ID = 13, TARGET_NAME = 14, FIRST_ONLY = 15, SCOPE = 16, CONTENT_ENCODING = 17,
-								   CONTENT = 18, PRIORITY = 19, TRANSFER = 20, CONTROL = 21, PRESENCE = 22, DIRECTORY = 23;
+								   CONTENT = 18, PRIORITY = 19, TRANSFER = 20, CONTROL = 21, PRESENCE = 22, DIRECTORY = 23, SENDER_NAME = 24;
 			constexpr std::uint64_t TRANSFER_ID = 1, TYPE_NAME = 2, AGENT_ID = 3, AGENT_NAME = 4, STATE_ENCODING = 5, STATE = 6, QUEUE = 7,
 								   USES_OBSERVABLES = 8, OBSERVABLES = 9;
 			constexpr std::uint64_t CONTROL_TRANSFER_ID = 1, CONTROL_AGENT_ID = 2, ACCEPTED = 3, REASON = 4;
@@ -340,6 +340,7 @@ namespace cam::transport {
 			} else if (const auto* l_event = std::get_if<DirectoryEvent>(&p_envelope.m_payload)) {
 				p_writer.message(field::DIRECTORY, encode_directory(*l_event));
 			}
+			p_writer.text(field::SENDER_NAME, p_envelope.m_sender_name);  // since 1.1, absent when empty
 		}
 
 		// ---------------------------------------------------------------- reading
@@ -497,6 +498,7 @@ namespace cam::transport {
 					case field::SEQUENCE: l_envelope.m_sequence = l_reader.uint(l_wire); break;
 					case field::CONVERSATION_ID: l_envelope.m_conversation_id = l_reader.text(l_wire); break;
 					case field::SENDER_AGENT: l_envelope.m_sender_agent = l_reader.text(l_wire); break;
+					case field::SENDER_NAME: l_envelope.m_sender_name = l_reader.text(l_wire); break;
 					case field::TARGET_KIND: l_envelope.m_target_kind = static_cast<TargetKind>(enum_byte(l_reader.uint(l_wire))); break;
 					case field::TARGET_ID: l_envelope.m_target_id = l_reader.text(l_wire); break;
 					case field::TARGET_NAME: l_envelope.m_target_name = l_reader.text(l_wire); break;

@@ -106,7 +106,7 @@ namespace {
 	}
 
 	json to_json(const Envelope& p_envelope) {
-		return {{"version_major", p_envelope.m_version_major}, {"version_minor", p_envelope.m_version_minor},
+		json l_json = {{"version_major", p_envelope.m_version_major}, {"version_minor", p_envelope.m_version_minor},
 				{"kind", static_cast<int>(p_envelope.m_kind)}, {"sender_environment", p_envelope.m_sender_environment},
 				{"origin_environment", p_envelope.m_origin_environment}, {"epoch", p_envelope.m_epoch},
 				{"stream_kind", static_cast<int>(p_envelope.m_stream_kind)}, {"stream_target", p_envelope.m_stream_target},
@@ -115,6 +115,11 @@ namespace {
 				{"target_id", p_envelope.m_target_id}, {"target_name", p_envelope.m_target_name}, {"first_only", p_envelope.m_first_only},
 				{"scope", static_cast<int>(p_envelope.m_scope)}, {"content_encoding", static_cast<int>(p_envelope.m_content_encoding)},
 				{"content", hex(p_envelope.m_content)}, {"priority", p_envelope.m_priority}, {"payload", payload_to_json(p_envelope)}};
+		// Since 1.1, and only when known: the descriptions of the 1.0 vectors have no such key
+		if (!p_envelope.m_sender_name.empty()) {
+			l_json["sender_name"] = p_envelope.m_sender_name;
+		}
+		return l_json;
 	}
 
 	Envelope from_json(const json& p_json) {
@@ -130,6 +135,7 @@ namespace {
 		l_envelope.m_sequence = p_json.at("sequence").get<std::uint64_t>();
 		l_envelope.m_conversation_id = p_json.at("conversation_id").get<std::string>();
 		l_envelope.m_sender_agent = p_json.at("sender_agent").get<std::string>();
+		l_envelope.m_sender_name = p_json.value("sender_name", std::string());
 		l_envelope.m_target_kind = static_cast<TargetKind>(p_json.at("target_kind").get<int>());
 		l_envelope.m_target_id = p_json.at("target_id").get<std::string>();
 		l_envelope.m_target_name = p_json.at("target_name").get<std::string>();
@@ -340,6 +346,28 @@ namespace {
 		return l_envelope;
 	}
 
+	// Version 1.1: the name of the sender travels with the message
+	Envelope message_with_sender_name() {
+		Envelope l_envelope = message_by_id();
+		l_envelope.m_version_minor = 1;
+		l_envelope.m_sequence = 44;
+		l_envelope.m_sender_name = "alice";
+		return l_envelope;
+	}
+
+	// Version 1.1: the queue of a moving agent keeps the names of the senders
+	Envelope agent_offer_with_named_queue() {
+		Envelope l_envelope = agent_offer_with_queue();
+		l_envelope.m_version_minor = 1;
+		auto& l_transfer = std::get<AgentTransfer>(l_envelope.m_payload);
+		l_transfer.m_transfer_id = "t-0003";
+		for (auto& l_queued: l_transfer.m_queue) {
+			l_queued.m_version_minor = 1;
+			l_queued.m_sender_name = "bob";
+		}
+		return l_envelope;
+	}
+
 	struct Sample {
 		const char* m_name;
 		Envelope (*m_make)();
@@ -356,6 +384,8 @@ namespace {
 			{"directory_added", directory_added},
 			{"agent_accept", agent_accept},
 			{"agent_offer_with_queue", agent_offer_with_queue},
+			{"message_with_sender_name", message_with_sender_name},
+			{"agent_offer_with_named_queue", agent_offer_with_named_queue},
 	};
 
 	std::vector<std::uint8_t> read_file(const std::string& p_path) {
@@ -463,6 +493,28 @@ TEST_SUITE("envelope_codec") {
 			// The in-code sample still matches its vector (a change of either is deliberate).
 			CHECK(to_json(l_original) == l_description);
 		}
+		}
+	}
+
+	TEST_CASE("the name of the sender travels from version 1.1 on") {
+		for (const auto& l_name: codec_names()) {
+			CAPTURE(l_name);
+			const auto l_codec = make_codec(l_name);
+			const auto l_decoded = l_codec->decode(encode(*l_codec, message_with_sender_name()), MAX_BYTES);
+			REQUIRE(l_decoded.has_value());
+			CHECK(l_decoded.value().m_sender_name == "alice");
+			// A 1.0 envelope has no name: the compact codec does not even write one
+			Envelope l_old = message_with_sender_name();
+			l_old.m_version_minor = 0;
+			const auto l_old_decoded = l_codec->decode(encode(*l_codec, l_old), MAX_BYTES);
+			REQUIRE(l_old_decoded.has_value());
+			if (l_name == "compact") {
+				CHECK(l_old_decoded.value().m_sender_name.empty());
+			}
+			// A name longer than any string a codec accepts is refused
+			Envelope l_long = message_with_sender_name();
+			l_long.m_sender_name.assign(ENVELOPE_MAX_STRING_BYTES + 1, 'x');
+			CHECK_FALSE(l_codec->decode(encode(*l_codec, l_long), MAX_BYTES).has_value());
 		}
 	}
 

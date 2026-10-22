@@ -134,6 +134,7 @@ message Envelope {
   ContentEncoding content_encoding = 17;
   bytes content = 18;
   uint32 priority = 19;
+  string sender_name = 24;  // since 1.1: the name of the sender agent, absent when unknown
   oneof payload {
     AgentTransfer transfer = 20;
     AgentControl control = 21;

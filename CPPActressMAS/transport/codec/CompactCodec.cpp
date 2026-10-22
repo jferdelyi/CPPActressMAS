@@ -217,6 +217,9 @@ namespace cam::transport {
 			p_writer.u64(p_envelope.m_sequence);
 			p_writer.text(p_envelope.m_conversation_id);
 			p_writer.text(p_envelope.m_sender_agent);
+			if (p_envelope.m_version_minor >= 1) {
+				p_writer.text(p_envelope.m_sender_name);  // since 1.1
+			}
 			p_writer.u8(static_cast<std::uint8_t>(p_envelope.m_target_kind));
 			p_writer.text(p_envelope.m_target_id);
 			p_writer.text(p_envelope.m_target_name);
@@ -342,6 +345,9 @@ namespace cam::transport {
 			l_envelope.m_sequence = l_reader.u64();
 			l_envelope.m_conversation_id = l_reader.text();
 			l_envelope.m_sender_agent = l_reader.text();
+			if (l_envelope.m_version_minor >= 1) {
+				l_envelope.m_sender_name = l_reader.text();  // since 1.1
+			}
 			l_envelope.m_target_kind = static_cast<TargetKind>(l_reader.u8());
 			l_envelope.m_target_id = l_reader.text();
 			l_envelope.m_target_name = l_reader.text();

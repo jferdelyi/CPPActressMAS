@@ -123,6 +123,10 @@ namespace cam::transport {
 						   {"scope", enum_name(SCOPES, static_cast<std::uint8_t>(p_envelope.m_scope))},
 						   {"content_encoding", enum_name(ENCODINGS, static_cast<std::uint8_t>(p_envelope.m_content_encoding))},
 						   {"priority", p_envelope.m_priority}};
+			// The name of the sender only when known (since 1.1): an envelope 1.0 reads the same
+			if (!p_envelope.m_sender_name.empty()) {
+				l_json["sender_name"] = p_envelope.m_sender_name;
+			}
 			// A text content is readable as is; anything else travels in base64.
 			if (p_envelope.m_content_encoding == MessageBinaryFormat::Text || p_envelope.m_content_encoding == MessageBinaryFormat::JSON) {
 				l_json["content_text"] = std::string(p_envelope.m_content.begin(), p_envelope.m_content.end());
@@ -254,6 +258,7 @@ namespace cam::transport {
 			l_envelope.m_sequence = l_reader.uint(p_json, "sequence");
 			l_envelope.m_conversation_id = l_reader.text(p_json, "conversation_id");
 			l_envelope.m_sender_agent = l_reader.text(p_json, "sender_agent");
+			l_envelope.m_sender_name = l_reader.text(p_json, "sender_name");
 			l_envelope.m_target_kind = static_cast<TargetKind>(l_reader.enumeration(p_json, "target_kind", TARGETS));
 			l_envelope.m_target_id = l_reader.text(p_json, "target_id");
 			l_envelope.m_target_name = l_reader.text(p_json, "target_name");

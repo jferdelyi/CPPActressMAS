@@ -148,6 +148,7 @@ namespace {
 		void action(const cam::MessagePointer& p_message) override {
 			g_recorder.record(get_name() + ":" + p_message->to_string() + "@" + label_of(get_environment())
 							  + (p_message->get_sender_environment().empty() ? "" : " remote"));
+			g_recorder.record(get_name() + ":from:" + p_message->get_sender_name() + ":" + p_message->to_string());
 			if (p_message->kind() == cam::ContentKind::Text) {
 				g_recorder.record(get_name() + ":text:" + p_message->as_text());
 			}
@@ -482,6 +483,11 @@ TEST_SUITE("migration") {
 		CHECK(g_recorder.contains("r:m3@B remote"));
 		CHECK(l_position("r:m1@B remote") < l_position("r:m2@B remote"));
 		CHECK(l_position("r:m2@B remote") < l_position("r:m3@B remote"));
+		// Each message names its sender: carried by the offer (m1), sent to B (m2, m3), forwarded by A (c1)
+		CHECK(g_recorder.contains("r:from:f:m1"));
+		CHECK(g_recorder.contains("r:from:f:m2"));
+		CHECK(g_recorder.contains("r:from:g:c1"));
+		CHECK(g_recorder.contains("r:from:f:m3"));
 		CHECK(l_b.statistics().m_unknown_destination == 0);
 		CHECK(l_a.statistics().m_unknown_destination == 0);
 		l_c.start();  // C applies AgentMoved: r@B
@@ -489,6 +495,7 @@ TEST_SUITE("migration") {
 		l_b.start();
 		l_b.start();
 		CHECK(g_recorder.contains("r:c2@B remote"));
+		CHECK(g_recorder.contains("r:from:g:c2"));
 		REQUIRE(l_a.disconnect());
 		REQUIRE(l_b.disconnect());
 		REQUIRE(l_c.disconnect());

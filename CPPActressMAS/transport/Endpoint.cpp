@@ -67,6 +67,7 @@ namespace cam::transport {
 
 	Envelope Endpoint::make_envelope(const EnvelopeKind p_kind) const {
 		Envelope l_envelope;
+		l_envelope.m_version_minor = ENVELOPE_VERSION_MINOR;
 		l_envelope.m_kind = p_kind;
 		l_envelope.m_sender_environment = m_environment_id;
 		l_envelope.m_epoch = m_epoch;

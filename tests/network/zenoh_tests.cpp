@@ -67,6 +67,7 @@ namespace {
 		explicit Receiver(const std::string& p_name) : Agent(p_name) {}
 		void action(const cam::MessagePointer& p_message) override {
 			g_recorder.record(get_name() + ":" + p_message->to_string());
+			g_recorder.record("format:" + format(p_message));
 		}
 		void default_action() override {
 			if (g_stop_keepers.load()) {
@@ -321,6 +322,7 @@ TEST_SUITE("zenoh") {
 		const bool l_delivered = run_until({&l_env_b, &l_env_a}, [] { return g_recorder.contains("receiver:\"hello from afar\""); }, 15s);
 		CHECK(l_delivered);
 		CHECK(g_recorder.count_of("receiver:\"hello from afar\"") == 1);
+		CHECK(g_recorder.contains("format:[sender -> receiver]: \"hello from afar\""));  // the name of the sender crossed the peers
 		CHECK(l_env_a.statistics().m_sent >= 1);
 		CHECK(l_env_b.statistics().m_delivered >= 1);
 		CHECK(l_env_b.statistics().m_rejected == 0);
