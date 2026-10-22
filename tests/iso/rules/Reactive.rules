@@ -3,7 +3,9 @@
 # receiver has not acted yet: how many exchanges fit in 100 turns depends on the scheduling, in the C# as in the C++.
 # Compared: who starts, one first position per explorer (their values depend on the order of the draws), the
 # vocabulary of the protocol (cover all), and its counts: no more pick-ups than samples found, no more unloads than
-# pick-ups, at most the 10 samples, at least 50 moves (the C# makes about twice as many as the C++).
+# pick-ups, at most the 10 samples, at least 50 moves (the C# makes about twice as many as the C++); and each move of
+# an explorer (its positions in the order the planet receives them, first-in first-out per sender) goes one cell at
+# most, horizontally or vertically, on the 11 x 11 grid.
 cover all
 fact start ^Starting (planet|explorer\d)$
 fact position ^\t\[(explorer\d) -> planet\]: position (\d+) (\d+)$
@@ -14,6 +16,7 @@ fact unload ^\t\[(explorer\d) -> planet\]: unload (res\d+)$
 fact move ^\t\[planet -> (explorer\d)\]: move$
 fact block ^\t\[planet -> (explorer\d)\]: block$
 fact rock ^\t\[planet -> (explorer\d)\]: rock (res\d+)$
+fact moved ^\t\[(explorer\d) -> planet\]: (?:position|change|carry) (\d+) (\d+)$
 optional block
 same start bag
 same position count
@@ -23,3 +26,7 @@ check pickup count <= rock.count
 check unload count <= pickup.count
 check move count >= 50
 check pickup distinct(1) <= 10
+check moved each by 0 abs($1 - prev$1) + abs($2 - prev$2) <= 1
+check moved each $1 >= 0 and $1 <= 10 and $2 >= 0 and $2 <= 10
+check change count > 0
+check carry count <= change.count

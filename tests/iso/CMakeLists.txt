@@ -8,22 +8,36 @@ add_executable(cam_iso_check iso_check.cpp)
 set(CAM_ISO_FIXTURES ${CMAKE_CURRENT_LIST_DIR}/fixtures)
 
 # The comparison tool on fixtures: the same behaviour, then each kind of difference it must report.
-add_test(NAME iso.check.same COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/basic.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/same.txt)
-set_tests_properties(iso.check.same PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "same behaviour" FAIL_REGULAR_EXPRESSION "FAIL")
-foreach (l_case IN ITEMS "order|FAIL same msg seq" "uncovered|FAIL cover all on C\\+\\+" "missing|FAIL same total bag")
-	string(REPLACE "|" ";" l_parts "${l_case}")
-	list(GET l_parts 0 l_name)
-	list(GET l_parts 1 l_expected)
-	add_test(NAME iso.check.${l_name} COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/basic.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/${l_name}.txt)
-	set_tests_properties(iso.check.${l_name} PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "${l_expected}")
-endforeach()
+function(cam_add_iso_check_case p_name p_rules p_oracle p_actual p_expected)
+	add_test(NAME iso.check.${p_name}
+		COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/${p_rules} ${CAM_ISO_FIXTURES}/${p_oracle} --actual ${CAM_ISO_FIXTURES}/${p_actual})
+	set_tests_properties(iso.check.${p_name} PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "${p_expected}")
+	if (p_expected STREQUAL "same behaviour")
+		set_tests_properties(iso.check.${p_name} PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
+	endif()
+endfunction()
+cam_add_iso_check_case(same basic.rules basic.oracle same.txt "same behaviour")
+cam_add_iso_check_case(order basic.rules basic.oracle order.txt "FAIL same msg seq")
+cam_add_iso_check_case(uncovered basic.rules basic.oracle uncovered.txt "FAIL cover all on C\\+\\+")
+cam_add_iso_check_case(missing basic.rules basic.oracle missing.txt "FAIL same total bag")
 # "first": a difference after the first tuples is not compared, a difference among them is
-add_test(NAME iso.check.first COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/first.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/first.txt)
-set_tests_properties(iso.check.first PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "same behaviour" FAIL_REGULAR_EXPRESSION "FAIL")
-add_test(NAME iso.check.first_order COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/first.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/order.txt)
-set_tests_properties(iso.check.first_order PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "FAIL same msg seq")
-add_test(NAME iso.check.typo COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/typo.rules ${CAM_ISO_FIXTURES}/basic.oracle --actual ${CAM_ISO_FIXTURES}/same.txt)
-set_tests_properties(iso.check.typo PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "FAIL fact msg: no tuple in the C# oracle")
+cam_add_iso_check_case(first first.rules basic.oracle first.txt "same behaviour")
+cam_add_iso_check_case(first_order first.rules basic.oracle order.txt "FAIL same msg seq")
+cam_add_iso_check_case(typo typo.rules basic.oracle same.txt "FAIL fact msg: no tuple in the C# oracle")
+# "alias": a sender shown as an identifier is paired, a changed content is not
+cam_add_iso_check_case(alias alias.rules alias.oracle alias-same.txt "OK   same msg bag \\(4 tuples\\): 1 paired by the alias of column 0\n")
+set_tests_properties(iso.check.alias PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
+cam_add_iso_check_case(alias_changed alias.rules alias.oracle alias-changed.txt "FAIL same msg bag \\(4 tuples\\): 1 tuples only in C#")
+# "aggregate": the sum of a column, the C# against the C++
+cam_add_iso_check_case(aggregate aggregate.rules basic.oracle same.txt "same behaviour")
+cam_add_iso_check_case(aggregate_missing aggregate.rules basic.oracle missing.txt "FAIL same total aggregate \\(2 tuples\\): sum\\(0\\) 30 in C#, 10 in C\\+\\+")
+# "expect": a published value in both outputs
+cam_add_iso_check_case(expect expect.rules basic.oracle same.txt "same behaviour")
+cam_add_iso_check_case(expect_missing expect.rules basic.oracle expect-missing.txt "FAIL expect msg \\(a\\|b\\|hello\\) on C\\+\\+")
+# "each": a predicate on every tuple, with the previous one of its group
+cam_add_iso_check_case(each each.rules each.oracle each-same.txt "same behaviour")
+cam_add_iso_check_case(each_step each.rules each.oracle each-jump.txt "FAIL check pos each by 0 [^\n]* on C\\+\\+: fails on \\(a\\|3\\) after \\(a\\|1\\)")
+cam_add_iso_check_case(each_sum each.rules each.oracle each-jump.txt "FAIL check sum each [^\n]* on C\\+\\+: fails on \\(2\\|3\\|6\\)")
 
 # The .NET behaviour of the ports (DotNet.hpp): number formatting and parsing against the vectors of the C#
 # (vectors/format.txt, produced by tools/csharp-ref), and the seeds of the oracles.
@@ -102,7 +116,9 @@ cam_add_iso(SkynetNumeric)
 cam_add_iso(Zeuthen)
 cam_add_iso(Voting)
 cam_add_iso(EnglishWithBroadcast)
-# Parallel: the lines of each agent in order, the messages of each round as a multiset
+# Parallel: the lines of each agent in order, the messages of each round as a multiset; a sender removed before its
+# last messages are read is shown by its identifier (a known divergence of the library), paired by the "alias" of the
+# rules
 cam_add_iso(ReplicatorDynamics)
 cam_add_iso(FictitiousPlay)
 cam_add_iso(EnglishWithoutBroadcast)
@@ -120,17 +136,7 @@ set_tests_properties(iso.PredatorPrey iso.PredatorPreyGui PROPERTIES RESOURCE_LO
 # E20: one environment per container of the C#, on the loopback transport, stopped once the scenario is over
 cam_add_iso(RemoteMessages)
 cam_add_iso(MasMobileConsole)
-# Known defect: when an agent stops before the others read its last messages, the library formats these messages with
-# its identifier instead of its name, if the agent is already removed when they are read, which depends on the
-# interleaving. Such a test accepts the behaviour of the C#, or that difference alone (the multiset of the messages);
-# the case of characterization.known_defects shows the defect every time, and signals its fix.
-function(cam_iso_expect_removed_sender_name p_test)
-	set_tests_properties(iso.${p_test} PROPERTIES
-		PASS_REGULAR_EXPRESSION "\nsame behaviour;FAIL same message bag[^\n]*\n(OK[^\n]*\n)*1 difference\\(s\\)")
-endfunction()
-cam_iso_expect_removed_sender_name(FictitiousPlay)
-cam_iso_expect_removed_sender_name(EnglishWithoutBroadcast)
-cam_iso_expect_removed_sender_name(Vickrey)
+
 # Millions of calls: with gcc, whose ASan detects stack-use-after-return by default (fake stacks), GameOfLife (390 000
 # calls of the perception filter per turn) took more than 1 200 s, 39 s without, and PingPong (10 million messages per
 # trial) more than 300 s, 37 s without; clang leaves that detection off by default. Predator-Prey too (thousands of

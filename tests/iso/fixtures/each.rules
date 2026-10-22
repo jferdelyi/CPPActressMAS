@@ -1,0 +1,6 @@
+# Fixture of iso_check: a predicate on every tuple, with the previous tuple of the same group
+cover all
+fact pos ^pos (\w) (-?\d+)$
+fact sum ^sum (\d+) (\d+) (\d+)$
+check pos each by 0 abs($1 - prev$1) <= 1
+check sum each $2 == $0 + $1

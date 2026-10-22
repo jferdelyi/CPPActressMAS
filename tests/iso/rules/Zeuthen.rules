@@ -17,3 +17,6 @@ same concede seq
 same refuse seq
 same accept seq
 check accept count == 2
+# The published value of the example: the Nash solution of the utilities of the code, where both agents agree
+expect accept agent1|2.5
+expect accept agent2|2.5

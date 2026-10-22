@@ -1,6 +1,8 @@
 # E05 Vickrey auction: parallel; the valuations come from the seed of the oracle, every bidder bids once. Compared: the
 # valuations and the result (winner and second price), the messages each bidder receives in order, and all the messages
 # as a multiset (the only fact that shows the name of a sender).
+# A sender removed before its last messages are read is shown by its identifier in the C++ (a known divergence of
+# the library): "alias" pairs such a message with its C# counterpart, equal on every other column.
 ignore ^$
 cover all
 fact valuation ^\[(bidder\d+)\]: My valuation is (\d+)$
@@ -12,7 +14,7 @@ same valuation bag
 same finished seq
 same won seq
 same to_bidder seq by 0
-same message bag
+same message bag alias 0 ^[A-Za-z0-9]{15}$
 check valuation count == 5
 check finished count == 1
 check won count == 1

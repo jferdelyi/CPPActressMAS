@@ -4,6 +4,8 @@
 # C# sells to the first bid of the round before, whose bidder has stopped meanwhile and never prints that it won:
 # with two bidders at that price, which one wins depends on the order of arrival, in the C# as in the C++; no two
 # bidders tie at the seed of the oracle.
+# A sender removed before its last messages are read is shown by its identifier in the C++ (a known divergence of
+# the library): "alias" pairs such a message with its C# counterpart, equal on every other column.
 ignore ^$
 cover all
 fact valuation ^\[(bidder\d+)\]: My valuation is (\d+)$
@@ -16,6 +18,6 @@ same finished seq
 optional won
 same won seq
 same to_bidder seq by 0
-same message bag
+same message bag alias 0 ^[A-Za-z0-9]{15}$
 check valuation count == 5
 check finished count == 1

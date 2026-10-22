@@ -2,7 +2,8 @@
 # providers: a search that reaches the broker before any provider of its service gets no answer, and the client never
 # asks again; which ones depends on the interleaving, in the C# as in the C++. Compared: the registrations, searches and
 # unregistration as multisets, the forced unregistration, and as many requests, responses and results as answered
-# searches (the clients added for the last run are always answered).
+# searches (the clients added for the last run are always answered); and every result is the sum or the difference of
+# its numbers.
 cover all
 fact register ^\t\[(provider\d) -> broker\]: register (Add|Sub)$
 fact search ^\t\[(client\d) -> broker\]: search (Add|Sub)$
@@ -12,6 +13,10 @@ fact providers ^\t\[broker -> (client\d)\]: providers (.*)$
 fact request ^\t\[(client\d) -> (provider\d)\]: request (\d+) (\d+)$
 fact response ^\t\[(provider\d) -> (client\d)\]: response (-?\d+)$
 fact result ^\[(client\d)\]: (Add|Sub)\((\d+), (\d+)\) = (-?\d+)$
+fact add ^\[client\d\]: Add\((\d+), (\d+)\) = (-?\d+)$
+fact sub ^\[client\d\]: Sub\((\d+), (\d+)\) = (-?\d+)$
+optional add
+optional sub
 same register bag
 same search bag
 same unregister bag
@@ -21,3 +26,5 @@ check request count == providers.count
 check response count == request.count
 check result count == response.count
 check result distinct(0) >= 2
+check add each $2 == $0 + $1
+check sub each $2 == $0 - $1

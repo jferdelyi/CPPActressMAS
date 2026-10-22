@@ -1,0 +1,5 @@
+#cam oracle Fixture
+[game -> player1]: play 1
+[game -> player2]: play 1
+[player1 -> game]: C
+[game -> player1]: result D 1
