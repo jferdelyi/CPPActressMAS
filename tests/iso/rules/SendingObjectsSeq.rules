@@ -1,11 +1,6 @@
 # E00 SendingObjects in a sequential, fixed order: a variant of the oracles, the original sources but its line (tests/tools/csharp-ref/ref/Oracles/SendingObjectsSeq/).
-# Sequential, so the C# fixes every line: the whole trace in order, the sender of a message aside ("trace"), and the
-# senders as a multiset; a sender removed before its last messages are read is shown by its identifier in the C++ (a
-# known divergence of the library), which "alias" pairs with its C# counterpart.
+# Sequential, so the C# fixes every line: the whole trace in order, the senders of the messages included.
 ignore ^$
 cover all
-fact trace ^\t?\[[^\s\]]+( -> [^\]]+\]: .*)$|^(.+)$
-fact message ^\t?\[([^\s\]]+) -> ([^\]]+)\]: (.*)$
-optional message
+fact trace ^(.+)$
 same trace seq
-same message bag alias 0 ^[A-Za-z0-9]{15}$

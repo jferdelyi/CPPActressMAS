@@ -138,9 +138,7 @@ cam_add_iso(SkynetNumeric)
 cam_add_iso(Zeuthen)
 cam_add_iso(Voting)
 cam_add_iso(EnglishWithBroadcast)
-# Parallel: the lines of each agent in order, the messages of each round as a multiset; a sender removed before its
-# last messages are read is shown by its identifier (a known divergence of the library), paired by the "alias" of the
-# rules
+# Parallel: the lines of each agent in order, the messages of each round as a multiset
 cam_add_iso(ReplicatorDynamics)
 cam_add_iso(FictitiousPlay)
 cam_add_iso(EnglishWithoutBroadcast)

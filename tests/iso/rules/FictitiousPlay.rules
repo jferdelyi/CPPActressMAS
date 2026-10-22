@@ -2,8 +2,6 @@
 # and a message sent during a turn may be read in that turn or the next: where a player's line falls between the round
 # lines of the game agent depends on the interleaving. Compared: the lines of the game agent in order (round lines
 # included), the lines of each player in order, and all the messages as a multiset.
-# A sender removed before its last messages are read is shown by its identifier in the C++ (a known divergence of
-# the library): "alias" pairs such a message with its C# counterpart, equal on every other column.
 ignore ^$
 cover all
 fact game ^(Starting fictitious play .*|--- Round \d+ ---|Joint action: .*|Game finished\.|Total payoff for .*)$
@@ -15,6 +13,6 @@ same game seq
 same play seq by 0
 same observe seq by 0
 same player seq by 0
-same message bag alias 0 ^[A-Za-z0-9]{15}$
+same message bag
 check play count == 100
 check observe count == 100

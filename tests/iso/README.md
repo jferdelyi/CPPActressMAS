@@ -37,9 +37,9 @@ parallel ones, compared line by line where the parallel original only allows inv
 is an argument of the port (`adjacent` for BDI, `calculate` for Shapley: `iso.shapley.two` and `.three` check the
 calculator alone on the examples of the Shapley value); the example itself runs unchanged without it.
 
-**A known divergence is paired, never tolerated wholesale.** A sender removed before its last messages are read is
-shown by its identifier in the C++: `same message bag alias 0 <regex>` pairs such a message with its C# counterpart,
-equal on every other column; any other difference still fails the test.
+**A known divergence is paired, never tolerated wholesale.** `same NAME bag alias C <regex>` pairs a C++ tuple whose
+column C matches the regex with a C# tuple equal on every other column; any other difference still fails the test. No
+rule needs it today: it served while a message showed the identifier of a sender already removed.
 
 **Durations are never compared.** A run of the C# and a run of the C++ take different times: a rule checks only that a
 duration is printed, and in what form (for instance `fact duration ^\d+\.000 ms$` and `same duration count`), never its
