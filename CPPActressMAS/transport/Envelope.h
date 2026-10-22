@@ -135,6 +135,11 @@ namespace cam::transport {
 	};
 
 	/**
+	 * Minor version of the envelopes this library creates: 1 adds the name of the sender of a message.
+	 **/
+	inline constexpr std::uint8_t ENVELOPE_VERSION_MINOR = 1;
+
+	/**
 	 * The envelope. Identifiers are the strings used by the core (canonical UUIDs for environments
 	 * and agents created by the framework).
 	 **/
@@ -150,6 +155,7 @@ namespace cam::transport {
 		std::uint64_t m_sequence = 0;
 		std::string m_conversation_id;
 		std::string m_sender_agent;
+		std::string m_sender_name;         ///< name of the sender agent (version 1.1); empty when unknown
 		TargetKind m_target_kind = TargetKind::Id;
 		std::string m_target_id;
 		std::string m_target_name;

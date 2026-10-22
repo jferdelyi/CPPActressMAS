@@ -70,9 +70,9 @@ namespace cam {
 		AgentId m_id;
 
 		/**
-		 * Name of the agent.
+		 * Name of the agent, shared with the messages it sends: they keep it once the agent is gone.
 		 **/
-		std::string m_name;
+		std::shared_ptr<const std::string> m_name;
 
 		/**
 		 * The environment where the agent is.
@@ -140,7 +140,7 @@ namespace cam {
 		 * Return name.
 		 * @return Name of the agent
 		 **/
-		[[nodiscard]] const std::string& get_name() const { return m_name; }
+		[[nodiscard]] const std::string& get_name() const { return *m_name; }
 
 		/**
 		 * True if using observables.
@@ -375,8 +375,9 @@ namespace cam {
 		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 		/**
-		 * As Format() of the C# message: "[sender -> receiver]: content" with the names of the agents of this
-		 * environment, the raw id otherwise ("env", an agent of another environment or already erased).
+		 * As Format() of the C# message: "[sender -> receiver]: content", the sender named by the message itself
+		 * (even once removed, or in another environment), the receiver by this environment; the raw id when no name
+		 * is known (a message built by hand, or sent from outside the agents).
 		 * @param p_message The message
 		 * @return The text
 		 **/
@@ -492,7 +493,7 @@ namespace cam {
 		 **/
 		void set_identity(const AgentId& p_id, std::string p_name) {
 			m_id = p_id;
-			m_name = std::move(p_name);
+			m_name = std::make_shared<const std::string>(std::move(p_name));
 		}
 
 		/**

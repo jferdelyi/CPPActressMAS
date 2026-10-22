@@ -189,6 +189,37 @@ namespace {
 		int m_readings = 0;
 	};
 
+	// Address of a text, to tell a shared text from a copy
+	std::string address_of(const std::string& p_text) {
+		return std::to_string(reinterpret_cast<std::uintptr_t>(&p_text));
+	}
+
+	// Sends one text by id, by name, by fragment and by broadcast at its first action, then stops: its messages are
+	// read once it is gone. Records the address of its name.
+	struct Farewell final : cam::Agent {
+		Farewell(const std::string& p_name, cam::AgentId p_reader_id) : Agent(p_name), m_reader_id(p_reader_id) {}
+		void setup() override { g_recorder.record("name:" + address_of(get_name())); }
+		void default_action() override {
+			send(m_reader_id, std::string("by id"));
+			send_by_name("reader", std::string("by name"));
+			send_by_fragment_name("read", std::string("by fragment"));
+			broadcast(std::string("by broadcast"));
+			stop();
+		}
+	private:
+		cam::AgentId m_reader_id;
+	};
+
+	// Records the format of every message it reads, and the address of the name of its sender ("none" when unknown).
+	struct Reader final : cam::Agent {
+		explicit Reader(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			g_recorder.record(format(p_message));
+			const std::string& l_name = p_message->get_sender_name();
+			g_recorder.record("sender name:" + (l_name.empty() ? std::string("none") : address_of(l_name)));
+		}
+	};
+
 	// The numbers each sender of "<sender>:<n>" entries of a collector sent, in their order of arrival
 	std::map<std::string, std::vector<int>> per_sender(const std::string& p_collector) {
 		std::map<std::string, std::vector<int>> l_numbers;
@@ -352,6 +383,46 @@ TEST_SUITE("delivery") {
 		l_env.start();
 		CHECK(g_recorder.count_of("self:1") == 3);
 		CHECK_FALSE(g_recorder.contains("self:2"));
+	}
+
+	TEST_CASE("a message names its sender once the sender is gone, whatever the mode and the way it was sent") {
+		for (const auto& [l_mode, l_label]: {std::pair{Mode::Sequential, "Sequential"}, std::pair{Mode::SequentialRandom, "SequentialRandom"},
+											  std::pair{Mode::Parallel, "Parallel"}}) {
+			INFO(l_label);
+			g_recorder.clear();
+			cam::Environment l_env({.m_turns = 4, .m_mode = l_mode, .m_seed = 5});
+			const cam::AgentId l_reader = l_env.add<Reader>("reader");
+			l_env.add<Reader>("other");
+			l_env.add<Farewell>("farewell", l_reader);
+			l_env.start();
+			CHECK(g_recorder.count_of("[farewell -> reader]: by id") == 1);
+			CHECK(g_recorder.count_of("[farewell -> reader]: by name") == 1);
+			CHECK(g_recorder.count_of("[farewell -> reader]: by fragment") == 1);
+			CHECK(g_recorder.count_of("[farewell -> reader]: by broadcast") == 1);
+			CHECK(g_recorder.count_of("[farewell -> other]: by broadcast") == 1);
+			// Every message shares the name of its sender: one string, never copied
+			std::string l_name;
+			for (const auto& l_entry: g_recorder.entries()) {
+				if (l_entry.rfind("name:", 0) == 0) {
+					l_name = l_entry.substr(5);
+				}
+			}
+			REQUIRE_FALSE(l_name.empty());
+			CHECK(g_recorder.count_of("sender name:" + l_name) == 5);
+		}
+	}
+
+	TEST_CASE("a message names no sender when it is built by hand or sent from outside the agents") {
+		const cam::Message l_message(cam::AgentId("a"), cam::AgentId("b"), std::string("by hand"));
+		CHECK(l_message.get_sender_name().empty());
+		g_recorder.clear();
+		cam::Environment l_env({.m_turns = 1, .m_mode = Mode::Sequential});
+		const cam::AgentId l_reader = l_env.add<Reader>("reader");
+		l_env.start();  // setup turn: the reader is inserted
+		l_env.send_content("outside", l_reader, cam::MessageContent(std::string("from outside")));
+		l_env.continue_simulation(1);
+		CHECK(g_recorder.count_of("[outside -> reader]: from outside") == 1);  // the raw id, as before
+		CHECK(g_recorder.count_of("sender name:none") == 1);
 	}
 
 	TEST_CASE("the end hook runs at the end of each start and of each continue") {

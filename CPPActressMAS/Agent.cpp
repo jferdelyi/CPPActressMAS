@@ -24,7 +24,7 @@
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_id(AgentId::generate()),
-		m_name(std::move(p_name)),
+		m_name(std::make_shared<const std::string>(std::move(p_name))),
 		m_environment(nullptr),
 		m_is_setup(false),
 		m_is_dead(false),
@@ -122,105 +122,105 @@ namespace {
 
 cam::transport::Result<void>
 cam::Agent::send(const AgentId& p_receiver_id, const json& p_message, const transport::SendOptions& p_options) const {
-	return get_environment()->send_content(m_id, p_receiver_id, json_content(p_message), p_options);
+	return get_environment()->send_content(m_id, m_name, p_receiver_id, json_content(p_message), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send(const AgentId& p_receiver_id, std::string p_text, const transport::SendOptions& p_options) const {
-	return get_environment()->send_content(m_id, p_receiver_id, MessageContent(std::move(p_text)), p_options);
+	return get_environment()->send_content(m_id, m_name, p_receiver_id, MessageContent(std::move(p_text)), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send(const AgentId& p_receiver_id, const char* p_text, const transport::SendOptions& p_options) const {
-	return get_environment()->send_content(m_id, p_receiver_id, text_content(p_text), p_options);
+	return get_environment()->send_content(m_id, m_name, p_receiver_id, text_content(p_text), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_text(const AgentId& p_receiver_id, const Text& p_text, const transport::SendOptions& p_options) const {
-	return get_environment()->send_content(m_id, p_receiver_id, MessageContent(p_text), p_options);
+	return get_environment()->send_content(m_id, m_name, p_receiver_id, MessageContent(p_text), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send(const AgentId& p_receiver_id, const uint8_t* p_message, const size_t& p_length,
 				 const transport::SendOptions& p_options) const {
-	return get_environment()->send(m_id, p_receiver_id, p_message, p_length, p_options);
+	return get_environment()->send_content(m_id, m_name, p_receiver_id, bytes_content(p_message, p_length), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_name(const std::string& p_receiver_name, const json& p_message, const bool p_first_only,
 						 const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_receiver_name, json_content(p_message), false, p_first_only, p_options);
+	return get_environment()->send_content_by_name(m_id, m_name, p_receiver_name, json_content(p_message), false, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_name(const std::string& p_receiver_name, std::string p_text, const bool p_first_only,
 						 const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_receiver_name, MessageContent(std::move(p_text)), false, p_first_only, p_options);
+	return get_environment()->send_content_by_name(m_id, m_name, p_receiver_name, MessageContent(std::move(p_text)), false, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_name(const std::string& p_receiver_name, const char* p_text, const bool p_first_only,
 						 const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_receiver_name, text_content(p_text), false, p_first_only, p_options);
+	return get_environment()->send_content_by_name(m_id, m_name, p_receiver_name, text_content(p_text), false, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_text_by_name(const std::string& p_name, const Text& p_text, const bool p_is_fragment, const bool p_first_only,
 							  const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_name, MessageContent(p_text), p_is_fragment, p_first_only, p_options);
+	return get_environment()->send_content_by_name(m_id, m_name, p_name, MessageContent(p_text), p_is_fragment, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_name(const std::string& p_receiver_name, const uint8_t* p_message, const size_t& p_length,
 						 const bool p_first_only, const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_receiver_name, bytes_content(p_message, p_length), false, p_first_only,
+	return get_environment()->send_content_by_name(m_id, m_name, p_receiver_name, bytes_content(p_message, p_length), false, p_first_only,
 												   p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_fragment_name(const std::string& p_fragment_name, const json& p_message, const bool p_first_only,
 								  const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_fragment_name, json_content(p_message), true, p_first_only, p_options);
+	return get_environment()->send_content_by_name(m_id, m_name, p_fragment_name, json_content(p_message), true, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_fragment_name(const std::string& p_fragment_name, std::string p_text, const bool p_first_only,
 								  const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_fragment_name, MessageContent(std::move(p_text)), true, p_first_only, p_options);
+	return get_environment()->send_content_by_name(m_id, m_name, p_fragment_name, MessageContent(std::move(p_text)), true, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_fragment_name(const std::string& p_fragment_name, const char* p_text, const bool p_first_only,
 								  const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_fragment_name, text_content(p_text), true, p_first_only, p_options);
+	return get_environment()->send_content_by_name(m_id, m_name, p_fragment_name, text_content(p_text), true, p_first_only, p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message, const size_t& p_length,
 								  const bool p_first_only, const transport::SendOptions& p_options) const {
-	return get_environment()->send_content_by_name(m_id, p_fragment_name, bytes_content(p_message, p_length), true, p_first_only,
+	return get_environment()->send_content_by_name(m_id, m_name, p_fragment_name, bytes_content(p_message, p_length), true, p_first_only,
 												   p_options);
 }
 
 cam::transport::Result<void> cam::Agent::broadcast(const json& p_message, const transport::SendOptions& p_options) const {
-	return get_environment()->broadcast_content(m_id, json_content(p_message), p_options);
+	return get_environment()->broadcast_content(m_id, m_name, json_content(p_message), p_options);
 }
 
 cam::transport::Result<void> cam::Agent::broadcast(std::string p_text, const transport::SendOptions& p_options) const {
-	return get_environment()->broadcast_content(m_id, MessageContent(std::move(p_text)), p_options);
+	return get_environment()->broadcast_content(m_id, m_name, MessageContent(std::move(p_text)), p_options);
 }
 
 cam::transport::Result<void> cam::Agent::broadcast(const char* p_text, const transport::SendOptions& p_options) const {
-	return get_environment()->broadcast_content(m_id, text_content(p_text), p_options);
+	return get_environment()->broadcast_content(m_id, m_name, text_content(p_text), p_options);
 }
 
 cam::transport::Result<void> cam::Agent::broadcast_text(const Text& p_text, const transport::SendOptions& p_options) const {
-	return get_environment()->broadcast_content(m_id, MessageContent(p_text), p_options);
+	return get_environment()->broadcast_content(m_id, m_name, MessageContent(p_text), p_options);
 }
 
 cam::transport::Result<void>
 cam::Agent::broadcast(const uint8_t* p_message, const size_t& p_length, const transport::SendOptions& p_options) const {
-	return get_environment()->broadcast_content(m_id, bytes_content(p_message, p_length), p_options);
+	return get_environment()->broadcast_content(m_id, m_name, bytes_content(p_message, p_length), p_options);
 }
 
 void cam::Agent::reset() {
@@ -238,7 +238,10 @@ cam::transport::Result<void> cam::Agent::move(const std::string& p_environment_i
 
 std::string cam::Agent::format(const MessagePointer& p_message) const {
 	const auto l_name = [this](const AgentId& p_id) { return get_agent_name(p_id).value_or(p_id.str()); };
-	return "[" + l_name(p_message->get_sender()) + " -> " + l_name(p_message->get_receiver()) + "]: " + p_message->to_string();
+	// The sender as the message names it (the C# Message.Sender), even once it is removed or when it is remote
+	const std::string& l_sender_name = p_message->get_sender_name();
+	const std::string l_sender = l_sender_name.empty() ? l_name(p_message->get_sender()) : l_sender_name;
+	return "[" + l_sender + " -> " + l_name(p_message->get_receiver()) + "]: " + p_message->to_string();
 }
 
 size_t cam::Agent::agents_count() const {

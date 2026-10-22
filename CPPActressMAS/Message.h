@@ -117,6 +117,12 @@ namespace cam {
 		AgentId m_sender;
 
 		/**
+		 * Name of the sender, shared with the sender and its other messages; null when unknown (a message built by
+		 * hand, or sent from outside the agents).
+		 **/
+		std::shared_ptr<const std::string> m_sender_name;
+
+		/**
 		 * Environment the sender belongs to when the message came through the transport; empty for a
 		 * local message.
 		 **/
@@ -146,12 +152,13 @@ namespace cam {
 		 * Message built by the environment: identifiers copied once, content moved in.
 		 * @param p_key Key of the environment.
 		 * @param p_sender Sender.
+		 * @param p_sender_name Name of the sender, shared; null when unknown.
 		 * @param p_receiver Receiver.
 		 * @param p_content Content.
 		 * @param p_sender_environment Environment of the sender when the message came through the transport, else empty.
 		 **/
-		Message(Key p_key, const AgentId& p_sender, const AgentId& p_receiver, MessageContent&& p_content,
-				const std::string& p_sender_environment);
+		Message(Key p_key, const AgentId& p_sender, const std::shared_ptr<const std::string>& p_sender_name, const AgentId& p_receiver,
+				MessageContent&& p_content, const std::string& p_sender_environment);
 
 		/**
 		 * Message carrying a JSON value.
@@ -206,6 +213,14 @@ namespace cam {
 		 * @return Sender.
 		 **/
 		[[nodiscard]] const AgentId& get_sender() const { return m_sender; }
+
+		/**
+		 * Get the name of the sender, as the C# Message.Sender: kept by the message, even once the sender is removed
+		 * or when it lives in another environment; empty when unknown (a message built by hand, or sent from outside
+		 * the agents).
+		 * @return Sender name or empty
+		 **/
+		[[nodiscard]] const std::string& get_sender_name() const;
 
 		/**
 		 * Get receiver.

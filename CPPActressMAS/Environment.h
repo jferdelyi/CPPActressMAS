@@ -672,35 +672,63 @@ namespace cam {
 		void apply_incoming(transport::Envelope&& p_envelope);
 
 		/**
+		 * Sends a message of an agent by id (see the public send_content): the message keeps the name of its sender.
+		 * @param p_sender_name Name of the sender, shared; null when unknown
+		 **/
+		transport::Result<void> send_content(const AgentId& p_sender_id, const std::shared_ptr<const std::string>& p_sender_name,
+											 const AgentId& p_receiver_id, MessageContent p_content,
+											 const transport::SendOptions& p_options) const;
+
+		/**
+		 * Sends a message of an agent by name (see the public send_content_by_name): the message keeps the name of its sender.
+		 * @param p_sender_name Name of the sender, shared; null when unknown
+		 **/
+		transport::Result<void> send_content_by_name(const AgentId& p_sender_id, const std::shared_ptr<const std::string>& p_sender_name,
+													 const std::string& p_receiver_name, MessageContent p_content, bool p_is_fragment,
+													 bool p_first_only, const transport::SendOptions& p_options) const;
+
+		/**
+		 * Broadcast a message of an agent (see the public broadcast_content): the messages keep the name of their sender.
+		 * @param p_sender_name Name of the sender, shared; null when unknown
+		 **/
+		transport::Result<void> broadcast_content(const AgentId& p_sender_id, const std::shared_ptr<const std::string>& p_sender_name,
+												  MessageContent p_content, const transport::SendOptions& p_options) const;
+
+		/**
 		 * Deliver a message to a local agent by id; nothing leaves the environment.
+		 * @param p_sender_name Name of the sender, shared; null when unknown
 		 * @param p_content The content, moved into the message
 		 * @param p_sender_environment Origin environment of a message received through the transport
 		 * @return True if the agent exists here
 		 **/
-		bool deliver_local(const AgentId& p_sender_id, const AgentId& p_receiver_id, MessageContent p_content,
-						   const std::string& p_sender_environment = {}) const;
+		bool deliver_local(const AgentId& p_sender_id, const std::shared_ptr<const std::string>& p_sender_name, const AgentId& p_receiver_id,
+						   MessageContent p_content, const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to the local agents matching a name or a fragment.
+		 * @param p_sender_name Name of the sender, shared; null when unknown
 		 * @param p_content The content, copied for every receiver but the last, which takes it
 		 * @return True if at least one agent received it
 		 **/
-		bool deliver_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name, MessageContent p_content,
-							 bool p_is_fragment, bool p_first_only, const std::string& p_sender_environment = {}) const;
+		bool deliver_by_name(const AgentId& p_sender_id, const std::shared_ptr<const std::string>& p_sender_name,
+							 const std::string& p_receiver_name, MessageContent p_content, bool p_is_fragment, bool p_first_only,
+							 const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Deliver a message to every local agent but the sender.
+		 * @param p_sender_name Name of the sender, shared; null when unknown
 		 * @param p_content The content, copied for every receiver but the last, which takes it
 		 **/
-		void deliver_broadcast(const AgentId& p_sender_id, MessageContent p_content,
+		void deliver_broadcast(const AgentId& p_sender_id, const std::shared_ptr<const std::string>& p_sender_name, MessageContent p_content,
 							   const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Build a message for a local queue.
+		 * @param p_sender_name Name of the sender, shared; null when unknown
 		 * @param p_content The content, moved into the message (a reference: one move less per message)
 		 **/
-		static MessagePointer make_message(const AgentId& p_sender_id, const AgentId& p_receiver_id, MessageContent&& p_content,
-										   const std::string& p_sender_environment);
+		static MessagePointer make_message(const AgentId& p_sender_id, const std::shared_ptr<const std::string>& p_sender_name,
+										   const AgentId& p_receiver_id, MessageContent&& p_content, const std::string& p_sender_environment);
 
 		//###############################################################
 		//	Migration (three steps: offer, accept or reject, commit or abort)
@@ -763,7 +791,7 @@ namespace cam {
 		 **/
 		transport::Result<void> enqueue_message(const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
-												const std::string& p_sender_id, std::vector<std::uint8_t> p_content,
+												const std::string& p_sender_id, const std::string& p_sender_name, std::vector<std::uint8_t> p_content,
 												MessageBinaryFormat p_content_encoding, const transport::SendOptions& p_options,
 												const std::string& p_origin_environment = {}) const;
 
@@ -772,7 +800,7 @@ namespace cam {
 		 **/
 		transport::Result<void> enqueue_content(const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
-												const std::string& p_sender_id, const MessageContent& p_content,
+												const std::string& p_sender_id, const std::string& p_sender_name, const MessageContent& p_content,
 												const transport::SendOptions& p_options, const std::string& p_origin_environment = {}) const;
 	};
 

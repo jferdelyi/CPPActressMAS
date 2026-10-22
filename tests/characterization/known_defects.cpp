@@ -394,7 +394,7 @@ TEST_SUITE("characterization") {
 		void action(const cam::MessagePointer& p_message) override { g_formatted = format(p_message); }
 	};
 
-	TEST_CASE("the format of a message names its sender, even once the sender is removed" * doctest::should_fail()) {
+	TEST_CASE("fixed: the format of a message names its sender, even once the sender is removed") {
 		g_formatted.clear();
 		cam::Environment l_env(3, Mode::Sequential);
 		l_env.add<Listener>("listener");
