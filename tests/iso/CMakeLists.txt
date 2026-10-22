@@ -184,12 +184,18 @@ endforeach()
 set_tests_properties(iso.PredatorPrey iso.PredatorPreyGui iso.PredatorPrey.seed42 iso.PredatorPreyGui.seed42 iso.PredatorPrey.seed7
 	iso.PredatorPreyGui.seed7 PROPERTIES RESOURCE_LOCK world-state.txt)
 
+# ---------------------------------------------------------------- oracles published with the examples
+# The game of life of the port of E13 against the patterns of Gardner (1970), generation by generation
+cam_add_doctest(gardner cam_iso_gardner gardner.cpp)
+target_compile_definitions(cam_iso_gardner PRIVATE CAM_GAME_OF_LIFE="$<TARGET_FILE:iso_GameOfLife>")
+add_dependencies(cam_iso_gardner iso_GameOfLife)
+set_tests_properties(iso.gardner PROPERTIES TIMEOUT 900)
 # Millions of calls: with gcc, whose ASan detects stack-use-after-return by default (fake stacks), GameOfLife (390 000
 # calls of the perception filter per turn) took more than 1 200 s, 39 s without, and PingPong (10 million messages per
 # trial) more than 300 s, 37 s without; clang leaves that detection off by default. Predator-Prey too (thousands of
 # insects, small vectors at each move): the GUI version more than 300 s, 3 s without
 if (CAM_SANITIZER STREQUAL "asan")
-	set_property(TEST iso.GameOfLife iso.PingPong iso.PredatorPrey iso.PredatorPreyGui iso.PredatorPrey.seed42
+	set_property(TEST iso.GameOfLife iso.gardner iso.PingPong iso.PredatorPrey iso.PredatorPreyGui iso.PredatorPrey.seed42
 				 iso.PredatorPreyGui.seed42 iso.PredatorPrey.seed7 iso.PredatorPreyGui.seed7 APPEND PROPERTY ENVIRONMENT
 				 "ASAN_OPTIONS=detect_stack_use_after_return=0")
 endif()
