@@ -31,6 +31,7 @@
 #include <Environment.h>
 
 
+#include <atomic>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -227,6 +228,62 @@ namespace {
 		std::cout << "OK no crash\n";
 	}
 
+	// ---------------------------------------------------------------- outside the turns (known)
+	std::atomic<bool> g_sink_ready{false};
+	std::atomic<bool> g_outside_done{false};
+
+	struct Sink final : cam::Agent {  // takes the messages from outside; stops once the outside thread is done
+		explicit Sink(const std::string& p_name) : Agent(p_name) {}
+		void setup() override { g_sink_ready = true; }
+		void action(const cam::MessagePointer&) override {}
+		void default_action() override {
+			if (g_outside_done) {
+				stop();
+			}
+		}
+	};
+
+	// send_content() from another thread looks the receiver up in the collection that the turn boundary changes when it
+	// inserts the agents added from outside: some messages are lost (the C# keeps its agents in a ConcurrentDictionary
+	// in Parallel mode). The end does not depend on a message, which could be lost.
+	void outside_add_and_send_parallel() {
+		cam::Environment l_env({.m_turns = 0, .m_mode = Mode::Parallel});
+		const cam::AgentId l_sink = l_env.add<Sink>("sink");
+		std::thread l_runner([&l_env] { l_env.start(); });
+		while (!g_sink_ready) {
+			std::this_thread::yield();
+		}
+		for (int i = 0; i < 100; i++) {
+			l_env.add<Quitter>("quitter");
+			l_env.send_content("outside", l_sink, cam::MessageContent(std::string("m")));
+		}
+		g_outside_done = true;
+		l_runner.join();
+		std::cout << "done (verdict: TSan reports)\n";
+	}
+
+	// remove() from another thread looks the agent up and marks it without synchronisation, then the turn boundary erases
+	// it while a send_content() from that thread looks its receiver up in the same collection.
+	void outside_remove_and_send_parallel() {
+		cam::Environment l_env({.m_turns = 0, .m_mode = Mode::Parallel});
+		const cam::AgentId l_sink = l_env.add<Sink>("sink");
+		std::vector<cam::AgentId> l_plain;
+		for (int i = 0; i < 100; i++) {
+			l_plain.push_back(l_env.add<Plain>("plain"));
+		}
+		std::thread l_runner([&l_env] { l_env.start(); });
+		while (!g_sink_ready) {
+			std::this_thread::yield();
+		}
+		for (const auto& l_id: l_plain) {
+			l_env.remove(l_id);
+			l_env.send_content("outside", l_sink, cam::MessageContent(std::string("m")));
+		}
+		g_outside_done = true;
+		l_runner.join();
+		std::cout << "done (verdict: TSan reports)\n";
+	}
+
 	// ---------------------------------------------------------------- random generator per environment (fixed)
 	void rng_two_threads() {
 		const auto l_run = [] {
@@ -273,6 +330,8 @@ namespace {
 			{"stop_and_send_parallel", "fixed (TSan)", stop_and_send_parallel},
 			{"remove_during_parallel_turn", "fixed (TSan, ASan)", remove_during_parallel_turn},
 			{"remove_during_sequential_turn", "fixed", remove_during_sequential_turn},
+			{"outside_add_and_send_parallel", "known (TSan)", outside_add_and_send_parallel},
+			{"outside_remove_and_send_parallel", "known (TSan)", outside_remove_and_send_parallel},
 			{"rng_two_threads", "fixed (TSan)", rng_two_threads},
 			{"dangling_add_ref", "fixed", dangling_add_ref},
 	};

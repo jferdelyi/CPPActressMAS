@@ -62,6 +62,11 @@ cam_add_ok_probe(remove_during_sequential_turn)
 cam_add_ok_probe(dangling_add_ref)
 # Known: the live observables of an agent are read by the others while their owner writes them
 cam_add_crash_probe(observables_parallel tsan "ThreadSanitizer: data race")
+# Known: send_content() and remove() from another thread read the collection while the turn boundary inserts the agents
+# added from outside or erases the removed ones, and lose messages (the C# keeps its agents in a ConcurrentDictionary in
+# Parallel mode)
+cam_add_crash_probe(outside_add_and_send_parallel tsan "ThreadSanitizer: data race")
+cam_add_crash_probe(outside_remove_and_send_parallel tsan "ThreadSanitizer: data race")
 # Fixed: stop() wrote the dead flag while send_by_name() read it from another thread; the flag is atomic now
 cam_add_ok_probe(stop_and_send_parallel)
 # Fixed: the random generator was static and shared by every environment of the process; each one has its own now

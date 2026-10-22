@@ -38,6 +38,7 @@
 #include <random>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "Recorder.hpp"
 #include "tcp_probe.hpp"
@@ -99,6 +100,36 @@ namespace {
 		cam::AgentId m_target_id;
 		bool m_sent = false;
 	};
+
+	// Sends "o0", "o1"... p_total texts by id, in order: as many per turn as the transport takes, and from the first
+	// refused one again at the next turn (the directory may not know the receiver yet); stops with the keepers.
+	struct OrderedSender final : cam::Agent {
+		OrderedSender(const std::string& p_name, cam::AgentId p_target_id, const int p_total) :
+				Agent(p_name), m_target_id(p_target_id), m_total(p_total) {}
+		void default_action() override {
+			while (m_next < m_total && send(m_target_id, "o" + std::to_string(m_next))) {
+				m_next++;
+			}
+			if (g_stop_keepers.load()) {
+				stop();
+			}
+		}
+	private:
+		cam::AgentId m_target_id;
+		int m_total;
+		int m_next = 0;
+	};
+
+	// The texts a receiver recorded, in their order of arrival
+	std::vector<std::string> received_by(const std::string& p_receiver) {
+		std::vector<std::string> l_texts;
+		for (const auto& l_entry: g_recorder.entries()) {
+			if (l_entry.rfind(p_receiver + ":", 0) == 0) {
+				l_texts.push_back(l_entry.substr(p_receiver.size() + 1));
+			}
+		}
+		return l_texts;
+	}
 
 	// Sends "ping<n>" by id every 25 turns (reconnection test).
 	struct Pinger final : cam::Agent {
@@ -273,6 +304,29 @@ TEST_SUITE("mqtt") {
 		CHECK(l_env_a.statistics().m_sent >= 1);
 		CHECK(l_env_b.statistics().m_delivered >= 1);
 		CHECK(l_env_b.statistics().m_rejected == 0);
+		REQUIRE(l_env_a.disconnect());
+		REQUIRE(l_env_b.disconnect());
+	}
+
+	TEST_CASE("the messages of one sender cross the broker in the order they were sent") {
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");
+		TestEnvironment l_env_b("B");
+		REQUIRE(connect(l_env_a, "A", "cam-test-order"));
+		REQUIRE(connect(l_env_b, "B", "cam-test-order"));
+
+		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
+		l_env_b.add<Keeper>("keeper-b");
+		l_env_a.add<OrderedSender>("sender", l_receiver, 200);
+		l_env_a.add<Keeper>("keeper-a");
+
+		const bool l_all = run_until({&l_env_b, &l_env_a}, [] { return received_by("receiver").size() >= 200; }, 30s);
+		CHECK(l_all);
+		const auto l_received = received_by("receiver");
+		REQUIRE(l_received.size() == 200);
+		for (int i = 0; i < 200; i++) {
+			CHECK(l_received[i] == "o" + std::to_string(i));
+		}
 		REQUIRE(l_env_a.disconnect());
 		REQUIRE(l_env_b.disconnect());
 	}

@@ -34,6 +34,10 @@ cam_add_doctest(removal cam_removal_tests removal.cpp)
 # Observables: what an agent sees of the others before each action, as the C#.
 cam_add_doctest(observables cam_observables_tests observables.cpp)
 
+# Delivery and turn semantics: the order of the messages of one sender, agents and messages from another thread while
+# the environment runs, a shared read-only JSON content, and the turn loop of the C# manual.
+cam_add_doctest(delivery cam_delivery_tests delivery.cpp)
+
 # Generator of the seeded System.Random of .NET, against the series of the C#.
 cam_add_doctest(dotnet_random cam_dotnet_random_tests dotnet_random.cpp)
 target_compile_definitions(cam_dotnet_random_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")

@@ -24,6 +24,8 @@
 #include <doctest/doctest.h>
 
 #include <chrono>
+#include <string>
+#include <vector>
 
 #include <Environment.h>
 #include <transport/codec/EnvelopeCodec.h>
@@ -128,6 +130,25 @@ namespace {
 		cam::AgentId m_target_id;
 		int m_total;
 		int m_count = 0;
+	};
+
+	// At its first action, sends "b0", "b1"... p_total texts by id in one turn, and records any refused send.
+	struct BurstSender final : cam::Agent {
+		BurstSender(const std::string& p_name, cam::AgentId p_target_id, const int p_total) :
+				Agent(p_name), m_target_id(p_target_id), m_total(p_total) {}
+		void default_action() override {
+			if (m_done) return;
+			m_done = true;
+			for (int i = 0; i < m_total; i++) {
+				if (!send(m_target_id, "b" + std::to_string(i))) {
+					g_recorder.record(get_name() + ":refused");
+				}
+			}
+		}
+	private:
+		cam::AgentId m_target_id;
+		int m_total;
+		bool m_done = false;
 	};
 
 	// Broadcasts once, from its second turn, with the given scope.
@@ -273,6 +294,41 @@ TEST_SUITE("loopback") {
 			CAPTURE(l_name);
 			g_recorder.clear();
 			unicast_scenario(open_loopback(LoopbackOptions{.m_serialize = true}, make_codec(l_name)));
+		}
+	}
+
+	TEST_CASE("the messages of one sender cross the transport in the order they were sent, in memory and through every codec") {
+		std::vector<std::string> l_codecs{""};
+		for (const auto& l_name: codec_names()) {
+			l_codecs.emplace_back(l_name);
+		}
+		for (const auto& l_codec: l_codecs) {
+			CAPTURE(l_codec);
+			g_recorder.clear();
+			auto l_transport = l_codec.empty() ? open_loopback() : open_loopback(LoopbackOptions{.m_serialize = true}, make_codec(l_codec));
+			TestEnvironment l_a("A");
+			TestEnvironment l_b("B");
+			const cam::AgentId l_receiver = l_b.add<Receiver>("r");
+			REQUIRE(l_b.connect(l_transport, named("B")));
+			REQUIRE(l_a.connect(l_transport, named("A")));
+			l_a.add<BurstSender>("s", l_receiver, 100);
+			l_b.start();  // r inserted and announced
+			l_a.start();  // s set up
+			l_a.start();  // s sends its 100 texts in one turn
+			l_b.start();  // they are applied at the boundary and read in the turn
+			CHECK_FALSE(g_recorder.contains("s:refused"));
+			std::vector<std::string> l_received;
+			for (const auto& l_entry: g_recorder.entries()) {
+				if (l_entry.rfind("r:", 0) == 0) {
+					l_received.push_back(l_entry.substr(2));
+				}
+			}
+			REQUIRE(l_received.size() == 100);
+			for (int i = 0; i < 100; i++) {
+				CHECK(l_received[i] == "b" + std::to_string(i));
+			}
+			REQUIRE(l_a.disconnect());
+			REQUIRE(l_b.disconnect());
 		}
 	}
 
