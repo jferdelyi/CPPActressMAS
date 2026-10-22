@@ -27,6 +27,7 @@ tests/tools/csharp-ref/csharp-ref.sh WORKDIR ACTION [net10|net8]
 | `e00` | the seven E00 examples |
 | `shimcheck` | `RngVectors` compiled through the seed shim: must equal `ref/expected/rng-vectors.txt` |
 | `oracles` | runs every project of `ref/Oracles/`, from its output folder, into `WORKDIR/logs/oracles/<Name>.txt` |
+| `distrib` | runs the projects of `CAM_DISTRIB` (PredatorPrey Reactive ContractNet Shapley by default) at the seeds 1 to `CAM_DISTRIB_SEEDS` (30) into `WORKDIR/logs/distrib/<Name>/seed<n>.txt`, the C# samples of the distribution tests (`tests/iso/iso_stats.cpp --extract`) |
 | `e20build`, `capture`, `e20`, `e20mono` | the ContainerServer harness of E20 (.NET 8 and Mono) |
 | `e20gui` | MasMobileGui without WinForms, server and three containers (.NET 8: the agent cannot move, `Agent.Move` serializes a `System.Type`) |
 | `e20oracles` | `logs/oracles/RemoteMessages.txt` and `MasMobileConsole.txt` from the captures of `e20` and `e20mono`, the console of each container in turn |
@@ -55,6 +56,12 @@ it (`#cam stub`, `#cam patch`):
   exactly one line.
 - `OracleData`: data files copied next to the program, which reads them from its working directory (`patterns.txt` of
   E13).
+
+**Variants.** A variant of an example is a project of its own, `ref/Oracles/<Name><Variant>/`, with the same
+`OracleSources` and a `Program.cs.sed` of one line: a variant commented in the C# example (`Agents5Seq`,
+`PrisonerDilemmaConfess`, `VickreySeqRandom`, `SkynetNumericParallel`...), or the sequential version of a parallel one
+(`ShapleySeq`, `ContractNetSeq`, `ReactiveSeq`...), where the C# fixes every line. The C++ port takes the matching
+argument (`tests/iso/DotNet.hpp`: `scenario_mode`, `has_scenario`).
 
 ## Seed shim
 

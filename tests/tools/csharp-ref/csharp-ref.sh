@@ -7,7 +7,7 @@
 #   WORKDIR : work folder outside the repository; ref/ (next to this script) is copied into WORKDIR/ref at each run,
 #             builds stay there. ActressMas/ is cloned there if missing, then only read.
 #             Must live under $HOME or /private/tmp: plain /tmp is NOT shared with the VM (podman: "statfs ...: no such file").
-#   ACTION  : build | rng | trace | format | bench | benchref | e00 | probe | mono | shimcheck | oracles | all
+#   ACTION  : build | rng | trace | format | bench | benchref | e00 | probe | mono | shimcheck | oracles | distrib | all
 #             benchref : runs Skynet, SkynetNumeric, PingPong and PingPong.Seq CAM_BENCH_RUNS times (10 by default) and
 #                        writes their medians into WORKDIR/logs/bench-reference-<flavor>.txt, the C# reference of the
 #                        perf.vs_csharp tests on this machine (CAM_BENCH_REFERENCE)
@@ -15,6 +15,9 @@
 #             shimcheck: RngVectors through the seed shim, must equal ref/expected/rng-vectors.txt
 #             oracles  : runs every project of ref/Oracles (seed shim, CAM_SEED or 0) from its output folder into
 #                        WORKDIR/logs/oracles/<Name>.txt, the raw outputs to version in tests/iso/oracles/
+#             distrib  : runs the oracle projects of CAM_DISTRIB (PredatorPrey Reactive ContractNet Shapley by default) at
+#                        the seeds 1 to CAM_DISTRIB_SEEDS (30) into WORKDIR/logs/distrib/<Name>/seed<n>.txt, the C# samples
+#                        of the distribution tests (tests/iso/iso_stats.cpp)
 #             e20build | capture | e20 | e20mono   (ContainerServer harness, ref/E20; always net8: BinaryFormatter throws
 #             on net9+; e20mono adds the SHIPPED .NET Framework server and mobile containers under Mono, ref/mono/e20-mono.sh)
 #             e20gui   : MasMobileGui without WinForms (ref/E20/MasMobileGui.Console), server and three containers; its
@@ -261,9 +264,18 @@ e20_oracle() {  # name, capture folder, sources, runtime, then file:container fo
   } > "$W/logs/oracles/$name.txt"
   echo "$name: $(grep -vc '^#cam' "$W/logs/oracles/$name.txt") lines"
 }
+do_distrib() {  # outputs of some oracle projects at many seeds, for the distribution tests
+  local seeds="${CAM_DISTRIB_SEEDS:-30}" names="${CAM_DISTRIB:-PredatorPrey Reactive ContractNet Shapley}" name
+  for name in $names; do
+    mkdir -p "$W/logs/distrib/$name"
+    dn bash -c "cd Oracles/$name/bin/Release/$TFM && for s in \$(seq 1 $seeds); do CAM_SEED=\$s timeout 300 dotnet $name.dll 2> /dev/null | tr -d '\\r' > /w/logs/distrib/$name/seed\$s.txt; done"
+    echo "$name: $(ls "$W/logs/distrib/$name" | wc -l) runs"
+  done
+}
+
 case "$ACTION" in
   build) do_build ;; rng) do_rng ;; trace) do_trace ;; format) do_format ;; bench) do_bench ;; benchref) do_benchref ;; e00) do_e00 ;; probe) do_probe ;; mono) do_mono ;;
-  shimcheck) do_shimcheck ;; oracles) do_oracles ;;
+  shimcheck) do_shimcheck ;; oracles) do_oracles ;; distrib) do_distrib ;;
   e20build) do_e20build ;; capture) do_capture ;; e20) do_e20 ;; e20mono) do_e20mono ;; e20gui) do_e20gui ;; e20oracles) do_e20oracles ;;
   all) do_build; do_rng; do_trace; do_format; do_bench; do_e00; do_probe; do_shimcheck; do_oracles ;;
   *) echo "unknown action $ACTION" >&2; exit 2 ;;

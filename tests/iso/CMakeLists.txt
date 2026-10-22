@@ -199,6 +199,36 @@ foreach (l_variant IN ITEMS "Agents5 Agents5Seq sequential" "Agents3 Agents3Seq 
 	cam_add_iso(${l_project} ORACLE ${l_oracle} ${l_words})
 endforeach()
 
+# ---------------------------------------------------------------- distributions
+# Where the C# itself is not deterministic: statistics of 30 runs of the port (CAM_SEED 1 to 30) against those of its
+# C# original (distributions/<Oracle>.txt, from tools/csharp-ref distrib, and the spec of the statistics), by a
+# two-sample Kolmogorov-Smirnov test; with the generator of the oracles (dotnet) and with the default one of the
+# library (mt19937), so that the equivalence does not rest on the reproduction of the draws. Reactive is not among them:
+# the number of its exchanges per turn depends on the scheduling (a known divergence of throughput), and its logic is
+# compared line by line by its sequential variant. Long: not under the sanitizers.
+add_executable(cam_iso_stats iso_stats.cpp)
+add_test(NAME iso.stats.self COMMAND cam_iso_stats --self-test)
+set_tests_properties(iso.stats.self PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "self-test ok" FAIL_REGULAR_EXPRESSION "FAIL")
+if (NOT CAM_SANITIZER)
+	foreach (l_example IN ITEMS PredatorPrey ContractNet Shapley)
+		foreach (l_engine IN ITEMS dotnet mt19937)
+			add_test(NAME iso.${l_example}.distribution.${l_engine}
+				COMMAND cam_iso_stats ${CMAKE_CURRENT_LIST_DIR}/distributions/${l_example}.spec ${CMAKE_CURRENT_LIST_DIR}/distributions/${l_example}.txt 30
+					-- $<TARGET_FILE:iso_${l_example}>
+				WORKING_DIRECTORY $<TARGET_FILE_DIR:iso_${l_example}>)
+			set_tests_properties(iso.${l_example}.distribution.${l_engine} PROPERTIES LABELS "iso;stat" TIMEOUT 900
+				ENVIRONMENT "CAM_RANDOM_ENGINE=${l_engine}")
+		endforeach()
+	endforeach()
+	set_tests_properties(iso.PredatorPrey.distribution.dotnet iso.PredatorPrey.distribution.mt19937 PROPERTIES RESOURCE_LOCK world-state.txt)
+	# Expected failure while a removal of an agent added but not yet inserted has no effect (the C# adds at once): an ant
+	# born and eaten in the same turn stays, and moves the cell of the doodlebug that ate it, which never starves. The
+	# populations of turn 10 must already match; once the defect is fixed, the later ones match too and this fails.
+	set_tests_properties(iso.PredatorPrey.distribution.dotnet iso.PredatorPrey.distribution.mt19937 PROPERTIES
+		PASS_REGULAR_EXPRESSION "FAIL stat doodlebugs_100"
+		FAIL_REGULAR_EXPRESSION "FAIL stat (doodlebugs|ants)_10:;FAIL command")
+endif()
+
 # ---------------------------------------------------------------- oracles published with the examples
 # The game of life of the port of E13 against the patterns of Gardner (1970), generation by generation
 cam_add_doctest(gardner cam_iso_gardner gardner.cpp)
