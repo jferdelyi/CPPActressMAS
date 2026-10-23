@@ -247,7 +247,8 @@ namespace {
 	// inserts the agents added from outside: some messages are lost (the C# keeps its agents in a ConcurrentDictionary
 	// in Parallel mode). The end does not depend on a message, which could be lost.
 	void outside_add_and_send_parallel() {
-		cam::Environment l_env({.m_turns = 0, .m_mode = Mode::Parallel});
+		// Bounded: a collection corrupted by the race may never empty; the verdict is the report of TSan
+		cam::Environment l_env({.m_turns = 20000, .m_mode = Mode::Parallel});
 		const cam::AgentId l_sink = l_env.add<Sink>("sink");
 		std::thread l_runner([&l_env] { l_env.start(); });
 		while (!g_sink_ready) {
@@ -265,7 +266,8 @@ namespace {
 	// remove() from another thread looks the agent up and marks it without synchronisation, then the turn boundary erases
 	// it while a send_content() from that thread looks its receiver up in the same collection.
 	void outside_remove_and_send_parallel() {
-		cam::Environment l_env({.m_turns = 0, .m_mode = Mode::Parallel});
+		// Bounded: a collection corrupted by the race may never empty; the verdict is the report of TSan
+		cam::Environment l_env({.m_turns = 20000, .m_mode = Mode::Parallel});
 		const cam::AgentId l_sink = l_env.add<Sink>("sink");
 		std::vector<cam::AgentId> l_plain;
 		for (int i = 0; i < 100; i++) {
