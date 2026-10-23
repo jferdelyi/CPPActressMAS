@@ -14,7 +14,9 @@ tests/tools/csharp-ref/csharp-ref.sh WORKDIR ACTION [net10|net8]
 ```
 
 - `WORKDIR`: a work folder outside the repository (under `$HOME`). `ref/` is copied into it at each run and every build
-  stays there; the reference repository is cloned into `WORKDIR/ActressMas/` if missing, then only read.
+  stays there; the reference repository is cloned into `WORKDIR/ActressMas/` if missing, then only read, and so is the
+  repository of Antelmi et al. into `WORKDIR/ABM_Comparison/` (commit `eaf5dcd`), for the models of `ref/Abm/`
+  (`ref/Abm/README.md`).
 - The Podman machine is `cam` unless `CAM_PODMAN_CONNECTION` names another one. Images: `mcr.microsoft.com/dotnet/sdk:10.0`
   (default) or `:8.0`.
 
@@ -23,7 +25,7 @@ tests/tools/csharp-ref/csharp-ref.sh WORKDIR ACTION [net10|net8]
 | `build` | builds every project of `ref/` but `BfProbe` and `E20` |
 | `rng`, `trace` | `RngVectors` and `TraceOrder`, to compare with `ref/expected/` from line 2 |
 | `bench` | the E30 benchmarks |
-| `benchref` | runs the E30 benchmarks, the sequential PingPong (`ref/PingPong.Seq`) and the PingPong by pairs (`ref/PingPong.Pairs`, parallel and sequential) `CAM_BENCH_RUNS` times (10 by default) and writes their medians into `WORKDIR/logs/bench-reference-<flavor>.txt`, the C# reference of the `perf.vs_csharp` tests on this machine (`tests/bench/README.md`) |
+| `benchref` | runs the E30 benchmarks, the sequential PingPong (`ref/PingPong.Seq`) and the PingPong by pairs (`ref/PingPong.Pairs`, parallel and sequential) and the models of Antelmi et al. (`ref/Abm`, 1 000 agents) `CAM_BENCH_RUNS` times (10 by default) and writes their medians into `WORKDIR/logs/bench-reference-<flavor>.txt`, the C# reference of the `perf.vs_csharp` tests on this machine (`tests/bench/README.md`) |
 | `e00` | the seven E00 examples |
 | `shimcheck` | `RngVectors` compiled through the seed shim: must equal `ref/expected/rng-vectors.txt` |
 | `oracles` | runs every project of `ref/Oracles/`, from its output folder, into `WORKDIR/logs/oracles/<Name>.txt` |

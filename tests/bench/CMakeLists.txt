@@ -17,6 +17,9 @@ cam_add_bench(PingPong)
 cam_add_bench(PingPongPairs)
 cam_add_bench(Skynet)
 cam_add_bench(SkynetNumeric)
+# Wolf, Sheep and Grass and Flockers of Antelmi et al. (ABM_Comparison), 1 000 to 128 000 agents
+cam_add_bench(Wsg)
+cam_add_bench(Flockers)
 # Micro-benchmark of the envelope codecs (encode, decode, bytes on the wire), linked to the core only.
 cam_add_bench(Envelope)
 
@@ -48,8 +51,16 @@ if (CAM_BUILD_TESTS)
 	set_tests_properties(perf.smoke.PingPongPairs PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Trial 1\n50000 msg\n" TIMEOUT 300)
 	add_test(NAME perf.smoke.PingPongPairs.Sequential COMMAND bench_PingPongPairs --sequential --pairs 7 --messages 10 --trials 1)
 	set_tests_properties(perf.smoke.PingPongPairs.Sequential PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Trial 1\n70 msg\n" TIMEOUT 300)
+	# The models of Antelmi et al. run their 200 turns; the birds of Flockers are never lost. Each writes world-state.txt
+	# into its own folder, as the C#.
+	foreach (l_model IN ITEMS Wsg Flockers)
+		file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${l_model})
+		add_test(NAME perf.smoke.${l_model} COMMAND bench_${l_model} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${l_model})
+	endforeach()
+	set_tests_properties(perf.smoke.Wsg PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Turn 200: [0-9]+ wolves, [0-9]+ sheeps\n" TIMEOUT 300)
+	set_tests_properties(perf.smoke.Flockers PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Turn 200: 1000 ants\n" TIMEOUT 300)
 	cam_fail_on_sanitizer_report(perf.smoke.Skynet perf.smoke.Skynet.N1000 perf.smoke.Skynet.N50000 perf.smoke.SkynetNumeric perf.smoke.PingPong
-		perf.smoke.PingPongPairs perf.smoke.PingPongPairs.Sequential perf.smoke.Transport perf.smoke.Envelope)
+		perf.smoke.PingPongPairs perf.smoke.PingPongPairs.Sequential perf.smoke.Wsg perf.smoke.Flockers perf.smoke.Transport perf.smoke.Envelope)
 
 	# Faster than the C# (label perf): a benchmark runs 10 times and the median of its runs is compared with the median
 	# of its C# original measured on the same machine (CAM_BENCH_REFERENCE, written by tools/csharp-ref benchref);
@@ -65,6 +76,8 @@ if (CAM_BUILD_TESTS)
 	cam_add_bench_comparison(PingPongSequential PingPong --sequential)
 	cam_add_bench_comparison(PingPongPairs PingPongPairs)
 	cam_add_bench_comparison(PingPongPairsSequential PingPongPairs --sequential)
+	cam_add_bench_comparison(Wsg Wsg)
+	cam_add_bench_comparison(Flockers Flockers)
 
 	# The comparison tool on fixture references: skipped without a reference, then each verdict on small runs
 	set(l_fixtures ${CMAKE_CURRENT_LIST_DIR}/fixtures)

@@ -46,12 +46,15 @@ namespace bench {
 		int m_pairs = 500;
 		/** Number of messages per pair, even (PingPongPairs). **/
 		int m_messages = 100;
+		/** Seed of the random generators (Wsg, Flockers). **/
+		int m_seed = 1;
 		/** Print one CSV line per measurement instead of the C# text. **/
 		bool m_csv = false;
 	};
 
 	/**
-	 * Parse the command line: --sequential, --parallel, --turns N, --trials N, --agents N, --pairs N, --messages N, --csv.
+	 * Parse the command line: --sequential, --parallel, --turns N, --trials N, --agents N, --pairs N, --messages N,
+	 * --seed N, --csv.
 	 * @param p_argc Argument count
 	 * @param p_argv Arguments
 	 * @param p_default_agents Default agent count of the benchmark
@@ -77,11 +80,13 @@ namespace bench {
 				l_options.m_pairs = l_value();
 			} else if (l_argument == "--messages") {
 				l_options.m_messages = l_value();
+			} else if (l_argument == "--seed") {
+				l_options.m_seed = l_value();
 			} else if (l_argument == "--csv") {
 				l_options.m_csv = true;
 			} else {
-				std::cerr << "usage: " << p_argv[0]
-						  << " [--sequential|--parallel] [--turns N] [--trials N] [--agents N] [--pairs N] [--messages N] [--csv]\n";
+				std::cerr << "usage: " << p_argv[0] << " [--sequential|--parallel] [--turns N] [--trials N] [--agents N] [--pairs N]"
+						  << " [--messages N] [--seed N] [--csv]\n";
 				std::exit(2);
 			}
 		}

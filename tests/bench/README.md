@@ -11,6 +11,8 @@ time with `steady_clock` in microseconds; `--csv` prints one line per trial.
 | `bench_PingPongPairs` | PingPong by pairs, the variant that the ActressMAS article cites without its code ("pairs of agents, 100 messages"), with the definition of its C# counterpart (`tools/csharp-ref/ref/PingPong.Pairs`): 500 pairs, the first agent of a pair starts, each agent sends 50 messages and stops after its 50th sent and 50th received, so a trial ends after exactly 50 000 messages; no turn limit, 5 trials, times to the microsecond. `--sequential`, `--pairs`, `--messages` (per pair, even), `--trials` |
 | `bench_Skynet` | A tree of 10 000 agents created during the simulation; the leaves send their identifier, each node sums and reports (`Sum = 49995000`). `--sequential`, `--agents` |
 | `bench_SkynetNumeric` | Skynet with 20 000 agents, sequential random order, numeric contents (`Long Sum = 199990000`). `--parallel`, `--sequential`, `--agents` |
+| `bench_Wsg` | Wolf, Sheep and Grass of Antelmi et al. (*Applied Sciences* 13(1), 13, 2023; `tools/csharp-ref/ref/Abm`): wolves and sheep with energy on a field whose grass grows back, 200 turns in a random sequential order; `--agents N` (1 000 by default, 60 % sheep) on a field of side `floor(sqrt(10 N))`, the density of the article; `--seed`. Prints the populations of each turn and the time in ms |
+| `bench_Flockers` | Flockers of Antelmi et al.: birds that move from their 8 neighbouring cells, 200 turns in a random sequential order, never lost (`Turn 200: 1000 ants`); `--agents N`, `--seed` |
 | `bench_Transport` | Round trips between two environments through a transport compiled in: `--transport loopback|mqtt|zenoh`, `--url-a`, `--url-b`, `--pings`, `--trials`; exit code 77 when the transport or its broker is missing |
 | `bench_Envelope` | Encoding and decoding of one envelope with a content of 0, 64 and 1 024 bytes, for every codec: `--count`, `--codec` |
 
@@ -38,6 +40,8 @@ measure is meant for a Release build (the `bench` preset), the C# reference and 
 | `perf.vs_csharp.PingPongSequential` | `bench_PingPong --sequential` | `PingPong` in a fixed sequential order (`tools/csharp-ref/ref/PingPong.Seq`) | msg/ms |
 | `perf.vs_csharp.PingPongPairs` | `bench_PingPongPairs` | PingPong by pairs on the v3.1 framework (`tools/csharp-ref/ref/PingPong.Pairs`), not an E30 program | msg/ms |
 | `perf.vs_csharp.PingPongPairsSequential` | `bench_PingPongPairs --sequential` | the same, `--sequential` | msg/ms |
+| `perf.vs_csharp.Wsg` | `bench_Wsg` | Wolf, Sheep and Grass of Antelmi et al. on the v3.1 framework (`tools/csharp-ref/ref/Abm/Wsg`), 1 000 agents | time, ms |
+| `perf.vs_csharp.Flockers` | `bench_Flockers` | Flockers of Antelmi et al. (`tools/csharp-ref/ref/Abm/Flockers`), 1 000 agents | time, ms |
 
 On both sides, the first run of a time and the first trial of each PingPong run warm up and are dropped; a PingPong run
 gives the mean msg/ms of its other trials. The parallel PingPong compares throughputs only: the C# stops at its 10 000

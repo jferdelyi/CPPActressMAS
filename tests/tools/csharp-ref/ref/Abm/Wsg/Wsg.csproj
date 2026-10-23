@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Wolf, Sheep and Grass of Antelmi et al.: original sources of ActressMAS/PredatorPreyConsole, see ../Abm.props -->
+  <PropertyGroup>
+    <AssemblyName>Wsg</AssemblyName>
+    <AbmSources>$(AbmModels)PredatorPreyConsole/</AbmSources>
+  </PropertyGroup>
+  <Import Project="../Abm.props" />
+</Project>

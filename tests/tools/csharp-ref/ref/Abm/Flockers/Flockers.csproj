@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Flockers of Antelmi et al.: original sources of ActressMAS/flockers, see ../Abm.props and ../README.md -->
+  <PropertyGroup>
+    <AssemblyName>Flockers</AssemblyName>
+    <AbmSources>$(AbmModels)flockers/</AbmSources>
+  </PropertyGroup>
+  <Import Project="../Abm.props" />
+</Project>

@@ -5,11 +5,11 @@
 #
 # Usage:  csharp-ref.sh WORKDIR ACTION [net10|net8]
 #   WORKDIR : work folder outside the repository; ref/ (next to this script) is copied into WORKDIR/ref at each run,
-#             builds stay there. ActressMas/ is cloned there if missing, then only read.
+#             builds stay there. ActressMas/ and ABM_Comparison/ (ref/Abm) are cloned there if missing, then only read.
 #             Must live under $HOME or /private/tmp: plain /tmp is NOT shared with the VM (podman: "statfs ...: no such file").
 #   ACTION  : build | rng | trace | format | bench | benchref | e00 | probe | mono | shimcheck | oracles | distrib | all
-#             benchref : runs Skynet, SkynetNumeric, PingPong, PingPong.Seq and PingPong.Pairs (parallel and sequential)
-#                        CAM_BENCH_RUNS times (10 by default) and writes their medians into
+#             benchref : runs Skynet, SkynetNumeric, PingPong, PingPong.Seq, PingPong.Pairs (parallel and sequential),
+#                        Abm/Wsg and Abm/Flockers CAM_BENCH_RUNS times (10 by default) and writes their medians into
 #                        WORKDIR/logs/bench-reference-<flavor>.txt, the C# reference of the perf.vs_csharp tests on this
 #                        machine (CAM_BENCH_REFERENCE)
 #             format   : FormatVectors (number formatting and parsing of .NET), for tests/iso/vectors/format.txt
@@ -34,6 +34,7 @@ W="$(cd "${1:?usage: csharp-ref.sh WORKDIR ACTION [net10|net8]}" && pwd -P)"
 ACTION="${2:-all}"
 FLAVOR="${3:-net10}"
 REF_COMMIT=eb0bb73
+ABM_COMMIT=eaf5dcd
 case "$FLAVOR" in
   net10) IMG=mcr.microsoft.com/dotnet/sdk:10.0; TFM=net10.0 ;;
   net8)  IMG=mcr.microsoft.com/dotnet/sdk:8.0;  TFM=net8.0 ;;
@@ -50,26 +51,40 @@ case "$(GIT_OPTIONAL_LOCKS=0 git -C "$W/ActressMas" rev-parse HEAD)" in
   "$REF_COMMIT"*) ;;
   *) echo "ActressMas is not at $REF_COMMIT: stop, the clone is read only" >&2; exit 2 ;;
 esac
+# The ActressMAS models of Antelmi et al. (ref/Abm), cloned the same way and only read
+if [ ! -d "$W/ABM_Comparison/.git" ]; then
+  git clone -q https://github.com/isislab-unisa/ABM_Comparison "$W/ABM_Comparison"
+  git -C "$W/ABM_Comparison" -c advice.detachedHead=false checkout -q "$ABM_COMMIT"
+fi
+case "$(GIT_OPTIONAL_LOCKS=0 git -C "$W/ABM_Comparison" rev-parse HEAD)" in
+  "$ABM_COMMIT"*) ;;
+  *) echo "ABM_Comparison is not at $ABM_COMMIT: stop, the clone is read only" >&2; exit 2 ;;
+esac
 mkdir -p "$W/logs"
 EX="$W/ActressMas/ActressMAS v3.1/Source Code and Examples/Examples"
 
-# example folder of an oracle project (its <OracleSources>, relative to Examples/)
+# example folder of an oracle project (its <OracleSources>, relative to Examples/), model folder of a project of
+# ref/Abm (its <AbmSources>, relative to the ActressMAS/ folder of ABM_Comparison)
 oracle_sources() { sed -n 's:.*<OracleSources>\$(AmasEx)\(.*\)</OracleSources>.*:\1:p' "$1"; }
+abm_sources() { sed -n 's:.*<AbmSources>\$(AbmModels)\(.*\)</AbmSources>.*:\1:p' "$1"; }
 
-# Patched/<File>.cs of each <File>.cs.sed of an oracle project: the original file with one line rewritten
-# (noTurns, a scenario that reaches a bug), written in WORKDIR/ref (never in the repository nor in the clone), compiled
-# instead of the original
-for sedf in "$W"/ref/Oracles/*/*.cs.sed; do
+# Patched/<File>.cs of each <File>.cs.sed of an oracle project or of a project of ref/Abm: the original file with one
+# line rewritten (noTurns, a scenario that reaches a bug, a size written by hand), written in WORKDIR/ref (never in the
+# repository nor in a clone), compiled instead of the original
+for sedf in "$W"/ref/Oracles/*/*.cs.sed "$W"/ref/Abm/*/*.cs.sed; do
   [ -e "$sedf" ] || continue
   dir="$(dirname "$sedf")"; file="$(basename "$sedf" .sed)"
-  src="$EX/$(oracle_sources "$dir"/*.csproj)$file"
+  case "$dir" in
+    "$W"/ref/Abm/*) src="$W/ABM_Comparison/ActressMAS/$(abm_sources "$dir"/*.csproj)$file" ;;
+    *) src="$EX/$(oracle_sources "$dir"/*.csproj)$file" ;;
+  esac
   mkdir -p "$dir/Patched"
   sed -f "$sedf" "$src" > "$dir/Patched/$file"
   if [ "$(diff "$src" "$dir/Patched/$file" | grep -c '^>')" != 1 ]; then
     echo "$sedf must change exactly one line of $src" >&2; exit 1
   fi
 done
-for gen in "$W"/ref/Oracles/*/Patched/*.cs; do
+for gen in "$W"/ref/Oracles/*/Patched/*.cs "$W"/ref/Abm/*/Patched/*.cs; do
   [ -e "$gen" ] || continue
   [ -e "$(dirname "$(dirname "$gen")")/$(basename "$gen").sed" ] || { echo "$gen has no $(basename "$gen").sed any more: remove it" >&2; exit 1; }
 done
@@ -109,7 +124,8 @@ do_benchref() {  # medians of the C# benchmarks on this machine, read by the per
     for spec in "Skynet ms Skynet.Ref/bin/Release/$TFM/Skynet.dll" "SkynetNumeric ms SkynetNumeric.Ref/bin/Release/$TFM/SkynetNumeric.dll" \
                 "PingPong msg_per_ms PingPong.Ref/bin/Release/$TFM/PingPong.dll" "PingPongSequential msg_per_ms PingPong.Seq/bin/Release/$TFM/PingPongSeq.dll" \
                 "PingPongPairs msg_per_ms PingPong.Pairs/bin/Release/$TFM/PingPongPairs.dll" \
-                "PingPongPairsSequential msg_per_ms PingPong.Pairs/bin/Release/$TFM/PingPongPairs.dll --sequential"; do
+                "PingPongPairsSequential msg_per_ms PingPong.Pairs/bin/Release/$TFM/PingPongPairs.dll --sequential" \
+                "Wsg ms Abm/Wsg/bin/Release/$TFM/Wsg.dll" "Flockers ms Abm/Flockers/bin/Release/$TFM/Flockers.dll"; do
       read -r name metric dll args <<< "$spec"
       # a run gives its time ("<t> ms"), or the mean msg/ms of its trials but the first ("<n> msg" then "<t> ms")
       for i in $(seq 1 "$runs"); do
