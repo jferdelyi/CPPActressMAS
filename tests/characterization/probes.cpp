@@ -95,7 +95,7 @@ namespace {
 
 	void remove_buffered() {
 		cam::Environment l_env(1, Mode::Sequential);
-		const cam::AgentId l_id = l_env.add<Plain>("x");  // added, not inserted yet: ignored
+		const cam::AgentId l_id = l_env.add<Plain>("x");  // added, not inserted yet: removed at once, as the C#
 		l_env.remove(l_id);
 		std::cout << "OK no crash\n";
 	}
@@ -228,7 +228,7 @@ namespace {
 		std::cout << "OK no crash\n";
 	}
 
-	// ---------------------------------------------------------------- outside the turns (known)
+	// ---------------------------------------------------------------- outside the turns (fixed)
 	std::atomic<bool> g_sink_ready{false};
 	std::atomic<bool> g_outside_done{false};
 
@@ -243,11 +243,11 @@ namespace {
 		}
 	};
 
-	// send_content() from another thread looks the receiver up in the collection that the turn boundary changes when it
-	// inserts the agents added from outside: some messages are lost (the C# keeps its agents in a ConcurrentDictionary
-	// in Parallel mode). The end does not depend on a message, which could be lost.
+	// send_content() from another thread looked the receiver up in the collection that the turn boundary changed when it
+	// inserted the agents added from outside, and lost messages; it takes the shared lock of the collection now. The end
+	// does not depend on a message.
 	void outside_add_and_send_parallel() {
-		// Bounded: a collection corrupted by the race may never empty; the verdict is the report of TSan
+		// Bounded: a collection corrupted by the race of old could never empty
 		cam::Environment l_env({.m_turns = 20000, .m_mode = Mode::Parallel});
 		const cam::AgentId l_sink = l_env.add<Sink>("sink");
 		std::thread l_runner([&l_env] { l_env.start(); });
@@ -260,13 +260,13 @@ namespace {
 		}
 		g_outside_done = true;
 		l_runner.join();
-		std::cout << "done (verdict: TSan reports)\n";
+		std::cout << "OK no crash\n";
 	}
 
-	// remove() from another thread looks the agent up and marks it without synchronisation, then the turn boundary erases
-	// it while a send_content() from that thread looks its receiver up in the same collection.
+	// remove() from another thread looked the agent up and marked it without synchronisation, then the turn boundary
+	// erased it while a send_content() from that thread looked its receiver up in the same collection.
 	void outside_remove_and_send_parallel() {
-		// Bounded: a collection corrupted by the race may never empty; the verdict is the report of TSan
+		// Bounded: a collection corrupted by the race of old could never empty
 		cam::Environment l_env({.m_turns = 20000, .m_mode = Mode::Parallel});
 		const cam::AgentId l_sink = l_env.add<Sink>("sink");
 		std::vector<cam::AgentId> l_plain;
@@ -283,7 +283,7 @@ namespace {
 		}
 		g_outside_done = true;
 		l_runner.join();
-		std::cout << "done (verdict: TSan reports)\n";
+		std::cout << "OK no crash\n";
 	}
 
 	// ---------------------------------------------------------------- random generator per environment (fixed)
@@ -332,8 +332,8 @@ namespace {
 			{"stop_and_send_parallel", "fixed (TSan)", stop_and_send_parallel},
 			{"remove_during_parallel_turn", "fixed (TSan, ASan)", remove_during_parallel_turn},
 			{"remove_during_sequential_turn", "fixed", remove_during_sequential_turn},
-			{"outside_add_and_send_parallel", "known (TSan)", outside_add_and_send_parallel},
-			{"outside_remove_and_send_parallel", "known (TSan)", outside_remove_and_send_parallel},
+			{"outside_add_and_send_parallel", "fixed (TSan)", outside_add_and_send_parallel},
+			{"outside_remove_and_send_parallel", "fixed (TSan)", outside_remove_and_send_parallel},
 			{"rng_two_threads", "fixed (TSan)", rng_two_threads},
 			{"dangling_add_ref", "fixed", dangling_add_ref},
 	};

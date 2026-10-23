@@ -244,24 +244,27 @@ std::string cam::Agent::format(const MessagePointer& p_message) const {
 	return "[" + l_sender + " -> " + l_name(p_message->get_receiver()) + "]: " + p_message->to_string();
 }
 
+// The queries of an agent run during its turn, when no boundary changes the collection: without the lock of the
+// environment, which the calls from other threads take
 size_t cam::Agent::agents_count() const {
-	return get_environment()->agents_count();
+	return get_environment()->count_agents();
 }
 
 std::vector<cam::AgentId> cam::Agent::get_agents_by_name(const std::string& p_name, bool p_first_only) const {
-	return get_environment()->get_agents_by_name(p_name, p_first_only);
+	return get_environment()->find_agents(p_name, false, p_first_only);
 }
 
 std::optional<cam::AgentId> cam::Agent::get_first_agent_by_name(const std::string& p_name) const {
-	return get_environment()->get_first_agent_by_name(p_name);
+	const auto l_agents = get_environment()->find_agents(p_name, false, true);
+	return l_agents.empty() ? std::nullopt : std::optional<AgentId>(l_agents[0]);
 }
 
 std::optional<std::string> cam::Agent::get_agent_name(const AgentId& p_id) const {
-	return get_environment()->get_agent_name(p_id);
+	return get_environment()->find_agent_name(p_id);
 }
 
 std::vector<cam::AgentId> cam::Agent::get_filtered_agents(const std::string& p_fragment_name, bool p_first_only) const {
-	return get_environment()->get_filtered_agents(p_fragment_name, p_first_only);
+	return get_environment()->find_agents(p_fragment_name, true, p_first_only);
 }
 
 bool cam::Agent::perception_filter(const ObservablesPointer&) const {

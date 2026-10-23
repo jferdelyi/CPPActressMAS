@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <random>
+#include <shared_mutex>
 #include <thread>
 
 #include "Agent.h"
@@ -83,7 +84,9 @@ cam::AgentId cam::Environment::add(AgentPointer p_agent) {
 }
 
 cam::AgentPointer cam::Environment::get(const AgentId& p_id) const {
-	return m_agent_collection.get(p_id);
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
+	AgentPointer l_agent = m_agent_collection.get(p_id);
+	return l_agent ? l_agent : m_agent_collection.get_pending(p_id);
 }
 
 void cam::Environment::continue_simulation(const int p_no_turns) {
@@ -97,40 +100,45 @@ bool cam::Environment::is_agent_type_registered(const std::string& p_type_name) 
 }
 
 std::optional<cam::AgentId> cam::Environment::random_agent() const {
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
 	return m_agent_collection.random_agent();
 }
 
 void cam::Environment::remove(const AgentPointer& p_agent) {
 	if (!p_agent) {
-		return;  // unknown, or added but not yet inserted
+		return;  // unknown
 	}
-	// During a turn the collections do not change: the agent is marked, the boundary erases and announces it
-	if (m_agent_collection.is_turn_running()) {
+	const AgentId l_id = p_agent->get_id();
+	// An agent added and not inserted yet leaves at once, as the immediate Remove of the C#
+	if (m_agent_collection.remove_pending(l_id)) {
+		return;
+	}
+	// During a simulation the collections change at turn boundaries only: the agent is marked, the boundary erases and
+	// announces it; outside a simulation it is erased at once, under the exclusive lock, whatever the thread
+	if (m_agent_collection.is_simulation_running() || !m_agent_collection.remove_unless_running(l_id)) {
 		retire(*p_agent);
 		return;
 	}
-	const AgentId l_id = p_agent->get_id();
-	const std::string l_name = p_agent->get_name();
-	m_agent_collection.remove(l_id);
 	if (m_endpoint) {
-		announce_agent(transport::DirectoryEventKind::AgentRemoved, l_id, l_name);
+		announce_agent(transport::DirectoryEventKind::AgentRemoved, l_id, p_agent->get_name());
 	}
 }
 
 void cam::Environment::retire(Agent& p_agent) {
 	// Counted once, and only while the agent is in the collection (an agent not yet inserted is counted at insertion)
-	if (!p_agent.m_is_dead.exchange(true, std::memory_order_relaxed) && p_agent.m_is_inserted) {
+	if (!p_agent.m_is_dead.exchange(true, std::memory_order_relaxed) && p_agent.m_is_inserted.load(std::memory_order_relaxed)) {
 		m_agent_collection.m_retired.fetch_add(1, std::memory_order_relaxed);
 	}
 }
 
 void cam::Environment::remove(const AgentId& p_agent_id) {
-	remove(m_agent_collection.get(p_agent_id));
+	remove(get(p_agent_id));
 }
 
 cam::transport::Result<void>
 cam::Environment::send_content(const AgentId& p_sender_id, const AgentId& p_receiver_id, MessageContent p_content,
 							   const transport::SendOptions& p_options) const {
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
 	return send_content(p_sender_id, s_no_name, p_receiver_id, std::move(p_content), p_options);
 }
 
@@ -141,6 +149,13 @@ cam::Environment::send_content(const AgentId& p_sender_id, const std::string& p_
 	if (Agent* const l_agent = m_agent_collection.find(p_receiver_id)) {
 		if (!l_agent->is_dead()) {
 			l_agent->receive(make_message(p_sender_id, p_sender_name, p_receiver_id, std::move(p_content), {}));
+		}
+		return {};
+	}
+	// An agent added and not inserted yet takes its messages at once, as with the immediate Add of the C#
+	if (const AgentPointer l_pending = m_agent_collection.get_pending(p_receiver_id)) {
+		if (!l_pending->is_dead()) {
+			l_pending->receive(make_message(p_sender_id, p_sender_name, p_receiver_id, std::move(p_content), {}));
 		}
 		return {};
 	}
@@ -159,14 +174,8 @@ cam::Environment::send_content(const AgentId& p_sender_id, const std::string& p_
 cam::transport::Result<void>
 cam::Environment::send(const AgentId& p_sender_id, const AgentId& p_receiver_id, const uint8_t* p_message,
 					   const size_t& p_length, const transport::SendOptions& p_options) const {
-	// A local receiver gets a message whose content is built once from the bytes
-	if (Agent* const l_agent = m_agent_collection.find(p_receiver_id)) {
-		if (!l_agent->is_dead()) {
-			l_agent->receive(make_message(p_sender_id, s_no_name, p_receiver_id, make_content(p_message, p_length), {}));
-		}
-		return {};
-	}
-	return send_content(p_sender_id, p_receiver_id, make_content(p_message, p_length), p_options);
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
+	return send_content(p_sender_id, s_no_name, p_receiver_id, make_content(p_message, p_length), p_options);
 }
 
 cam::MessagePointer cam::Environment::make_message(const AgentId& p_sender_id, const std::string& p_sender_name,
@@ -178,7 +187,11 @@ cam::MessagePointer cam::Environment::make_message(const AgentId& p_sender_id, c
 
 bool cam::Environment::deliver_local(const AgentId& p_sender_id, const std::string& p_sender_name,
 									 const AgentId& p_receiver_id, MessageContent p_content, const std::string& p_sender_environment) const {
-	Agent* const l_agent = m_agent_collection.find(p_receiver_id);
+	Agent* l_agent = m_agent_collection.find(p_receiver_id);
+	const AgentPointer l_pending = l_agent ? nullptr : m_agent_collection.get_pending(p_receiver_id);
+	if (l_pending) {
+		l_agent = l_pending.get();
+	}
 	if (!l_agent) {
 		return false;
 	}
@@ -190,17 +203,25 @@ bool cam::Environment::deliver_local(const AgentId& p_sender_id, const std::stri
 
 void cam::Environment::deliver_broadcast(const AgentId& p_sender_id, const std::string& p_sender_name,
 										 MessageContent p_content, const std::string& p_sender_environment) const {
-	// Each receiver is served once the next one is known: the last one takes the content without a copy
+	// Each receiver is served once the next one is known: the last one takes the content without a copy; the agents added
+	// and not inserted yet come last, as in the order of addition of the C#
+	const std::vector<AgentPointer> l_pending = m_agent_collection.pending_agents();
 	const AgentId* l_last_id = nullptr;
 	const AgentPointer* l_last_agent = nullptr;
-	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
-		if (l_id != p_sender_id && !l_agent->is_dead()) {
+	const auto l_visit = [&](const AgentId& p_id, const AgentPointer& p_agent) {
+		if (p_id != p_sender_id && !p_agent->is_dead()) {
 			if (l_last_agent) {
 				(*l_last_agent)->receive(make_message(p_sender_id, p_sender_name, *l_last_id, MessageContent(p_content), p_sender_environment));
 			}
-			l_last_id = &l_id;
-			l_last_agent = &l_agent;
+			l_last_id = &p_id;
+			l_last_agent = &p_agent;
 		}
+	};
+	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
+		l_visit(l_id, l_agent);
+	}
+	for (const auto& l_agent: l_pending) {
+		l_visit(l_agent->get_id(), l_agent);
 	}
 	if (l_last_agent) {
 		(*l_last_agent)->receive(make_message(p_sender_id, p_sender_name, *l_last_id, std::move(p_content), p_sender_environment));
@@ -210,35 +231,44 @@ void cam::Environment::deliver_broadcast(const AgentId& p_sender_id, const std::
 bool cam::Environment::deliver_by_name(const AgentId& p_sender_id, const std::string& p_sender_name,
 									   const std::string& p_receiver_name, MessageContent p_content, const bool p_is_fragment,
 									   const bool p_first_only, const std::string& p_sender_environment) const {
-	// Each receiver is served once the next one is known: the last one takes the content without a copy
+	// Each receiver is served once the next one is known: the last one takes the content without a copy; the agents added
+	// and not inserted yet come last, as in the order of addition of the C#
+	const std::vector<AgentPointer> l_pending = m_agent_collection.pending_agents();
 	const AgentId* l_last_id = nullptr;
 	Agent* l_last_agent = nullptr;
-	// Visit a matching agent; false once the search is over (first_only)
-	const auto l_visit = [&](const AgentId& p_id) {
-		Agent* const l_agent = m_agent_collection.find(p_id);
-		if (!l_agent || l_agent->is_dead()) {
-			return true;
+	bool l_over = false;
+	// Visit a matching agent; the search is over at the first one with first_only
+	const auto l_visit = [&](const AgentId& p_id, Agent* p_agent) {
+		if (!p_agent || p_agent->is_dead()) {
+			return;
 		}
 		if (l_last_agent) {
 			l_last_agent->receive(make_message(p_sender_id, p_sender_name, *l_last_id, MessageContent(p_content), p_sender_environment));
 		}
 		l_last_id = &p_id;
-		l_last_agent = l_agent;
-		return !p_first_only;
+		l_last_agent = p_agent;
+		l_over = p_first_only;
 	};
 	if (p_is_fragment) {
 		for (const auto& [l_name, l_id]: m_agent_collection.m_agents_by_name) {
-			if (l_name.find(p_receiver_name) != std::string::npos && !l_visit(l_id)) {
-				break;
+			if (l_name.find(p_receiver_name) != std::string::npos) {
+				l_visit(l_id, m_agent_collection.find(l_id));
+				if (l_over) {
+					break;
+				}
 			}
 		}
 	} else {
 		// A name is a key of the index: no scan of every agent
 		const auto [l_begin, l_end] = m_agent_collection.m_agents_by_name.equal_range(p_receiver_name);
-		for (auto l_it = l_begin; l_it != l_end; ++l_it) {
-			if (!l_visit(l_it->second)) {
-				break;
-			}
+		for (auto l_it = l_begin; l_it != l_end && !l_over; ++l_it) {
+			l_visit(l_it->second, m_agent_collection.find(l_it->second));
+		}
+	}
+	for (auto l_it = l_pending.begin(); l_it != l_pending.end() && !l_over; ++l_it) {
+		const std::string& l_name = (*l_it)->get_name();
+		if (p_is_fragment ? l_name.find(p_receiver_name) != std::string::npos : l_name == p_receiver_name) {
+			l_visit((*l_it)->get_id(), l_it->get());
 		}
 	}
 	if (!l_last_agent) {
@@ -252,6 +282,7 @@ cam::transport::Result<void>
 cam::Environment::send_content_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name,
 									   MessageContent p_content, const bool p_is_fragment, const bool p_first_only,
 									   const transport::SendOptions& p_options) const {
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
 	return send_content_by_name(p_sender_id, s_no_name, p_receiver_name, std::move(p_content), p_is_fragment, p_first_only, p_options);
 }
 
@@ -282,6 +313,7 @@ cam::Environment::send_by_name(const AgentId& p_sender_id, const std::string& p_
 cam::transport::Result<void>
 cam::Environment::broadcast_content(const AgentId& p_sender_id, MessageContent p_content,
 									const transport::SendOptions& p_options) const {
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
 	return broadcast_content(p_sender_id, s_no_name, std::move(p_content), p_options);
 }
 
@@ -356,39 +388,41 @@ void cam::Environment::start() {
 }
 
 void cam::Environment::run_turns(const int p_no_turns) {
+	// Marked under the exclusive lock: a removal from another thread sees it before it erases anything
+	m_agent_collection.set_simulation_running(true);
 	// A turn boundary before every turn, for start() and continue_simulation() alike: the agents added or stopped since
 	// the previous turn are applied first
-	int l_turn = 0;
-	process_buffers();
-	while (true) {
-		run_turn(l_turn++);
-		if (p_no_turns != 0 && l_turn >= p_no_turns) {
-			break;
-		}
+	try {
+		int l_turn = 0;
 		process_buffers();
-		if (m_agent_collection.count() == 0) {
-			break;
+		while (true) {
+			run_turn(l_turn++);
+			if (p_no_turns != 0 && l_turn >= p_no_turns) {
+				break;
+			}
+			process_buffers();
+			if (m_agent_collection.count() == 0) {
+				break;
+			}
 		}
+	} catch (...) {
+		// The Sequential modes let the exceptions of the agents through
+		m_agent_collection.set_simulation_running(false);
+		throw;
 	}
+	m_agent_collection.set_simulation_running(false);
 	simulation_finished();
 }
 
 size_t cam::Environment::agents_count() const {
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
 	return m_agent_collection.count();
 }
 
 std::vector<cam::AgentId>
 cam::Environment::get_agents_by_name(const std::string& p_name, const bool p_first_only) const {
-	std::vector<AgentId> l_returned_agents;
-	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
-		if (l_agent->get_name() == p_name && !l_agent->is_dead()) {
-			l_returned_agents.push_back(l_id);
-			if (p_first_only) {
-				break;
-			}
-		}
-	}
-	return l_returned_agents;
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
+	return find_agents(p_name, false, p_first_only);
 }
 
 std::optional<cam::AgentId> cam::Environment::get_first_agent_by_name(const std::string& p_name) const {
@@ -400,25 +434,50 @@ std::optional<cam::AgentId> cam::Environment::get_first_agent_by_name(const std:
 }
 
 std::optional<std::string> cam::Environment::get_agent_name(const AgentId& p_id) const {
-	const auto& l_agent = m_agent_collection.m_agents.find(p_id);
-	if (l_agent == m_agent_collection.m_agents.end()) {
-		return {};
-	}
-	return l_agent->second->get_name();
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
+	return find_agent_name(p_id);
 }
 
 std::vector<cam::AgentId>
 cam::Environment::get_filtered_agents(const std::string& p_fragment_name, const bool p_first_only) const {
-	std::vector<AgentId> l_returned_agents;
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
+	return find_agents(p_fragment_name, true, p_first_only);
+}
+
+std::vector<cam::AgentId> cam::Environment::find_agents(const std::string& p_name, const bool p_is_fragment, const bool p_first_only) const {
+	// The living agents whose name matches, in their order; the agents added and not inserted yet come last
+	std::vector<AgentId> l_found;
+	const auto l_matches = [&](const Agent& p_agent) {
+		const std::string& l_name = p_agent.get_name();
+		return !p_agent.is_dead() && (p_is_fragment ? l_name.find(p_name) != std::string::npos : l_name == p_name);
+	};
 	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
-		if (l_agent->get_name().find(p_fragment_name) != std::string::npos && !l_agent->is_dead()) {
-			l_returned_agents.push_back(l_agent->get_id());
+		if (l_matches(*l_agent)) {
+			l_found.push_back(l_id);
 			if (p_first_only) {
-				break;
+				return l_found;
 			}
 		}
 	}
-	return l_returned_agents;
+	for (const auto& l_agent: m_agent_collection.pending_agents()) {
+		if (l_matches(*l_agent)) {
+			l_found.push_back(l_agent->get_id());
+			if (p_first_only) {
+				return l_found;
+			}
+		}
+	}
+	return l_found;
+}
+
+std::optional<std::string> cam::Environment::find_agent_name(const AgentId& p_id) const {
+	if (const Agent* const l_agent = m_agent_collection.find(p_id)) {
+		return l_agent->get_name();
+	}
+	if (const AgentPointer l_pending = m_agent_collection.get_pending(p_id)) {
+		return l_pending->get_name();
+	}
+	return {};
 }
 
 const std::vector<cam::ObservablesPointer>

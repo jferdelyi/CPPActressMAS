@@ -93,10 +93,10 @@ TEST_SUITE("characterization") {
 		cam::Environment l_env(1, Mode::Sequential);
 		l_env.add<Plain>("a");
 		l_env.start();
-		l_env.add<Plain>("b");  // buffered; continue_simulation now opens with a turn boundary, as start()
-		REQUIRE(l_env.agents_count() == 1);
-		l_env.continue_simulation(2);
+		l_env.add<Plain>("b");  // visible at once; continue_simulation opens with a turn boundary, as start(), and inserts it
 		CHECK(l_env.agents_count() == 2);  // C#: Add is immediate
+		l_env.continue_simulation(2);
+		CHECK(l_env.agents_count() == 2);
 	}
 
 	TEST_CASE("fixed: an agent stopped during the last turn of start is removed") {
@@ -158,12 +158,12 @@ TEST_SUITE("characterization") {
 	}
 
 	// ---------------------------------------------------------------- message to an agent not inserted yet
-	TEST_CASE("a message sent to an agent added but not yet inserted is delivered" * doctest::should_fail()) {
+	TEST_CASE("fixed: a message sent to an agent added but not yet inserted is delivered") {
 		g_received = 0;
 		cam::Environment l_env(2, Mode::Sequential);
 		const cam::AgentId l_id = l_env.add<Inbox>("dest");
-		l_env.send("ext", l_id, raw("lost?"), 5);  // agent still in the buffer: message ignored
-		l_env.start();                             // turn 0: setup; turn 1: empty queue
+		l_env.send("ext", l_id, raw("lost?"), 5);  // the agent is not inserted yet: the message waits in its queue
+		l_env.start();                             // turn 0: setup; turn 1: reads it
 		CHECK(g_received == 1);  // C#: Add is immediate, the message is queued
 	}
 

@@ -88,6 +88,10 @@ namespace cam {
 
 	/**
 	 * An abstract base class for the multiagent environment, where all the agents are executed.
+	 * Threads: the public functions that add, remove, send or search may be called from any thread, even while start()
+	 * or continue_simulation() runs in another one (a service fed from outside); they read the agents under a shared lock,
+	 * which the turn boundaries take exclusively, as the ConcurrentDictionary of the C# in Parallel mode. The agents call
+	 * them during their turn without that lock.
 	 **/
 	class Environment {
 		friend Agent;
@@ -240,7 +244,9 @@ namespace cam {
 		virtual ~Environment();
 
 		/**
-		 * Adds an agent to the environment.
+		 * Adds an agent to the environment, as the immediate Add of the C#: it is at once reached by every send and search,
+		 * counted by agents_count() and drawn by random_agent(), and it runs from the next turn (inserted at the next
+		 * turn boundary).
 		 * @param p_args Argument to create a new agent
 		 * @return Id of the agent, a copy that stays valid after the agent is gone
 		 **/
@@ -278,8 +284,9 @@ namespace cam {
 		 * to stop an agent does not belong to the agent itself, but to some other
 		 * agent or to an external factor.
 		 * During a turn the agent is no longer counted, found by name nor sent to, and it is destroyed at the turn
-		 * boundary (in Parallel mode it still runs in this turn if it has not yet, as the C#); outside a turn it is
-		 * removed at once. An unknown id, or an agent added but not yet inserted, is ignored.
+		 * boundary (in Parallel mode it still runs in this turn if it has not yet, as the C#); while a simulation runs,
+		 * from any thread, it is marked the same way and destroyed at the next boundary; outside a simulation it is
+		 * removed at once. An agent added but not yet inserted is removed at once, as the C#. An unknown id is ignored.
 		 *
 		 * @param p_agent_id The id of the agent to be removed
 		 **/
@@ -693,6 +700,31 @@ namespace cam {
 		 **/
 		transport::Result<void> broadcast_content(const AgentId& p_sender_id, const std::string& p_sender_name,
 												  MessageContent p_content, const transport::SendOptions& p_options) const;
+
+		/**
+		 * The living agents whose name matches, in their order, the agents added and not inserted yet last; without the
+		 * lock (an agent during a turn, or the simulation thread).
+		 * @param p_name The name, or a fragment of it
+		 * @param p_is_fragment If true, the names that contain p_name
+		 * @param p_first_only If true, the first one only
+		 * @return Their ids
+		 **/
+		[[nodiscard]] std::vector<AgentId> find_agents(const std::string& p_name, bool p_is_fragment, bool p_first_only) const;
+
+		/**
+		 * The name of an agent, added and not inserted yet included; without the lock (an agent during a turn, or the
+		 * simulation thread).
+		 * @param p_id The agent id
+		 * @return The name, or nothing
+		 **/
+		[[nodiscard]] std::optional<std::string> find_agent_name(const AgentId& p_id) const;
+
+		/**
+		 * The number of agents, added and not inserted yet included; without the lock (an agent during a turn, or the
+		 * simulation thread).
+		 * @return The number of agents
+		 **/
+		[[nodiscard]] size_t count_agents() const { return m_agent_collection.count(); }
 
 		/**
 		 * Deliver a message to a local agent by id; nothing leaves the environment.

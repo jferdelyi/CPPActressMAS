@@ -18,11 +18,15 @@
 
 #pragma once
 
+#include <array>
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <random>
+#include <shared_mutex>
+#include <utility>
 #include <vector>
 
 #include "Agent.h"
@@ -59,9 +63,32 @@ namespace cam {
 							   RecyclingAllocator<std::pair<const std::string, AgentId>>> m_agents_by_name;
 
 		/**
-		 * New agent buffer
-		 */
-		MPSCQueue<AgentPointer> m_new_agents;
+		 * Guards m_agents and m_agents_by_name against the calls of other threads: the simulation thread writes under the
+		 * exclusive lock (turn boundary, removal outside a simulation, arrival of a migrated agent), the public functions of
+		 * the environment read under the shared lock; the agents read without it, a turn never meeting a boundary
+		 **/
+		mutable std::shared_mutex m_agents_mutex;
+
+		/**
+		 * A part of the agents added and not inserted yet: (order of the addition, agent)
+		 **/
+		struct PendingShard {
+			mutable std::mutex m_mutex;
+			std::vector<std::pair<std::uint64_t, AgentPointer>> m_agents;
+		};
+
+		/**
+		 * Agents added and not inserted yet, in parts chosen by their id (agents of many threads add at once): visible at
+		 * once to every send and search, as the immediate Add of the C#, inserted at the next turn boundary
+		 **/
+		static constexpr std::size_t PENDING_SHARDS = 16;
+		mutable std::array<PendingShard, PENDING_SHARDS> m_pending_shards;
+
+		/**
+		 * Order of the next addition, and number of agents added and not inserted yet (0 most of the time: no lock then)
+		 **/
+		std::atomic<std::uint64_t> m_pending_order{0};
+		std::atomic<std::size_t> m_pending{0};
 
 		/**
 		 * Threads of a Parallel environment (none otherwise)
@@ -89,6 +116,12 @@ namespace cam {
 		 * True while run_turn() runs the agents: a removal is then deferred to the turn boundary
 		 **/
 		std::atomic<bool> m_turn_running{false};
+
+		/**
+		 * True while a start() or a continue_simulation() runs, turn boundaries included: a removal is then deferred to
+		 * the next boundary, whatever the thread
+		 **/
+		std::atomic<bool> m_simulation_running{false};
 
 		/**
 		 * Environment mode.
@@ -131,6 +164,13 @@ namespace cam {
 		 **/
 		size_t next_index(size_t p_bound) const;
 
+		/**
+		 * The part of the agents added and not inserted yet that holds an id.
+		 * @param p_id The agent id
+		 * @return The part
+		 **/
+		PendingShard& pending_shard(const AgentId& p_id) const;
+
 	public:
 		/**
 		 * Initializes a new instance of a collection of agents
@@ -149,10 +189,52 @@ namespace cam {
 		[[nodiscard]] size_t count() const;
 
 		/**
-		 * Add new agent
+		 * Add an agent: visible at once to every send and search, inserted at the next turn boundary, run from the turn
+		 * after it (any thread)
 		 * @param p_agent Agent to add
 		 **/
 		void add(const AgentPointer& p_agent);
+
+		/**
+		 * An agent added and not inserted yet, shared: it stays alive while the caller uses it, even if removed meanwhile
+		 * @param p_id The agent id
+		 * @return The agent, or nullptr
+		 **/
+		[[nodiscard]] AgentPointer get_pending(const AgentId& p_id) const;
+
+		/**
+		 * The agents added and not inserted yet, in their order of addition (none when there are none, without any lock)
+		 * @return The agents
+		 **/
+		[[nodiscard]] std::vector<AgentPointer> pending_agents() const;
+
+		/**
+		 * Remove at once an agent added and not inserted yet (any thread), as the immediate Remove of the C#
+		 * @param p_id The agent id
+		 * @return True if the agent was waiting for its insertion
+		 **/
+		bool remove_pending(const AgentId& p_id);
+
+		/**
+		 * True while a start() or a continue_simulation() runs (removals are deferred to the next boundary)
+		 * @return True during a simulation
+		 **/
+		[[nodiscard]] bool is_simulation_running() const { return m_simulation_running.load(std::memory_order_acquire); }
+
+		/**
+		 * Mark the start or the end of a simulation, under the exclusive lock: a removal from another thread then sees it
+		 * before it erases anything (simulation thread only)
+		 * @param p_running True at the start, false at the end
+		 **/
+		void set_simulation_running(bool p_running);
+
+		/**
+		 * Remove an inserted agent at once unless a simulation runs, under the exclusive lock (any thread); the caller
+		 * marks it otherwise, and the next boundary erases it
+		 * @param p_id The agent id
+		 * @return True if the agent was erased (or unknown), false if a simulation runs
+		 **/
+		bool remove_unless_running(const AgentId& p_id);
 
 		/**
 		 * Insert an agent at once, outside any turn (turn boundary only: arrival of a migrated agent)
@@ -252,5 +334,21 @@ namespace cam {
 		AgentCollection(const AgentCollection&) = delete;
 
 		AgentCollection& operator=(AgentCollection&) = delete;
+
+	private:
+		/**
+		 * Insert the agents added since the previous boundary, in their order of addition; the caller holds the exclusive
+		 * lock.
+		 * @param p_changes Receives the inserted agents when tracked
+		 * @param p_track_changes If true, report them
+		 **/
+		void insert_pending(BufferChanges& p_changes, bool p_track_changes);
+
+		/**
+		 * Remove an inserted agent from the collection and from the name index; the caller holds the exclusive lock;
+		 * unknown ids are ignored.
+		 * @param p_id The agent id
+		 **/
+		void remove_locked(const AgentId& p_id);
 	};
 } // namespace cam

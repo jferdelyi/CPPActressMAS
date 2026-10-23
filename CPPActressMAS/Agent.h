@@ -95,10 +95,10 @@ namespace cam {
 		bool m_in_transit;
 
 		/**
-		 * True while the agent is in the collection of its environment (written at the turn boundary only): a stop
-		 * is counted by the collection only then.
+		 * True while the agent is in the collection of its environment (written by the simulation thread, read by a
+		 * removal from any thread): a stop is counted by the collection only then.
 		 **/
-		bool m_is_inserted;
+		std::atomic<bool> m_is_inserted;
 
 		/**
 		 * Messages arrived.

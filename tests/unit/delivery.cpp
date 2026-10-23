@@ -214,6 +214,41 @@ namespace {
 		}
 	};
 
+	// At its first action, adds "newcomer", then records what the searches see and reaches it by id, by name, by fragment
+	// and by broadcast; with p_remove, removes it at once instead, then sends to it.
+	struct Adder final : cam::Agent {
+		Adder(const std::string& p_name, const bool p_remove) : Agent(p_name), m_remove(p_remove) {}
+		void default_action() override {
+			if (m_done) {
+				return;
+			}
+			m_done = true;
+			const cam::AgentId l_id = get_environment()->add<Collector>("newcomer");
+			if (m_remove) {
+				get_environment()->remove(l_id);
+				send(l_id, std::string("after removal"));
+				g_recorder.record("count after removal:" + std::to_string(agents_count()));
+				return;
+			}
+			g_recorder.record("count:" + std::to_string(agents_count()));
+			g_recorder.record("by name:" + std::to_string(get_agents_by_name("newcomer").size()));
+			g_recorder.record("name:" + get_agent_name(l_id).value_or("none"));
+			send(l_id, std::string("by id"));
+			send_by_name("newcomer", std::string("by name"));
+			send_by_fragment_name("newc", std::string("by fragment"));
+			broadcast(std::string("by broadcast"));
+		}
+	private:
+		bool m_remove;
+		bool m_done = false;
+	};
+
+	// The position of an entry in the recorder, or the number of entries when absent
+	std::size_t position_of(const std::string& p_entry) {
+		const auto l_entries = g_recorder.entries();
+		return static_cast<std::size_t>(std::find(l_entries.begin(), l_entries.end(), p_entry) - l_entries.begin());
+	}
+
 	// The numbers each sender of "<sender>:<n>" entries of a collector sent, in their order of arrival
 	std::map<std::string, std::vector<int>> per_sender(const std::string& p_collector) {
 		std::map<std::string, std::vector<int>> l_numbers;
@@ -294,9 +329,7 @@ TEST_SUITE("delivery") {
 		for (int i = 0; i < 20; i++) {
 			l_env.add<Quitter>("quitter");
 		}
-		// The waiter stops once the added agents have run: the environment ends once all are gone. Nothing is sent from
-		// here once they start to leave: a send from another thread races with the turn boundary that erases them
-		// (characterization probe outside_add_and_send_parallel).
+		// The waiter stops once the added agents have run: the environment ends once all are gone
 		l_runner.join();
 		CHECK(g_recorder.count_of("quit") == 20);
 		CHECK(g_recorder.count_of("waiter:end") == 1);
@@ -313,8 +346,7 @@ TEST_SUITE("delivery") {
 			l_env.send_content("outside", l_worker, cam::MessageContent(std::string("outside:" + std::to_string(i))));
 		}
 		CHECK(cam::test::wait_until([] { return g_recorder.contains("worker:outside:9"); }, std::chrono::seconds(30)));
-		// The worker stops the idle agent: a removal from another thread races with the turn boundary that erases it
-		// (characterization probe outside_remove_and_send_parallel)
+		// The worker stops the idle agent from inside (the case below removes it from another thread)
 		l_env.send_content("outside", l_worker, cam::MessageContent(std::string("end")));
 		l_runner.join();
 		CHECK(per_sender("worker")["outside"].size() == 10);
@@ -410,6 +442,94 @@ TEST_SUITE("delivery") {
 		l_env.continue_simulation(1);
 		CHECK(g_recorder.count_of("[outside -> reader]: from outside") == 1);  // the raw id, as before
 		CHECK(g_recorder.count_of("sender name:none") == 1);
+	}
+
+	TEST_CASE("an agent added during a turn is reached at once by every send and search, and runs from the next turn") {
+		for (const auto& [l_mode, l_label]: {std::pair{Mode::Sequential, "Sequential"}, std::pair{Mode::SequentialRandom, "SequentialRandom"},
+											  std::pair{Mode::Parallel, "Parallel"}}) {
+			INFO(l_label);
+			g_recorder.clear();
+			cam::Environment l_env({.m_turns = 4, .m_mode = l_mode, .m_seed = 5});
+			l_env.add<Adder>("adder", false);
+			l_env.start();
+			CHECK(g_recorder.count_of("count:2") == 1);  // C#: Add is immediate
+			CHECK(g_recorder.count_of("by name:1") == 1);
+			CHECK(g_recorder.count_of("name:newcomer") == 1);
+			for (const char* l_text: {"newcomer:by id", "newcomer:by name", "newcomer:by fragment", "newcomer:by broadcast"}) {
+				INFO(l_text);
+				CHECK(g_recorder.count_of(l_text) == 1);
+			}
+			// The newcomer did not run in the turn of its addition
+			CHECK(position_of("count:2") < position_of("newcomer:setup"));
+		}
+	}
+
+	TEST_CASE("an agent removed before its insertion leaves at once, and never runs") {
+		for (const auto& [l_mode, l_label]: {std::pair{Mode::Sequential, "Sequential"}, std::pair{Mode::Parallel, "Parallel"}}) {
+			INFO(l_label);
+			g_recorder.clear();
+			cam::Environment l_env({.m_turns = 4, .m_mode = l_mode, .m_seed = 5});
+			l_env.add<Adder>("adder", true);
+			l_env.start();
+			CHECK(g_recorder.count_of("count after removal:1") == 1);  // C#: Remove is immediate
+			CHECK_FALSE(g_recorder.contains("newcomer:setup"));
+			CHECK_FALSE(g_recorder.contains("newcomer:after removal"));
+			CHECK(l_env.agents_count() == 1);
+		}
+	}
+
+	TEST_CASE("an agent added in the last turn of start is there after start, and runs at the next continue") {
+		g_recorder.clear();
+		cam::Environment l_env({.m_turns = 2, .m_mode = Mode::Sequential});  // turn 0: setup; turn 1: the adder adds
+		l_env.add<Adder>("adder", false);
+		l_env.start();
+		CHECK(l_env.agents_count() == 2);
+		CHECK(l_env.get_agents_by_name("newcomer").size() == 1);
+		CHECK_FALSE(g_recorder.contains("newcomer:setup"));
+		l_env.continue_simulation(2);
+		CHECK(g_recorder.count_of("newcomer:setup") == 1);
+	}
+
+	TEST_CASE("agents added and messages sent from another thread while a Parallel start runs are all taken in, in order") {
+		g_recorder.clear();
+		cam::Environment l_env({.m_turns = 0, .m_mode = Mode::Parallel});
+		const cam::AgentId l_collector = l_env.add<Collector>("collector");
+		std::thread l_runner([&l_env] { l_env.start(); });
+		REQUIRE(cam::test::wait_until([] { return g_recorder.contains("collector:setup"); }, std::chrono::seconds(30)));
+		for (int i = 0; i < 100; i++) {
+			l_env.add<Quitter>("quitter");
+			l_env.send_content("outside", l_collector, cam::MessageContent(std::string("outside:" + std::to_string(i))));
+		}
+		l_env.send_content("outside", l_collector, cam::MessageContent(std::string("end")));
+		l_runner.join();
+		const auto l_numbers = per_sender("collector");
+		REQUIRE(l_numbers.contains("outside"));
+		const auto& l_received = l_numbers.at("outside");
+		REQUIRE(l_received.size() == 100);
+		for (int i = 0; i < 100; i++) {
+			CHECK(l_received[i] == i);
+		}
+		CHECK(g_recorder.count_of("collector:end") == 1);
+		CHECK(g_recorder.count_of("quit") == 100);
+	}
+
+	TEST_CASE("an environment kept alive by an idle agent ends once another thread removes that agent") {
+		g_recorder.clear();
+		cam::Environment l_env({.m_turns = 0, .m_mode = Mode::Parallel});
+		const cam::AgentId l_idle = l_env.add<Idle>("idle");
+		const cam::AgentId l_worker = l_env.add<Collector>("worker");
+		std::thread l_runner([&l_env] { l_env.start(); });
+		REQUIRE(cam::test::wait_until([] { return g_recorder.contains("worker:setup"); }, std::chrono::seconds(30)));
+		for (int i = 0; i < 10; i++) {
+			l_env.send_content("outside", l_worker, cam::MessageContent(std::string("outside:" + std::to_string(i))));
+		}
+		CHECK(cam::test::wait_until([] { return g_recorder.contains("worker:outside:9"); }, std::chrono::seconds(30)));
+		l_env.remove(l_idle);
+		l_env.send_content("outside", l_worker, cam::MessageContent(std::string("end")));
+		l_runner.join();
+		CHECK(per_sender("worker")["outside"].size() == 10);
+		CHECK(g_recorder.count_of("worker:end") == 1);
+		CHECK(l_env.agents_count() == 0);
 	}
 
 	TEST_CASE("the end hook runs at the end of each start and of each continue") {
