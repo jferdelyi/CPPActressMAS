@@ -552,11 +552,9 @@ namespace cam::dotnet {
 	inline std::int32_t next_site_seed(const std::string_view p_site) {
 		static std::mutex s_mutex;
 		static std::map<std::string, std::uint64_t, std::less<>> s_counts;
-		std::uint64_t l_instance;
-		{
-			const std::scoped_lock l_lock(s_mutex);
-			l_instance = s_counts[std::string(p_site)]++;
-		}
+		// The agents of a parallel example draw their seeds from several threads: the report too is written under the lock
+		const std::scoped_lock l_lock(s_mutex);
+		const std::uint64_t l_instance = s_counts[std::string(p_site)]++;
 		const std::int32_t l_seed = site_seed(p_site, l_instance, cam_seed());
 		if (std::getenv("CAM_SEED") != nullptr) {
 			std::cerr << "#camrng " << p_site << " " << l_instance << " " << l_seed << std::endl;
