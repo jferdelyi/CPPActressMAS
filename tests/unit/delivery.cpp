@@ -243,6 +243,29 @@ namespace {
 		bool m_done = false;
 	};
 
+	// At its first action, adds "newcomer", then removes the inserted agent "victim" while the newcomer waits for its
+	// insertion, and sends to the victim.
+	struct Culler final : cam::Agent {
+		explicit Culler(const std::string& p_name) : Agent(p_name) {}
+		void default_action() override {
+			if (m_done) {
+				return;
+			}
+			m_done = true;
+			get_environment()->add<Collector>("newcomer");
+			const auto l_victims = get_agents_by_name("victim");
+			if (l_victims.size() != 1) {
+				g_recorder.record("victims:" + std::to_string(l_victims.size()));
+				return;
+			}
+			get_environment()->remove(l_victims.front());
+			send(l_victims.front(), std::string("after removal"));
+			g_recorder.record("count after cull:" + std::to_string(agents_count()));
+		}
+	private:
+		bool m_done = false;
+	};
+
 	// The position of an entry in the recorder, or the number of entries when absent
 	std::size_t position_of(const std::string& p_entry) {
 		const auto l_entries = g_recorder.entries();
@@ -475,6 +498,23 @@ TEST_SUITE("delivery") {
 			CHECK_FALSE(g_recorder.contains("newcomer:setup"));
 			CHECK_FALSE(g_recorder.contains("newcomer:after removal"));
 			CHECK(l_env.agents_count() == 1);
+		}
+	}
+
+	TEST_CASE("an inserted agent removed while added agents wait for their insertion leaves at once, and the added ones stay") {
+		for (const auto& [l_mode, l_label]: {std::pair{Mode::Sequential, "Sequential"}, std::pair{Mode::SequentialRandom, "SequentialRandom"},
+											  std::pair{Mode::Parallel, "Parallel"}}) {
+			INFO(l_label);
+			g_recorder.clear();
+			cam::Environment l_env({.m_turns = 4, .m_mode = l_mode, .m_seed = 5});
+			l_env.add<Collector>("victim");
+			l_env.add<Culler>("culler");
+			l_env.start();
+			CHECK(g_recorder.count_of("count after cull:2") == 1);  // C#: Remove is immediate
+			CHECK_FALSE(g_recorder.contains("victim:after removal"));
+			CHECK(g_recorder.count_of("newcomer:setup") == 1);
+			CHECK(l_env.agents_count() == 2);
+			CHECK(l_env.get_agents_by_name("victim").empty());
 		}
 	}
 

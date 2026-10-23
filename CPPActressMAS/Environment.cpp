@@ -109,8 +109,9 @@ void cam::Environment::remove(const AgentPointer& p_agent) {
 		return;  // unknown
 	}
 	const AgentId l_id = p_agent->get_id();
-	// An agent added and not inserted yet leaves at once, as the immediate Remove of the C#
-	if (m_agent_collection.remove_pending(l_id)) {
+	// An agent added and not inserted yet leaves at once, as the immediate Remove of the C#; an inserted agent has left the
+	// table of the added agents before it was marked inserted, so the table is searched for the others only
+	if (!p_agent->m_is_inserted.load(std::memory_order_relaxed) && m_agent_collection.remove_pending(l_id)) {
 		return;
 	}
 	// During a simulation the collections change at turn boundaries only: the agent is marked, the boundary erases and
