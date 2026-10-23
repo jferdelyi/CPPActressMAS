@@ -26,6 +26,7 @@
 #include <optional>
 #include <random>
 #include <shared_mutex>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -70,25 +71,25 @@ namespace cam {
 		mutable std::shared_mutex m_agents_mutex;
 
 		/**
-		 * A part of the agents added and not inserted yet: (order of the addition, agent)
+		 * A part of the agents added and not inserted yet, chosen by the thread that adds: its agents in the order of their
+		 * addition (an addition costs a lock that no other thread takes but a search; a search scans every part, consulted
+		 * only when the inserted agents do not answer), and their number, written under the lock
 		 **/
 		struct PendingShard {
 			mutable std::mutex m_mutex;
-			std::vector<std::pair<std::uint64_t, AgentPointer>> m_agents;
+			std::vector<AgentPointer> m_agents;
+			std::atomic<std::size_t> m_size{0};
 		};
 
 		/**
-		 * Agents added and not inserted yet, in parts chosen by their id (agents of many threads add at once): visible at
-		 * once to every send and search, as the immediate Add of the C#, inserted at the next turn boundary
+		 * Agents added and not inserted yet, in parts chosen by the thread that adds (agents of many threads add at once):
+		 * visible at once to every send and search, as the immediate Add of the C#, inserted at the next turn boundary,
+		 * part after part, each in the order of its thread (the order between two threads that add at once is not fixed,
+		 * as in the C#)
 		 **/
 		static constexpr std::size_t PENDING_SHARDS = 16;
 		mutable std::array<PendingShard, PENDING_SHARDS> m_pending_shards;
 
-		/**
-		 * Order of the next addition, and number of agents added and not inserted yet (0 most of the time: no lock then)
-		 **/
-		std::atomic<std::uint64_t> m_pending_order{0};
-		std::atomic<std::size_t> m_pending{0};
 
 		/**
 		 * Threads of a Parallel environment (none otherwise)
@@ -165,11 +166,24 @@ namespace cam {
 		size_t next_index(size_t p_bound) const;
 
 		/**
-		 * The part of the agents added and not inserted yet that holds an id.
-		 * @param p_id The agent id
+		 * The part of the agents added and not inserted yet of the calling thread.
 		 * @return The part
 		 **/
-		PendingShard& pending_shard(const AgentId& p_id) const;
+		PendingShard& pending_shard() const;
+
+		/**
+		 * Number of agents added and not inserted yet, the sum of the parts (0 most of the time: no lock then).
+		 * @return The number
+		 **/
+		[[nodiscard]] std::size_t pending_count() const;
+
+		/**
+		 * The agents added and not inserted yet that pass a test, in their order of addition.
+		 * @param p_keep The test
+		 * @return The agents
+		 **/
+		template<typename F>
+		[[nodiscard]] std::vector<AgentPointer> pending_where(F p_keep) const;
 
 	public:
 		/**
@@ -207,6 +221,13 @@ namespace cam {
 		 * @return The agents
 		 **/
 		[[nodiscard]] std::vector<AgentPointer> pending_agents() const;
+
+		/**
+		 * The agents added and not inserted yet that bear a name, in their order of addition
+		 * @param p_name The name
+		 * @return The agents
+		 **/
+		[[nodiscard]] std::vector<AgentPointer> pending_named(const std::string& p_name) const;
 
 		/**
 		 * Remove at once an agent added and not inserted yet (any thread), as the immediate Remove of the C#

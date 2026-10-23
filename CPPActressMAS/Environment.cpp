@@ -233,7 +233,7 @@ bool cam::Environment::deliver_by_name(const AgentId& p_sender_id, const std::st
 									   const bool p_first_only, const std::string& p_sender_environment) const {
 	// Each receiver is served once the next one is known: the last one takes the content without a copy; the agents added
 	// and not inserted yet come last, as in the order of addition of the C#
-	const std::vector<AgentPointer> l_pending = m_agent_collection.pending_agents();
+	std::vector<AgentPointer> l_pending;
 	const AgentId* l_last_id = nullptr;
 	Agent* l_last_agent = nullptr;
 	bool l_over = false;
@@ -265,9 +265,12 @@ bool cam::Environment::deliver_by_name(const AgentId& p_sender_id, const std::st
 			l_visit(l_it->second, m_agent_collection.find(l_it->second));
 		}
 	}
+	if (!l_over) {
+		// A name takes a single part of the name index of the agents added and not inserted yet; a fragment, all of them
+		l_pending = p_is_fragment ? m_agent_collection.pending_agents() : m_agent_collection.pending_named(p_receiver_name);
+	}
 	for (auto l_it = l_pending.begin(); l_it != l_pending.end() && !l_over; ++l_it) {
-		const std::string& l_name = (*l_it)->get_name();
-		if (p_is_fragment ? l_name.find(p_receiver_name) != std::string::npos : l_name == p_receiver_name) {
+		if (!p_is_fragment || (*l_it)->get_name().find(p_receiver_name) != std::string::npos) {
 			l_visit((*l_it)->get_id(), l_it->get());
 		}
 	}
@@ -459,7 +462,7 @@ std::vector<cam::AgentId> cam::Environment::find_agents(const std::string& p_nam
 			}
 		}
 	}
-	for (const auto& l_agent: m_agent_collection.pending_agents()) {
+	for (const auto& l_agent: p_is_fragment ? m_agent_collection.pending_agents() : m_agent_collection.pending_named(p_name)) {
 		if (l_matches(*l_agent)) {
 			l_found.push_back(l_agent->get_id());
 			if (p_first_only) {

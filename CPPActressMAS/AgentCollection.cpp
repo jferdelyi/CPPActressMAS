@@ -55,73 +55,91 @@ cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_ma
 }
 
 size_t cam::AgentCollection::count() const {
-	return m_agents.size() - m_retired.load(std::memory_order_relaxed) + m_pending.load(std::memory_order_acquire);
+	return m_agents.size() - m_retired.load(std::memory_order_relaxed) + pending_count();
 }
 
-cam::AgentCollection::PendingShard& cam::AgentCollection::pending_shard(const AgentId& p_id) const {
-	return m_pending_shards[p_id.hash() % PENDING_SHARDS];
+cam::AgentCollection::PendingShard& cam::AgentCollection::pending_shard() const {
+	// Each thread takes its part once, in turn: the threads of a Parallel turn rarely share one
+	static std::atomic<std::size_t> s_next_shard{0};
+	thread_local const std::size_t t_shard = s_next_shard.fetch_add(1, std::memory_order_relaxed) % PENDING_SHARDS;
+	return m_pending_shards[t_shard];
+}
+
+std::size_t cam::AgentCollection::pending_count() const {
+	std::size_t l_count = 0;
+	for (const PendingShard& l_shard: m_pending_shards) {
+		l_count += l_shard.m_size.load(std::memory_order_acquire);
+	}
+	return l_count;
+}
+
+template<typename F>
+std::vector<cam::AgentPointer> cam::AgentCollection::pending_where(F p_keep) const {
+	std::vector<AgentPointer> l_agents;
+	if (pending_count() == 0) {
+		return l_agents;
+	}
+	for (const PendingShard& l_shard: m_pending_shards) {
+		const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
+		for (const AgentPointer& l_agent: l_shard.m_agents) {
+			if (p_keep(*l_agent)) {
+				l_agents.push_back(l_agent);
+			}
+		}
+	}
+	return l_agents;
 }
 
 void cam::AgentCollection::add(const AgentPointer& p_agent) {
-	// The order is taken before the part: the additions of one thread keep their order
-	const std::uint64_t l_order = m_pending_order.fetch_add(1, std::memory_order_relaxed);
-	PendingShard& l_shard = pending_shard(p_agent->get_id());
-	{
-		const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
-		l_shard.m_agents.emplace_back(l_order, p_agent);
-	}
-	m_pending.fetch_add(1, std::memory_order_release);
+	// Counted under the lock, after the push: a search that counts the agent finds it
+	PendingShard& l_shard = pending_shard();
+	const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
+	l_shard.m_agents.push_back(p_agent);
+	l_shard.m_size.store(l_shard.m_agents.size(), std::memory_order_release);
 }
 
 cam::AgentPointer cam::AgentCollection::get_pending(const AgentId& p_id) const {
-	if (m_pending.load(std::memory_order_acquire) == 0) {
+	if (pending_count() == 0) {
 		return nullptr;
 	}
-	PendingShard& l_shard = pending_shard(p_id);
-	const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
-	for (const auto& [l_order, l_agent]: l_shard.m_agents) {
-		if (l_agent->get_id() == p_id) {
-			return l_agent;
+	for (const PendingShard& l_shard: m_pending_shards) {
+		const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
+		for (const AgentPointer& l_agent: l_shard.m_agents) {
+			if (l_agent->get_id() == p_id) {
+				return l_agent;
+			}
 		}
 	}
 	return nullptr;
 }
 
 std::vector<cam::AgentPointer> cam::AgentCollection::pending_agents() const {
-	std::vector<AgentPointer> l_agents;
-	if (m_pending.load(std::memory_order_acquire) == 0) {
-		return l_agents;
-	}
-	std::vector<std::pair<std::uint64_t, AgentPointer>> l_ordered;
-	for (const PendingShard& l_shard: m_pending_shards) {
-		const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
-		l_ordered.insert(l_ordered.end(), l_shard.m_agents.begin(), l_shard.m_agents.end());
-	}
-	std::sort(l_ordered.begin(), l_ordered.end(), [](const auto& p_left, const auto& p_right) { return p_left.first < p_right.first; });
-	l_agents.reserve(l_ordered.size());
-	for (auto& [l_order, l_agent]: l_ordered) {
-		l_agents.push_back(std::move(l_agent));
-	}
-	return l_agents;
+	return pending_where([](const Agent&) { return true; });
+}
+
+std::vector<cam::AgentPointer> cam::AgentCollection::pending_named(const std::string& p_name) const {
+	return pending_where([&p_name](const Agent& p_agent) { return p_agent.get_name() == p_name; });
 }
 
 bool cam::AgentCollection::remove_pending(const AgentId& p_id) {
-	if (m_pending.load(std::memory_order_acquire) == 0) {
+	if (pending_count() == 0) {
 		return false;
 	}
 	AgentPointer l_removed;  // destroyed outside the lock, once its last holder lets it go
-	PendingShard& l_shard = pending_shard(p_id);
-	{
+	for (PendingShard& l_shard: m_pending_shards) {
 		const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
 		const auto l_it = std::find_if(l_shard.m_agents.begin(), l_shard.m_agents.end(),
-									   [&p_id](const auto& p_entry) { return p_entry.second->get_id() == p_id; });
-		if (l_it == l_shard.m_agents.end()) {
-			return false;
+									   [&p_id](const AgentPointer& p_agent) { return p_agent->get_id() == p_id; });
+		if (l_it != l_shard.m_agents.end()) {
+			l_removed = std::move(*l_it);
+			l_shard.m_agents.erase(l_it);
+			l_shard.m_size.store(l_shard.m_agents.size(), std::memory_order_release);
+			break;
 		}
-		l_removed = std::move(l_it->second);
-		l_shard.m_agents.erase(l_it);
 	}
-	m_pending.fetch_sub(1, std::memory_order_release);
+	if (!l_removed) {
+		return false;
+	}
 	// A send that found it a moment ago skips it from now on
 	l_removed->m_is_dead.store(true, std::memory_order_relaxed);
 	return true;
@@ -284,19 +302,19 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 }
 
 void cam::AgentCollection::insert_pending(BufferChanges& p_changes, const bool p_track_changes) {
-	if (m_pending.load(std::memory_order_acquire) == 0) {
+	if (pending_count() == 0) {
 		return;
 	}
-	// Taken from every part, then inserted in their order of addition; an agent added meanwhile waits for the next boundary
-	std::vector<std::pair<std::uint64_t, AgentPointer>> l_ordered;
+	// Taken from every part, part after part, each in the order of its thread; an agent added meanwhile waits for the next
+	// boundary
+	std::vector<AgentPointer> l_added;
 	for (PendingShard& l_shard: m_pending_shards) {
 		const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
-		std::move(l_shard.m_agents.begin(), l_shard.m_agents.end(), std::back_inserter(l_ordered));
+		std::move(l_shard.m_agents.begin(), l_shard.m_agents.end(), std::back_inserter(l_added));
 		l_shard.m_agents.clear();
+		l_shard.m_size.store(0, std::memory_order_release);
 	}
-	m_pending.fetch_sub(l_ordered.size(), std::memory_order_release);
-	std::sort(l_ordered.begin(), l_ordered.end(), [](const auto& p_left, const auto& p_right) { return p_left.first < p_right.first; });
-	for (auto& [l_order, l_agent]: l_ordered) {
+	for (const AgentPointer& l_agent: l_added) {
 		m_agents.insert(std::make_pair(l_agent->get_id(), l_agent));
 		m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
 		l_agent->m_is_inserted.store(true, std::memory_order_relaxed);
