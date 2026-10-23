@@ -23,7 +23,7 @@ tests/tools/csharp-ref/csharp-ref.sh WORKDIR ACTION [net10|net8]
 | `build` | builds every project of `ref/` but `BfProbe` and `E20` |
 | `rng`, `trace` | `RngVectors` and `TraceOrder`, to compare with `ref/expected/` from line 2 |
 | `bench` | the E30 benchmarks |
-| `benchref` | runs the E30 benchmarks and the sequential PingPong `CAM_BENCH_RUNS` times (10 by default) and writes their medians into `WORKDIR/logs/bench-reference-<flavor>.txt`, the C# reference of the `perf.vs_csharp` tests on this machine (`tests/bench/README.md`) |
+| `benchref` | runs the E30 benchmarks, the sequential PingPong (`ref/PingPong.Seq`) and the PingPong by pairs (`ref/PingPong.Pairs`, parallel and sequential) `CAM_BENCH_RUNS` times (10 by default) and writes their medians into `WORKDIR/logs/bench-reference-<flavor>.txt`, the C# reference of the `perf.vs_csharp` tests on this machine (`tests/bench/README.md`) |
 | `e00` | the seven E00 examples |
 | `shimcheck` | `RngVectors` compiled through the seed shim: must equal `ref/expected/rng-vectors.txt` |
 | `oracles` | runs every project of `ref/Oracles/`, from its output folder, into `WORKDIR/logs/oracles/<Name>.txt` |

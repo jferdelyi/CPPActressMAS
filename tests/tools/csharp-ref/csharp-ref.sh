@@ -8,9 +8,10 @@
 #             builds stay there. ActressMas/ is cloned there if missing, then only read.
 #             Must live under $HOME or /private/tmp: plain /tmp is NOT shared with the VM (podman: "statfs ...: no such file").
 #   ACTION  : build | rng | trace | format | bench | benchref | e00 | probe | mono | shimcheck | oracles | distrib | all
-#             benchref : runs Skynet, SkynetNumeric, PingPong and PingPong.Seq CAM_BENCH_RUNS times (10 by default) and
-#                        writes their medians into WORKDIR/logs/bench-reference-<flavor>.txt, the C# reference of the
-#                        perf.vs_csharp tests on this machine (CAM_BENCH_REFERENCE)
+#             benchref : runs Skynet, SkynetNumeric, PingPong, PingPong.Seq and PingPong.Pairs (parallel and sequential)
+#                        CAM_BENCH_RUNS times (10 by default) and writes their medians into
+#                        WORKDIR/logs/bench-reference-<flavor>.txt, the C# reference of the perf.vs_csharp tests on this
+#                        machine (CAM_BENCH_REFERENCE)
 #             format   : FormatVectors (number formatting and parsing of .NET), for tests/iso/vectors/format.txt
 #             shimcheck: RngVectors through the seed shim, must equal ref/expected/rng-vectors.txt
 #             oracles  : runs every project of ref/Oracles (seed shim, CAM_SEED or 0) from its output folder into
@@ -102,15 +103,18 @@ do_bench() {
     | tee "$W/logs/bench-$FLAVOR.txt"
 }
 do_benchref() {  # medians of the C# benchmarks on this machine, read by the perf.vs_csharp tests (tests/bench/README.md)
-  local runs="${CAM_BENCH_RUNS:-10}" out="$W/logs/bench-reference-$FLAVOR.txt" spec name metric dll i
+  local runs="${CAM_BENCH_RUNS:-10}" out="$W/logs/bench-reference-$FLAVOR.txt" spec name metric dll args i
   {
     echo "#cam bench reference: ActressMas $REF_COMMIT, $(dn bash -c 'dotnet --list-runtimes | grep Microsoft.NETCore.App | tail -1 | cut -d" " -f1,2; echo "$(uname -m), $(nproc) CPUs"' | tr -d '\r' | paste -sd, - | sed 's/,/, /'), $runs runs"
     for spec in "Skynet ms Skynet.Ref/bin/Release/$TFM/Skynet.dll" "SkynetNumeric ms SkynetNumeric.Ref/bin/Release/$TFM/SkynetNumeric.dll" \
-                "PingPong msg_per_ms PingPong.Ref/bin/Release/$TFM/PingPong.dll" "PingPongSequential msg_per_ms PingPong.Seq/bin/Release/$TFM/PingPongSeq.dll"; do
-      read -r name metric dll <<< "$spec"
+                "PingPong msg_per_ms PingPong.Ref/bin/Release/$TFM/PingPong.dll" "PingPongSequential msg_per_ms PingPong.Seq/bin/Release/$TFM/PingPongSeq.dll" \
+                "PingPongPairs msg_per_ms PingPong.Pairs/bin/Release/$TFM/PingPongPairs.dll" \
+                "PingPongPairsSequential msg_per_ms PingPong.Pairs/bin/Release/$TFM/PingPongPairs.dll --sequential"; do
+      read -r name metric dll args <<< "$spec"
       # a run gives its time ("<t> ms"), or the mean msg/ms of its trials but the first ("<n> msg" then "<t> ms")
       for i in $(seq 1 "$runs"); do
-        dn timeout 600 dotnet "$dll" | tr -d '\r' | awk -v metric="$metric" '
+        # $args unquoted: the arguments of a spec, split on purpose
+        dn timeout 600 dotnet "$dll" $args | tr -d '\r' | awk -v metric="$metric" '
           /^[0-9]+ msg$/ { m = $1; next }
           /^[0-9]+(\.[0-9]+)? ms$/ { t = $1; if (m != "" && t > 0) { n++; if (n > 1) { s += m / t; k++ } } m = "" }
           END { if (metric == "ms") print t; else if (k > 0) print s / k }'

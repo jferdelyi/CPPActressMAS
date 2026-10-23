@@ -14,6 +14,7 @@ function(cam_add_bench p_name)
 endfunction()
 
 cam_add_bench(PingPong)
+cam_add_bench(PingPongPairs)
 cam_add_bench(Skynet)
 cam_add_bench(SkynetNumeric)
 # Micro-benchmark of the envelope codecs (encode, decode, bytes on the wire), linked to the core only.
@@ -42,8 +43,13 @@ if (CAM_BUILD_TESTS)
 	set_tests_properties(perf.smoke.Skynet.N1000 PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Sum = 499500\n" TIMEOUT 300)
 	add_test(NAME perf.smoke.Skynet.N50000 COMMAND bench_Skynet --agents 50000)
 	set_tests_properties(perf.smoke.Skynet.N50000 PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Sum = 1249975000\n" TIMEOUT 300)
+	# PingPong by pairs ends with exactly pairs * messages messages, in both modes
+	add_test(NAME perf.smoke.PingPongPairs COMMAND bench_PingPongPairs --trials 1)
+	set_tests_properties(perf.smoke.PingPongPairs PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Trial 1\n50000 msg\n" TIMEOUT 300)
+	add_test(NAME perf.smoke.PingPongPairs.Sequential COMMAND bench_PingPongPairs --sequential --pairs 7 --messages 10 --trials 1)
+	set_tests_properties(perf.smoke.PingPongPairs.Sequential PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Trial 1\n70 msg\n" TIMEOUT 300)
 	cam_fail_on_sanitizer_report(perf.smoke.Skynet perf.smoke.Skynet.N1000 perf.smoke.Skynet.N50000 perf.smoke.SkynetNumeric perf.smoke.PingPong
-		perf.smoke.Transport perf.smoke.Envelope)
+		perf.smoke.PingPongPairs perf.smoke.PingPongPairs.Sequential perf.smoke.Transport perf.smoke.Envelope)
 
 	# Faster than the C# (label perf): a benchmark runs 10 times and the median of its runs is compared with the median
 	# of its C# original measured on the same machine (CAM_BENCH_REFERENCE, written by tools/csharp-ref benchref);
@@ -57,6 +63,8 @@ if (CAM_BUILD_TESTS)
 	cam_add_bench_comparison(SkynetNumeric SkynetNumeric)
 	cam_add_bench_comparison(PingPong PingPong)
 	cam_add_bench_comparison(PingPongSequential PingPong --sequential)
+	cam_add_bench_comparison(PingPongPairs PingPongPairs)
+	cam_add_bench_comparison(PingPongPairsSequential PingPongPairs --sequential)
 
 	# The comparison tool on fixture references: skipped without a reference, then each verdict on small runs
 	set(l_fixtures ${CMAKE_CURRENT_LIST_DIR}/fixtures)
