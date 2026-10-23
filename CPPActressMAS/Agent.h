@@ -70,9 +70,9 @@ namespace cam {
 		AgentId m_id;
 
 		/**
-		 * Name of the agent, shared with the messages it sends: they keep it once the agent is gone.
+		 * Name of the agent; the messages it sends keep a copy, which outlives the agent.
 		 **/
-		std::shared_ptr<const std::string> m_name;
+		std::string m_name;
 
 		/**
 		 * The environment where the agent is.
@@ -140,7 +140,7 @@ namespace cam {
 		 * Return name.
 		 * @return Name of the agent
 		 **/
-		[[nodiscard]] const std::string& get_name() const { return *m_name; }
+		[[nodiscard]] const std::string& get_name() const { return m_name; }
 
 		/**
 		 * True if using observables.
@@ -493,7 +493,7 @@ namespace cam {
 		 **/
 		void set_identity(const AgentId& p_id, std::string p_name) {
 			m_id = p_id;
-			m_name = std::make_shared<const std::string>(std::move(p_name));
+			m_name = std::move(p_name);
 		}
 
 		/**

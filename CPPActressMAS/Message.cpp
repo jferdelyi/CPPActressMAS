@@ -95,7 +95,7 @@ cam::Message::Message(AgentId p_sender, AgentId p_receiver, MessageContent p_con
 		m_content(std::move(p_content)) {
 }
 
-cam::Message::Message(Key, const AgentId& p_sender, const std::shared_ptr<const std::string>& p_sender_name, const AgentId& p_receiver,
+cam::Message::Message(Key, const AgentId& p_sender, const std::string& p_sender_name, const AgentId& p_receiver,
 					  MessageContent&& p_content, const std::string& p_sender_environment) :
 		m_sender(p_sender),
 		m_sender_name(p_sender_name),
@@ -125,10 +125,6 @@ cam::Message::Message() :
 		m_sender(),
 		m_receiver(),
 		m_content() {
-}
-
-const std::string& cam::Message::get_sender_name() const {
-	return m_sender_name ? *m_sender_name : s_no_text;
 }
 
 cam::ContentKind cam::Message::kind() const {

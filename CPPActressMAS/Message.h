@@ -117,10 +117,10 @@ namespace cam {
 		AgentId m_sender;
 
 		/**
-		 * Name of the sender, shared with the sender and its other messages; null when unknown (a message built by
-		 * hand, or sent from outside the agents).
+		 * Name of the sender, copied from it (a short name stays inside the string: no allocation, nothing shared
+		 * between threads); empty when unknown (a message built by hand, or sent from outside the agents).
 		 **/
-		std::shared_ptr<const std::string> m_sender_name;
+		std::string m_sender_name;
 
 		/**
 		 * Environment the sender belongs to when the message came through the transport; empty for a
@@ -152,12 +152,12 @@ namespace cam {
 		 * Message built by the environment: identifiers copied once, content moved in.
 		 * @param p_key Key of the environment.
 		 * @param p_sender Sender.
-		 * @param p_sender_name Name of the sender, shared; null when unknown.
+		 * @param p_sender_name Name of the sender, copied; empty when unknown.
 		 * @param p_receiver Receiver.
 		 * @param p_content Content.
 		 * @param p_sender_environment Environment of the sender when the message came through the transport, else empty.
 		 **/
-		Message(Key p_key, const AgentId& p_sender, const std::shared_ptr<const std::string>& p_sender_name, const AgentId& p_receiver,
+		Message(Key p_key, const AgentId& p_sender, const std::string& p_sender_name, const AgentId& p_receiver,
 				MessageContent&& p_content, const std::string& p_sender_environment);
 
 		/**
@@ -220,7 +220,7 @@ namespace cam {
 		 * the agents).
 		 * @return Sender name or empty
 		 **/
-		[[nodiscard]] const std::string& get_sender_name() const;
+		[[nodiscard]] const std::string& get_sender_name() const { return m_sender_name; }
 
 		/**
 		 * Get receiver.

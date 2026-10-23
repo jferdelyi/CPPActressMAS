@@ -24,7 +24,7 @@
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_id(AgentId::generate()),
-		m_name(std::make_shared<const std::string>(std::move(p_name))),
+		m_name(std::move(p_name)),
 		m_environment(nullptr),
 		m_is_setup(false),
 		m_is_dead(false),
