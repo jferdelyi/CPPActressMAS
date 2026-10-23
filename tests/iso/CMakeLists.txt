@@ -219,12 +219,6 @@ if (NOT CAM_SANITIZER)
 		endforeach()
 	endforeach()
 	set_tests_properties(iso.PredatorPrey.distribution.dotnet iso.PredatorPrey.distribution.mt19937 PROPERTIES RESOURCE_LOCK world-state.txt)
-	# Expected failure while a removal of an agent added but not yet inserted has no effect (the C# adds at once): an ant
-	# born and eaten in the same turn stays, and moves the cell of the doodlebug that ate it, which never starves. The
-	# populations of turn 10 must already match; once the defect is fixed, the later ones match too and this fails.
-	set_tests_properties(iso.PredatorPrey.distribution.dotnet iso.PredatorPrey.distribution.mt19937 PROPERTIES
-		PASS_REGULAR_EXPRESSION "FAIL stat doodlebugs_100"
-		FAIL_REGULAR_EXPRESSION "FAIL stat (doodlebugs|ants)_10:;FAIL command")
 endif()
 
 # ---------------------------------------------------------------- oracles published with the examples
