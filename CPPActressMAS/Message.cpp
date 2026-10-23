@@ -99,7 +99,7 @@ cam::Message::Message(Key, const AgentId& p_sender, const std::string& p_sender_
 					  MessageContent&& p_content, const std::string& p_sender_environment) :
 		m_sender(p_sender),
 		m_sender_name(p_sender_name),
-		m_sender_environment(p_sender_environment),
+		m_sender_environment(p_sender_environment.empty() ? nullptr : std::make_unique<const std::string>(p_sender_environment)),
 		m_receiver(p_receiver),
 		m_content(std::move(p_content)) {
 }
@@ -125,6 +125,10 @@ cam::Message::Message() :
 		m_sender(),
 		m_receiver(),
 		m_content() {
+}
+
+const std::string& cam::Message::get_sender_environment() const {
+	return m_sender_environment ? *m_sender_environment : s_no_text;
 }
 
 cam::ContentKind cam::Message::kind() const {

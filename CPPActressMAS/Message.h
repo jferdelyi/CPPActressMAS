@@ -123,10 +123,10 @@ namespace cam {
 		std::string m_sender_name;
 
 		/**
-		 * Environment the sender belongs to when the message came through the transport; empty for a
-		 * local message.
+		 * Environment the sender belongs to when the message came through the transport; null for a local message
+		 * (allocated for a remote one only: a local message stays small).
 		 **/
-		std::string m_sender_environment;
+		std::unique_ptr<const std::string> m_sender_environment;
 
 		/**
 		 * Receiver.
@@ -233,7 +233,7 @@ namespace cam {
 		 * for a message received through the transport.
 		 * @return Environment id or empty
 		 **/
-		[[nodiscard]] const std::string& get_sender_environment() const { return m_sender_environment; }
+		[[nodiscard]] const std::string& get_sender_environment() const;
 
 		/**
 		 * Kind of content carried.
