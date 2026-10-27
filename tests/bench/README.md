@@ -13,10 +13,17 @@ time with `steady_clock` in microseconds; `--csv` prints one line per trial.
 | `bench_SkynetNumeric` | Skynet with 20 000 agents, sequential random order, numeric contents (`Long Sum = 199990000`). `--parallel`, `--sequential`, `--agents` |
 | `bench_Wsg` | Wolf, Sheep and Grass of Antelmi et al. (*Applied Sciences* 13(1), 13, 2023; `tools/csharp-ref/ref/Abm`): wolves and sheep with energy on a field whose grass grows back, 200 turns in a random sequential order; `--agents N` (1 000 by default, 60 % sheep) on a field of side `floor(sqrt(10 N))`, the density of the article; `--seed`. Prints the populations of each turn and the time in ms |
 | `bench_Flockers` | Flockers of Antelmi et al.: birds that move from their 8 neighbouring cells, 200 turns in a random sequential order, never lost (`Turn 200: 1000 ants`); `--agents N`, `--seed` |
+| `bench_Churn` | Agents added and removed at every turn: N spawners, each removing the child of its previous action (inserted since) and adding a new one, Sequential; `--agents N` (2 000 by default), `--turns T` (20 by default). Prints the number of agents at the end and the time in ms |
 | `bench_Transport` | Round trips between two environments through a transport compiled in: `--transport loopback|mqtt|zenoh`, `--url-a`, `--url-b`, `--pings`, `--trials`; exit code 77 when the transport or its broker is missing |
 | `bench_Envelope` | Encoding and decoding of one envelope with a content of 0, 64 and 1 024 bytes, for every codec: `--count`, `--codec` |
 
 The smoke tests (`perf.smoke.<program>`) run each program once and check its invariant: they are not a measurement.
+
+**Growth with the number of agents.** `perf.scaling.Churn` runs `bench_Churn` with 2 000 then 8 000 spawners, 5 times
+each (`scaling.cpp`, `cam_bench_scaling`), and fails when the median time grows more than 8 times: a linear cost gives
+about 4, removals that search every agent added in the turn about 16. A ratio does not depend on the machine, so the
+test holds anywhere; it is left out under a sanitizer, which changes the costs. `measure.hpp` holds what this tool and
+`compare.cpp` share: running a program, reading its times, the median.
 The faithful ports of the C# benchmarks, compared with their C# output, are in `iso/ports/`.
 
 ``` bash

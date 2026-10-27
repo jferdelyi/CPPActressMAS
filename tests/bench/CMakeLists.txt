@@ -20,6 +20,8 @@ cam_add_bench(SkynetNumeric)
 # Wolf, Sheep and Grass and Flockers of Antelmi et al. (ABM_Comparison), 1 000 to 128 000 agents
 cam_add_bench(Wsg)
 cam_add_bench(Flockers)
+# Agents added and removed at every turn: the guard of their cost against a complexity regression (perf.scaling.Churn)
+cam_add_bench(Churn)
 # Micro-benchmark of the envelope codecs (encode, decode, bytes on the wire), linked to the core only.
 cam_add_bench(Envelope)
 
@@ -62,8 +64,21 @@ if (CAM_BUILD_TESTS)
 	endforeach()
 	set_tests_properties(perf.smoke.Wsg PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Turn 200: [0-9]+ wolves, [0-9]+ sheeps\n" TIMEOUT 300)
 	set_tests_properties(perf.smoke.Flockers PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Turn 200: 1000 ants\n" TIMEOUT 300)
+	# Churn ends with its spawners and the children of their last action
+	add_test(NAME perf.smoke.Churn COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_Churn> --agents 100)
+	set_tests_properties(perf.smoke.Churn PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "^200 agents\n" TIMEOUT 300)
 	cam_fail_on_sanitizer_report(perf.smoke.Skynet perf.smoke.Skynet.N1000 perf.smoke.Skynet.N50000 perf.smoke.SkynetNumeric perf.smoke.PingPong
-		perf.smoke.PingPongPairs perf.smoke.PingPongPairs.Sequential perf.smoke.Wsg perf.smoke.Flockers perf.smoke.Transport perf.smoke.Envelope)
+		perf.smoke.PingPongPairs perf.smoke.PingPongPairs.Sequential perf.smoke.Wsg perf.smoke.Flockers perf.smoke.Churn perf.smoke.Transport
+		perf.smoke.Envelope)
+
+	# Growth with the number of agents (label perf), whatever the machine: four times the agents of Churn in less than
+	# eight times the time. A linear cost gives about 4; removals that search every agent added in the turn give about
+	# 16. Not under a sanitizer, which changes the costs; run alone.
+	add_executable(cam_bench_scaling ${CMAKE_CURRENT_LIST_DIR}/scaling.cpp)
+	if (NOT CAM_SANITIZER)
+		add_test(NAME perf.scaling.Churn COMMAND cam_bench_scaling 8 5 -- $<TARGET_FILE:bench_Churn> --agents 2000)
+		set_tests_properties(perf.scaling.Churn PROPERTIES LABELS perf RUN_SERIAL ON TIMEOUT 900)
+	endif()
 
 	# Faster than the C# (label perf): a benchmark runs 10 times and the median of its runs is compared with the median
 	# of its C# original measured on the same machine (CAM_BENCH_REFERENCE, written by tools/csharp-ref benchref);
