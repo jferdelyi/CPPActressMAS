@@ -17,10 +17,11 @@
  **************************************************************************/
 
 // Characterization of known defects whose symptom is a wrong value. Every case asserts the behaviour of ActressMAS C# v3.1 and is
-// marked should_fail(): it is expected to fail while the defect exists. Once the defect is fixed,
-// doctest reports that the case "should have failed" and the marker is removed; the assertions never
-// change. Then the case stays, named "fixed: ...", as a regression test: every defect found and fixed keeps its
-// test. Cases named "witness: ..." show behaviour that already matches the C#.
+// marked expected_failures(n), the number of its assertions that the defect fails: the case passes only with exactly
+// that many failures, so another failure (a crash, an exception, one more wrong value) fails it, and so does the fix.
+// Once the defect is fixed, the marker is removed; the assertions never change. Then the case stays, named
+// "fixed: ...", as a regression test: every defect found and fixed keeps its test. Cases named "witness: ..." show
+// behaviour that already matches the C#.
 // Defects whose symptom is a crash or a data race are separate processes in probes.cpp.
 
 #include <doctest/doctest.h>
@@ -286,7 +287,7 @@ TEST_SUITE("characterization") {
 		void default_action() override { ++m_defaults; }
 	};
 
-	TEST_CASE("run_turn(false) runs the setup once, in the same turn as the action" * doctest::should_fail()) {
+	TEST_CASE("run_turn(false) runs the setup once, in the same turn as the action" * doctest::expected_failures(1)) {
 		SetupCounter l_agent("same");  // Agent::run_turn is public; no environment needed
 		for (int i = 0; i < 5; ++i) {
 			l_agent.run_turn(false);
@@ -310,7 +311,7 @@ TEST_SUITE("characterization") {
 		void default_action() override { throw std::runtime_error("boom from " + get_name()); }
 	};
 
-	TEST_CASE("an exception thrown by an agent in Parallel mode propagates out of start" * doctest::should_fail()) {
+	TEST_CASE("an exception thrown by an agent in Parallel mode propagates out of start" * doctest::expected_failures(1)) {
 		cam::Environment l_env(3, Mode::Parallel);
 		l_env.add<Thrower>("t");
 		CHECK_THROWS_AS(l_env.start(), std::exception);  // swallowed today: future::wait(), never get()
@@ -364,7 +365,7 @@ TEST_SUITE("characterization") {
 		void action(const cam::MessagePointer&) override { g_receivers.push_back(get_id()); }
 	};
 
-	TEST_CASE("the first agent found by fragment is the first agent sent to" * doctest::should_fail()) {
+	TEST_CASE("the first agent found by fragment is the first agent sent to" * doctest::expected_failures(1)) {
 		g_receivers.clear();
 		cam::Environment l_env(1, Mode::Sequential);
 		for (int i = 1; i <= 9; ++i) {

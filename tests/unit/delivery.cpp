@@ -266,6 +266,34 @@ namespace {
 		bool m_done = false;
 	};
 
+	// One of two agents of the same name: records "twin<index>:<text>" for every text it receives.
+	struct Twin final : cam::Agent {
+		Twin(const std::string& p_name, const int p_index) : Agent(p_name), m_index(p_index) {}
+		void action(const cam::MessagePointer& p_message) override {
+			g_recorder.record("twin" + std::to_string(m_index) + ":" + p_message->as_text());
+		}
+	private:
+		int m_index;
+	};
+
+	// At its first action, removes one agent, then sends to the first agent of the name "twin" and to the first agent
+	// whose name holds "wi".
+	struct Picker final : cam::Agent {
+		Picker(const std::string& p_name, const cam::AgentId p_removed) : Agent(p_name), m_removed(p_removed) {}
+		void default_action() override {
+			if (m_done) {
+				return;
+			}
+			m_done = true;
+			get_environment()->remove(m_removed);
+			send_by_name("twin", std::string("by name"), true);
+			send_by_fragment_name("wi", std::string("by fragment"), true);
+		}
+	private:
+		cam::AgentId m_removed;
+		bool m_done = false;
+	};
+
 	// The position of an entry in the recorder, or the number of entries when absent
 	std::size_t position_of(const std::string& p_entry) {
 		const auto l_entries = g_recorder.entries();
@@ -515,6 +543,43 @@ TEST_SUITE("delivery") {
 			CHECK(g_recorder.count_of("newcomer:setup") == 1);
 			CHECK(l_env.agents_count() == 2);
 			CHECK(l_env.get_agents_by_name("victim").empty());
+		}
+	}
+
+	TEST_CASE("a fragment is found anywhere in a name, by a search and by a send") {
+		g_recorder.clear();
+		cam::Environment l_env(1, Mode::Sequential);
+		const cam::AgentId l_worker = l_env.add<Collector>("worker-3");
+		l_env.add<Collector>("boss");
+		l_env.start();  // setup turn
+		const auto l_found = l_env.get_filtered_agents("ker");
+		REQUIRE(l_found.size() == 1);
+		CHECK(l_found[0] == l_worker);
+		l_env.send_content_by_name("ext", "ker", cam::MessageContent(std::string("inside")), true, false);
+		l_env.continue_simulation(1);
+		CHECK(g_recorder.count_of("worker-3:inside") == 1);
+		CHECK_FALSE(g_recorder.contains("boss:inside"));
+	}
+
+	TEST_CASE("a send to the first agent of a name or a fragment skips an agent removed in the turn, in every mode") {
+		// Each twin in turn is the removed one: whatever the order of the name index, the removed twin comes first once
+		for (const auto& [l_mode, l_label]: {std::pair{Mode::Sequential, "Sequential"}, std::pair{Mode::SequentialRandom, "SequentialRandom"},
+											  std::pair{Mode::Parallel, "Parallel"}}) {
+			for (const int l_removed: {0, 1}) {
+				INFO(l_label << ", twin" << l_removed << " removed");
+				g_recorder.clear();
+				cam::Environment l_env({.m_turns = 3, .m_mode = l_mode, .m_seed = 5});
+				const cam::AgentId l_twin0 = l_env.add<Twin>("twin", 0);
+				const cam::AgentId l_twin1 = l_env.add<Twin>("twin", 1);
+				l_env.add<Picker>("picker", l_removed == 0 ? l_twin0 : l_twin1);
+				l_env.start();
+				const std::string l_alive = "twin" + std::to_string(1 - l_removed);
+				const std::string l_gone = "twin" + std::to_string(l_removed);
+				CHECK(g_recorder.count_of(l_alive + ":by name") == 1);  // C#: Remove is immediate
+				CHECK(g_recorder.count_of(l_alive + ":by fragment") == 1);
+				CHECK_FALSE(g_recorder.contains(l_gone + ":by name"));
+				CHECK_FALSE(g_recorder.contains(l_gone + ":by fragment"));
+			}
 		}
 	}
 

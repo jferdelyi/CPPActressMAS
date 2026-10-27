@@ -5,9 +5,9 @@ The known defects of the library, and the tests of the fixed ones, kept as regre
 
 **Value defects** (`known_defects.cpp`, test `characterization.known_defects`): one doctest case per defect, which
 asserts the behaviour of ActressMAS C# v3.1.
-- An open defect is marked `should_fail()`: the case is expected to fail while the defect exists. Once it is fixed,
-  doctest reports that the case "should have failed"; the marker is then removed and the case is renamed
-  `fixed: ...`. The assertions never change.
+- An open defect is marked `expected_failures(n)`, the number of its assertions that the defect fails: the case passes
+  only with exactly that many failures. Another failure (a crash, an exception, one more wrong value) fails it, and so
+  does the fix; the marker is then removed and the case is renamed `fixed: ...`. The assertions never change.
 - `fixed: ...` cases are regression tests; `witness: ...` cases show behaviour that already matches the C#.
 
 **Crash and race probes** (`probes.cpp`, tests `characterization.ok.<probe>` and `characterization.<sanitizer>.<probe>`):

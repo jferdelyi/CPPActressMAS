@@ -1,8 +1,8 @@
 # Characterization tests (label characterization): the known defects of the library, and the probes of the fixed ones,
 # kept as regression tests.
 #   - known_defects.cpp: defects whose symptom is a wrong value. Each case asserts the behaviour of ActressMAS C# v3.1
-#     and is marked should_fail() while the defect exists; once it is fixed, doctest reports that the case "should
-#     have failed" and the marker is removed. The assertions never change.
+#     and is marked expected_failures(n) while the defect exists: exactly n of its assertions fail, no more, no less;
+#     once it is fixed, the case fails and the marker is removed. The assertions never change.
 #   - probes.cpp: one process per probe (cam_probes <name>). A crash probe passes when the sanitizer reports the defect
 #     (PASS_REGULAR_EXPRESSION, never WILL_FAIL), so a probe that stops crashing fails and signals the fix; an ok probe
 #     must run to completion without any sanitizer report, and exit without an error (CAM_RUN_CHECKED).

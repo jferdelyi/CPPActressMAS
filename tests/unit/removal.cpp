@@ -92,6 +92,30 @@ namespace {
 		explicit Plain(const std::string& p_name) : Agent(p_name) {}
 	};
 
+	// One of two agents of the same name: records "twin<index>:<text>" for every text it receives.
+	struct Twin final : cam::Agent {
+		Twin(const std::string& p_name, const int p_index) : Agent(p_name), m_index(p_index) {}
+		void action(const cam::MessagePointer& p_message) override {
+			g_recorder.record("twin" + std::to_string(m_index) + ":" + p_message->as_text());
+		}
+	private:
+		int m_index;
+	};
+
+	// At its first action, removes one agent.
+	struct Remover final : cam::Agent {
+		Remover(const std::string& p_name, const cam::AgentId p_removed) : Agent(p_name), m_removed(p_removed) {}
+		void default_action() override {
+			if (!m_done) {
+				m_done = true;
+				get_environment()->remove(m_removed);
+			}
+		}
+	private:
+		cam::AgentId m_removed;
+		bool m_done = false;
+	};
+
 	std::atomic<int> g_destroyed{0};
 
 	struct Tracked final : cam::Agent {
@@ -167,6 +191,34 @@ TEST_SUITE("removal") {
 		CHECK(l_env.agents_count() == 1);
 		l_env.remove(l_id);  // already gone: ignored
 		CHECK(l_env.agents_count() == 1);
+	}
+
+	TEST_CASE("removing one of two agents of the same name leaves the other reachable by that name") {
+		// Each twin in turn is the removed one, outside a turn and during a turn: whatever the order of the name index, the
+		// entry of the removed twin, and only it, leaves the index
+		for (const bool l_during_turn: {false, true}) {
+			for (const int l_removed: {0, 1}) {
+				INFO((l_during_turn ? "during a turn" : "outside a turn") << ", twin" << l_removed << " removed");
+				g_recorder.clear();
+				cam::Environment l_env(3, Mode::Sequential);
+				const cam::AgentId l_twin0 = l_env.add<Twin>("twin", 0);
+				const cam::AgentId l_twin1 = l_env.add<Twin>("twin", 1);
+				const cam::AgentId l_target = l_removed == 0 ? l_twin0 : l_twin1;
+				if (l_during_turn) {
+					l_env.add<Remover>("remover", l_target);
+					l_env.start();  // turn 0: setup; turn 1: the remover removes; the boundary before turn 2 erases
+				} else {
+					l_env.start();
+					l_env.remove(l_target);
+				}
+				l_env.send_content_by_name("ext", "twin", cam::MessageContent(std::string("hello")), false, false);
+				l_env.continue_simulation(1);
+				const std::string l_alive = "twin" + std::to_string(1 - l_removed);
+				CHECK(g_recorder.count_of(l_alive + ":hello") == 1);
+				CHECK_FALSE(g_recorder.contains("twin" + std::to_string(l_removed) + ":hello"));
+				CHECK(l_env.get_agents_by_name("twin").size() == 1);
+			}
+		}
 	}
 
 	TEST_CASE("removing or stopping an agent twice counts it once, in every mode") {
