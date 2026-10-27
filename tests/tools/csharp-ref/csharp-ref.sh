@@ -262,13 +262,21 @@ do_e20gui() {  # E20 MasMobileGui without WinForms (ref/E20/MasMobileGui.Console
     wait; echo done"
   for f in server c1 c2 c3; do echo "== $f"; cat "$W/logs/e20gui/$f.txt"; done
 }
-do_e20oracles() {
-  local mono; mono="$(ls -d "$W"/logs/e20mono-* | sort | tail -1)"
+do_e20oracles() {  # each oracle from its own capture, written as soon as that capture exists
+  local mono; mono="$(compgen -G "$W/logs/e20mono-*" | sort | tail -1 || true)"
   mkdir -p "$W/logs/oracles"
-  e20_oracle RemoteMessages "$W/logs/e20" "E20 Mobile Examples/RemoteMessages/ (agents and MasSetup unchanged in ref/E20/RemoteMessages.Console, the form replaced by the console)" \
-    "Microsoft.NETCore.App 8 (ActressMas.Wire), ref/E20/ServerConsole" container1:Container1 container2:Container2
-  e20_oracle MasMobileConsole "$mono" "E20 Mobile Examples/MasMobileConsole/ (the shipped binaries of bin/)" \
-    "Mono 6.8 (.NET Framework 4.7.2 binaries), the shipped MyServerConsole" c1:Container1 c2:Container2 c3:Container3
+  if [ -f "$W/logs/e20/container1.txt" ]; then
+    e20_oracle RemoteMessages "$W/logs/e20" "E20 Mobile Examples/RemoteMessages/ (agents and MasSetup unchanged in ref/E20/RemoteMessages.Console, the form replaced by the console)" \
+      "Microsoft.NETCore.App 8 (ActressMas.Wire), ref/E20/ServerConsole" container1:Container1 container2:Container2
+  else
+    echo "RemoteMessages: no capture in $W/logs/e20 (action e20 first)" >&2
+  fi
+  if [ -n "$mono" ]; then
+    e20_oracle MasMobileConsole "$mono" "E20 Mobile Examples/MasMobileConsole/ (the shipped binaries of bin/)" \
+      "Mono 6.8 (.NET Framework 4.7.2 binaries), the shipped MyServerConsole" c1:Container1 c2:Container2 c3:Container3
+  else
+    echo "MasMobileConsole: no capture in $W/logs/e20mono-* (action e20mono first)" >&2
+  fi
 }
 e20_oracle() {  # name, capture folder, sources, runtime, then file:container for each process
   local name="$1" dir="$2" sources="$3" runtime="$4"; shift 4

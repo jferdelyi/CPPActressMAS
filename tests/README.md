@@ -8,7 +8,7 @@ One folder per type of test, one CTest label per type; every test is named `<typ
 | [`integration/`](integration/README.md) | `integration` | Several environments of one process, through the loopback transport: messages, directory, migration |
 | [`network/`](network/README.md) | `network`, plus `mqtt` or `zenoh` | The network transports; skipped without them or without their broker |
 | [`characterization/`](characterization/README.md) | `characterization` | The known defects, and the tests of the fixed ones, kept as regression tests |
-| [`iso/`](iso/README.md) | `iso` | The behaviour of ActressMAS v3.1 (C#): its examples ported as they are, compared with the output of the C# originals |
+| [`iso/`](iso/README.md) | `iso`, plus `stat` | The behaviour of ActressMAS v3.1 (C#): its examples ported as they are, compared with the output of the C# originals; `stat` marks the 6 tests that compare distributions of runs |
 | [`examples/`](examples/README.md) | `examples` | The programs of `Examples/`, when they are built |
 | [`bench/`](bench/README.md) | `perf` | The benchmarks, run once (`bench` preset) |
 
@@ -20,6 +20,8 @@ holds what the types share.
 - Every problem found and fixed keeps a test that reproduces it, as a regression test.
 - No assertion inside an agent: agents record, the test checks after `start()`.
 - A build has no warning (`-Wall -Wextra -Wpedantic`), and no test leaves a sanitizer report.
+- A test that passes on a regular expression runs its program behind `support/run_checked.cmake` (`CAM_RUN_CHECKED`):
+  CTest ignores the exit code of such a test, the script reports an error exit code and the test fails on it.
 
 ## Running the tests by hand
 
@@ -35,10 +37,16 @@ The presets need CMake 3.25 or later.
 | `tests\run.ps1 [-Configuration Debug] [type...]` | Windows (MSVC, `msvc` preset) |
 
 The build folders are `build/<preset>`; `CAM_BUILD_PREFIX` in the environment puts a prefix before the preset name
-(`tests/run.sh --linux` uses it).
+(`tests/run.sh --linux` uses it). The test presets run 8 tests at once, except `asan` and `tsan`, whose timings are fragile:
+they run one test at a time (`-j` overrides both).
+
+Coverage of the library (Clang): `cmake --workflow --preset coverage` writes one profile per process into
+`build/coverage/profiles/`, then `tests/tools/coverage.sh` merges them and reports the coverage of `CPPActressMAS/`
+(`--functions` for one line per function).
 
 Environment variables read by the tests:
-- `CAM_MQTT_HOST`, `CAM_MQTT_PORT`, `CAM_MQTT_BROKER_CONTROL`: the MQTT broker of `network.mqtt`.
+- `CAM_MQTT_HOST`, `CAM_MQTT_PORT`, `CAM_MQTT_BROKER_CONTROL`: the MQTT broker of `network.mqtt`, which skips without them,
+  on every platform (so the MQTT transport is covered only with a broker).
 - `CAM_SEED`: the base of the seeds of the oracle tests (0 by default, as their oracles; see `iso/README.md`).
 - `CAM_WRITE_VECTORS=1`: writes the binary vectors of the envelope codecs again (`unit/vectors/`).
 - `CAM_BENCH_REFERENCE`, `CAM_BENCH_RUNS`: the C# reference of the machine and the number of runs of the
