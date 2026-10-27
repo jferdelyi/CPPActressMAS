@@ -1,5 +1,6 @@
 # Tests of the examples (label examples): the programs of Examples/, when they are built (BUILD_EXAMPLES). They check
 # that an example runs and shows what it is meant to show; the behaviour of the C# is checked by iso/.
+# The tests that pass on a regular expression run behind CAM_RUN_CHECKED: an error exit code fails them too.
 set(CAM_TEST_TYPE examples)
 
 # ---------------------------------------------------------------- approval
@@ -29,7 +30,7 @@ endfunction()
 # from one run to the next.
 cam_add_approval(Serialization OFF)
 if (TARGET Skynet)
-	add_test(NAME examples.Skynet.sum COMMAND Skynet)
+	add_test(NAME examples.Skynet.sum COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:Skynet>)
 	set_tests_properties(examples.Skynet.sum PROPERTIES LABELS examples PASS_REGULAR_EXPRESSION "Sum 49995000" TIMEOUT 300)
 	cam_apply_tsan_suppressions(examples.Skynet.sum)
 	cam_fail_on_sanitizer_report(examples.Skynet.sum)
@@ -53,19 +54,19 @@ endfunction()
 cam_add_example_oracle(Exemple4 NAME Exemple4.fixed.oracle ORACLE Agents4 fixed)
 cam_add_example_oracle(BDI NAME BDI.fixed.oracle ORACLE BDI 120 0 fixed)
 if (TARGET Exemple4)
-	add_test(NAME examples.Exemple4.fixed COMMAND Exemple4 fixed)
+	add_test(NAME examples.Exemple4.fixed COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:Exemple4> fixed)
 	set_tests_properties(examples.Exemple4.fixed PROPERTIES LABELS examples TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "Agent a5 turn 3 index 3" FAIL_REGULAR_EXPRESSION "turn 4")
 	cam_fail_on_sanitizer_report(examples.Exemple4.fixed)
 endif()
 if (TARGET MultipleMessages)
-	add_test(NAME examples.MultipleMessages.fixed COMMAND MultipleMessages fixed)
+	add_test(NAME examples.MultipleMessages.fixed COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:MultipleMessages> fixed)
 	set_tests_properties(examples.MultipleMessages.fixed PROPERTIES LABELS examples TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "\\[Manager\\]: Worker[0-9] replying" FAIL_REGULAR_EXPRESSION "out of range|Exception")
 	cam_fail_on_sanitizer_report(examples.MultipleMessages.fixed)
 endif()
 if (TARGET BDI)
-	add_test(NAME examples.BDI.fixed_adjacent COMMAND BDI 120 0 fixed-adjacent)
+	add_test(NAME examples.BDI.fixed_adjacent COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:BDI> 120 0 fixed-adjacent)
 	set_tests_properties(examples.BDI.fixed_adjacent PROPERTIES LABELS examples TIMEOUT 120
 		PASS_REGULAR_EXPRESSION "fire-out\n\t\\[terrain -> patrol\\]: percepts 3 0 0 0" FAIL_REGULAR_EXPRESSION "out of range")
 	cam_fail_on_sanitizer_report(examples.BDI.fixed_adjacent)
@@ -74,13 +75,14 @@ endif()
 # ---------------------------------------------------------------- features of the C++ port
 # The examples without a C# original (Examples/Features) run and report what they measure.
 if (TARGET TransportRoundTrip)
-	add_test(NAME examples.TransportRoundTrip COMMAND TransportRoundTrip loopback://smoke-roundtrip loopback://smoke-roundtrip 50)
+	add_test(NAME examples.TransportRoundTrip COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:TransportRoundTrip> loopback://smoke-roundtrip
+		loopback://smoke-roundtrip 50)
 	set_tests_properties(examples.TransportRoundTrip PROPERTIES LABELS examples PASS_REGULAR_EXPRESSION "50 round trips in" TIMEOUT 120)
 	cam_apply_tsan_suppressions(examples.TransportRoundTrip)
 	cam_fail_on_sanitizer_report(examples.TransportRoundTrip)
 endif()
 if (TARGET SharedText)
-	add_test(NAME examples.SharedText COMMAND SharedText 10 4)
+	add_test(NAME examples.SharedText COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:SharedText> 10 4)
 	set_tests_properties(examples.SharedText PROPERTIES LABELS examples PASS_REGULAR_EXPRESSION "cam::Text [^\n]* 40960 characters received"
 		FAIL_REGULAR_EXPRESSION "MISSING" TIMEOUT 120)
 	cam_apply_tsan_suppressions(examples.SharedText)

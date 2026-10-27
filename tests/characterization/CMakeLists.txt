@@ -5,7 +5,7 @@
 #     have failed" and the marker is removed. The assertions never change.
 #   - probes.cpp: one process per probe (cam_probes <name>). A crash probe passes when the sanitizer reports the defect
 #     (PASS_REGULAR_EXPRESSION, never WILL_FAIL), so a probe that stops crashing fails and signals the fix; an ok probe
-#     must run to completion without any sanitizer report.
+#     must run to completion without any sanitizer report, and exit without an error (CAM_RUN_CHECKED).
 # The probes run without the TSan suppressions: they must see the races they document.
 set(CAM_TEST_TYPE characterization)
 
@@ -31,13 +31,13 @@ function(cam_add_crash_probe p_name p_sanitizer p_regex)
 	endif()
 endfunction()
 
-# A probe that must run to completion without any sanitizer report (fixed defect).
+# A probe that must run to completion without any sanitizer report, and exit without an error (fixed defect).
 function(cam_add_ok_probe p_name)
-	add_test(NAME characterization.ok.${p_name} COMMAND cam_probes ${p_name})
+	add_test(NAME characterization.ok.${p_name} COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:cam_probes> ${p_name})
 	set_tests_properties(characterization.ok.${p_name} PROPERTIES
 		LABELS characterization
 		PASS_REGULAR_EXPRESSION "OK no crash"
-		FAIL_REGULAR_EXPRESSION "Sanitizer|runtime error"
+		FAIL_REGULAR_EXPRESSION "Sanitizer|runtime error|cam: exit code"
 		TIMEOUT 300)
 endfunction()
 

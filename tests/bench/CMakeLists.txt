@@ -29,33 +29,36 @@ add_executable(bench_Transport ${CMAKE_CURRENT_LIST_DIR}/Transport.cpp)
 target_include_directories(bench_Transport PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 target_link_libraries(bench_Transport CPPActressMASStatic)
 
-# Smoke tests (label perf): the benchmarks run once and their invariant is checked. Not a measurement.
+# Smoke tests (label perf): the benchmarks run once and their invariant is checked, behind CAM_RUN_CHECKED (an error
+# exit code fails them). Not a measurement.
 if (CAM_BUILD_TESTS)
-	add_test(NAME perf.smoke.Skynet COMMAND bench_Skynet)
+	add_test(NAME perf.smoke.Skynet COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_Skynet>)
 	set_tests_properties(perf.smoke.Skynet PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Sum = 49995000" TIMEOUT 300)
-	add_test(NAME perf.smoke.SkynetNumeric COMMAND bench_SkynetNumeric)
+	add_test(NAME perf.smoke.SkynetNumeric COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_SkynetNumeric>)
 	set_tests_properties(perf.smoke.SkynetNumeric PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Long Sum = 199990000" TIMEOUT 300)
-	add_test(NAME perf.smoke.PingPong COMMAND bench_PingPong --sequential --turns 100 --trials 1)
+	add_test(NAME perf.smoke.PingPong COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_PingPong> --sequential --turns 100 --trials 1)
 	set_tests_properties(perf.smoke.PingPong PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "msg/ms" TIMEOUT 300)
-	add_test(NAME perf.smoke.Transport COMMAND bench_Transport --transport loopback --pings 50 --trials 1)
+	add_test(NAME perf.smoke.Transport COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_Transport> --transport loopback --pings 50 --trials 1)
 	set_tests_properties(perf.smoke.Transport PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "msg/ms" TIMEOUT 300)
-	add_test(NAME perf.smoke.Envelope COMMAND bench_Envelope --count 2000)
+	add_test(NAME perf.smoke.Envelope COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_Envelope> --count 2000)
 	set_tests_properties(perf.smoke.Envelope PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "json content=1024 encode_ns" TIMEOUT 300)
 	# The sum of Skynet is N(N - 1) / 2 for N agents, whatever their number
-	add_test(NAME perf.smoke.Skynet.N1000 COMMAND bench_Skynet --agents 1000)
+	add_test(NAME perf.smoke.Skynet.N1000 COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_Skynet> --agents 1000)
 	set_tests_properties(perf.smoke.Skynet.N1000 PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Sum = 499500\n" TIMEOUT 300)
-	add_test(NAME perf.smoke.Skynet.N50000 COMMAND bench_Skynet --agents 50000)
+	add_test(NAME perf.smoke.Skynet.N50000 COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_Skynet> --agents 50000)
 	set_tests_properties(perf.smoke.Skynet.N50000 PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Sum = 1249975000\n" TIMEOUT 300)
 	# PingPong by pairs ends with exactly pairs * messages messages, in both modes
-	add_test(NAME perf.smoke.PingPongPairs COMMAND bench_PingPongPairs --trials 1)
+	add_test(NAME perf.smoke.PingPongPairs COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_PingPongPairs> --trials 1)
 	set_tests_properties(perf.smoke.PingPongPairs PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Trial 1\n50000 msg\n" TIMEOUT 300)
-	add_test(NAME perf.smoke.PingPongPairs.Sequential COMMAND bench_PingPongPairs --sequential --pairs 7 --messages 10 --trials 1)
+	add_test(NAME perf.smoke.PingPongPairs.Sequential
+		COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_PingPongPairs> --sequential --pairs 7 --messages 10 --trials 1)
 	set_tests_properties(perf.smoke.PingPongPairs.Sequential PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Trial 1\n70 msg\n" TIMEOUT 300)
 	# The models of Antelmi et al. run their 200 turns; the birds of Flockers are never lost. Each writes world-state.txt
 	# into its own folder, as the C#.
 	foreach (l_model IN ITEMS Wsg Flockers)
 		file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${l_model})
-		add_test(NAME perf.smoke.${l_model} COMMAND bench_${l_model} WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${l_model})
+		add_test(NAME perf.smoke.${l_model} COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:bench_${l_model}>
+			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${l_model})
 	endforeach()
 	set_tests_properties(perf.smoke.Wsg PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Turn 200: [0-9]+ wolves, [0-9]+ sheeps\n" TIMEOUT 300)
 	set_tests_properties(perf.smoke.Flockers PROPERTIES LABELS perf PASS_REGULAR_EXPRESSION "Turn 200: 1000 ants\n" TIMEOUT 300)
@@ -87,9 +90,16 @@ if (CAM_BUILD_TESTS)
 		string(REPLACE "|" ";" l_parts "${l_case}")
 		list(GET l_parts 0 l_reference)
 		list(GET l_parts 1 l_expected)
-		add_test(NAME perf.compare.time_${l_reference} COMMAND cam_bench_compare Skynet 3 -- $<TARGET_FILE:bench_Skynet> --sequential --agents 100)
+		# A "faster" verdict exits with 0, behind CAM_RUN_CHECKED; a "not faster" one exits with 1, as expected
+		set(l_runner)
+		if (l_reference STREQUAL "slow")
+			set(l_runner ${CAM_RUN_CHECKED})
+		endif()
+		add_test(NAME perf.compare.time_${l_reference}
+			COMMAND ${l_runner} $<TARGET_FILE:cam_bench_compare> Skynet 3 -- $<TARGET_FILE:bench_Skynet> --sequential --agents 100)
 		add_test(NAME perf.compare.throughput_${l_reference}
-			COMMAND cam_bench_compare PingPongSequential 2 -- $<TARGET_FILE:bench_PingPong> --sequential --turns 3000 --trials 3)
+			COMMAND ${l_runner} $<TARGET_FILE:cam_bench_compare> PingPongSequential 2 -- $<TARGET_FILE:bench_PingPong> --sequential --turns 3000
+				--trials 3)
 		set_tests_properties(perf.compare.time_${l_reference} perf.compare.throughput_${l_reference} PROPERTIES LABELS perf
 			ENVIRONMENT "CAM_BENCH_REFERENCE=${l_fixtures}/reference-${l_reference}.txt" PASS_REGULAR_EXPRESSION "${l_expected}" TIMEOUT 300)
 	endforeach()

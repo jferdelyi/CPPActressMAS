@@ -38,15 +38,20 @@ function(cam_apply_tsan_suppressions p_test)
 	endif()
 endfunction()
 
-# A test that passes on a regular expression ignores its exit code (CTest): a report of a sanitizer printed after the
-# expected line must still fail it. Called after the properties of the tests are set, never for the crash probes.
+# A test that passes on a regular expression ignores its exit code (CTest): a program that prints the expected line then
+# exits with an error, or a report of a sanitizer printed after that line, must still fail it. Such a test runs its
+# command behind CAM_RUN_CHECKED, which prints "cam: exit code <code>" for an error exit code, and
+# cam_fail_on_sanitizer_report fails it on that line or on a report. Called after the properties of the tests are set,
+# never for the tests that expect a failure (crash probes, failing verdicts of the tools).
+set(CAM_RUN_CHECKED "${CMAKE_COMMAND};-P;${CMAKE_CURRENT_LIST_DIR}/support/run_checked.cmake;--" CACHE INTERNAL
+	"Runs a command and reports an error exit code (tests/bench/ is added from the root folder)")
 function(cam_fail_on_sanitizer_report)
 	foreach (l_test IN LISTS ARGN)
 		get_test_property(${l_test} FAIL_REGULAR_EXPRESSION l_fail)
 		if (NOT l_fail)
-			set_tests_properties(${l_test} PROPERTIES FAIL_REGULAR_EXPRESSION "Sanitizer;runtime error")
+			set_tests_properties(${l_test} PROPERTIES FAIL_REGULAR_EXPRESSION "Sanitizer;runtime error;cam: exit code")
 		else()
-			set_tests_properties(${l_test} PROPERTIES FAIL_REGULAR_EXPRESSION "${l_fail};Sanitizer;runtime error")
+			set_tests_properties(${l_test} PROPERTIES FAIL_REGULAR_EXPRESSION "${l_fail};Sanitizer;runtime error;cam: exit code")
 		endif()
 	endforeach()
 endfunction()

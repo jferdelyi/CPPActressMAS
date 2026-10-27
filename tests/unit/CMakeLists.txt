@@ -54,3 +54,11 @@ cam_add_doctest(agent_types cam_agent_types_tests agent_types.cpp)
 
 # Identifiers: version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 cam_add_doctest(identifier cam_identifier_tests identifier.cpp)
+
+# The launcher of the tests that pass on a regular expression (support/run_checked.cmake): the output of a command that
+# succeeds goes through, an error exit code is reported.
+add_test(NAME unit.run_checked_passes COMMAND ${CAM_RUN_CHECKED} ${CMAKE_COMMAND} -E echo "launcher ok")
+set_tests_properties(unit.run_checked_passes PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "launcher ok"
+	FAIL_REGULAR_EXPRESSION "cam: exit code" TIMEOUT 60)
+add_test(NAME unit.run_checked_reports_exit_code COMMAND ${CAM_RUN_CHECKED} ${CMAKE_COMMAND} -E false)
+set_tests_properties(unit.run_checked_reports_exit_code PROPERTIES LABELS unit PASS_REGULAR_EXPRESSION "cam: exit code 1" TIMEOUT 60)

@@ -7,13 +7,17 @@ set(CAM_TEST_TYPE iso)
 add_executable(cam_iso_check iso_check.cpp)
 set(CAM_ISO_FIXTURES ${CMAKE_CURRENT_LIST_DIR}/fixtures)
 
-# The comparison tool on fixtures: the same behaviour, then each kind of difference it must report.
+# The comparison tool on fixtures: the same behaviour, then each kind of difference it must report. A case that expects
+# a passing verdict runs behind CAM_RUN_CHECKED: a FAIL line or an error exit code fails it.
 function(cam_add_iso_check_case p_name p_rules p_oracle p_actual p_expected)
-	add_test(NAME iso.check.${p_name}
-		COMMAND cam_iso_check ${CAM_ISO_FIXTURES}/${p_rules} ${CAM_ISO_FIXTURES}/${p_oracle} --actual ${CAM_ISO_FIXTURES}/${p_actual})
-	set_tests_properties(iso.check.${p_name} PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "${p_expected}")
-	if (p_expected STREQUAL "same behaviour")
-		set_tests_properties(iso.check.${p_name} PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
+	set(l_arguments ${CAM_ISO_FIXTURES}/${p_rules} ${CAM_ISO_FIXTURES}/${p_oracle} --actual ${CAM_ISO_FIXTURES}/${p_actual})
+	if (p_expected MATCHES "^FAIL")
+		add_test(NAME iso.check.${p_name} COMMAND cam_iso_check ${l_arguments})
+		set_tests_properties(iso.check.${p_name} PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "${p_expected}")
+	else()
+		add_test(NAME iso.check.${p_name} COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:cam_iso_check> ${l_arguments})
+		set_tests_properties(iso.check.${p_name} PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "${p_expected}"
+			FAIL_REGULAR_EXPRESSION "FAIL;cam: exit code")
 	endif()
 endfunction()
 cam_add_iso_check_case(same basic.rules basic.oracle same.txt "same behaviour")
@@ -26,7 +30,6 @@ cam_add_iso_check_case(first_order first.rules basic.oracle order.txt "FAIL same
 cam_add_iso_check_case(typo typo.rules basic.oracle same.txt "FAIL fact msg: no tuple in the C# oracle")
 # "alias": a sender shown as an identifier is paired, a changed content is not
 cam_add_iso_check_case(alias alias.rules alias.oracle alias-same.txt "OK   same msg bag \\(4 tuples\\): 1 paired by the alias of column 0\n")
-set_tests_properties(iso.check.alias PROPERTIES FAIL_REGULAR_EXPRESSION "FAIL")
 cam_add_iso_check_case(alias_changed alias.rules alias.oracle alias-changed.txt "FAIL same msg bag \\(4 tuples\\): 1 tuples only in C#")
 # "aggregate": the sum of a column, the C# against the C++
 cam_add_iso_check_case(aggregate aggregate.rules basic.oracle same.txt "same behaviour")
@@ -205,8 +208,8 @@ endforeach()
 # the number of its exchanges per turn depends on the scheduling (a known divergence of throughput), and its logic is
 # compared line by line by its sequential variant. Long: not under the sanitizers.
 add_executable(cam_iso_stats iso_stats.cpp)
-add_test(NAME iso.stats.self COMMAND cam_iso_stats --self-test)
-set_tests_properties(iso.stats.self PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "self-test ok" FAIL_REGULAR_EXPRESSION "FAIL")
+add_test(NAME iso.stats.self COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:cam_iso_stats> --self-test)
+set_tests_properties(iso.stats.self PROPERTIES LABELS iso PASS_REGULAR_EXPRESSION "self-test ok" FAIL_REGULAR_EXPRESSION "FAIL;cam: exit code")
 if (NOT CAM_SANITIZER)
 	foreach (l_example IN ITEMS PredatorPrey ContractNet Shapley)
 		foreach (l_engine IN ITEMS dotnet mt19937)
@@ -229,10 +232,12 @@ add_dependencies(cam_iso_gardner iso_GameOfLife)
 set_tests_properties(iso.gardner PROPERTIES TIMEOUT 900)
 # The calculator of E04 alone on the examples of the Shapley value: 2 players (1, 3, 6: 2 and 4) and 3 players (0, 0, 0,
 # 2, 4, 6, 7: 4/3, 7/3, 10/3), normalized; the calculator takes times, the inverse of the values (1e9 for a value of 0)
-add_test(NAME iso.shapley.two COMMAND iso_Shapley calculate 1 0.3333333333333333 1000 0.16666666666666666 1000 1000 1000)
+add_test(NAME iso.shapley.two COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:iso_Shapley>
+	calculate 1 0.3333333333333333 1000 0.16666666666666666 1000 1000 1000)
 set_tests_properties(iso.shapley.two PROPERTIES LABELS iso
 	PASS_REGULAR_EXPRESSION "\\[shapley -> manager\\]: results 0\\.333333333333333[0-9]* 0\\.666666666666666[0-9]* 0\n")
-add_test(NAME iso.shapley.three COMMAND iso_Shapley calculate 1000000000 1000000000 1000000000 0.5 0.25 0.16666666666666666 0.14285714285714285)
+add_test(NAME iso.shapley.three COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:iso_Shapley>
+	calculate 1000000000 1000000000 1000000000 0.5 0.25 0.16666666666666666 0.14285714285714285)
 set_tests_properties(iso.shapley.three PROPERTIES LABELS iso
 	PASS_REGULAR_EXPRESSION "\\[shapley -> manager\\]: results 0\\.190476190[0-9]* 0\\.33333333[0-9]* 0\\.476190476[0-9]*\n")
 
@@ -249,5 +254,6 @@ endif()
 if (CAM_SANITIZER)
 	set_tests_properties(iso.PingPongSeqRandom PROPERTIES TIMEOUT 1500)
 endif()
-# A test that passes on a regular expression ignores its exit code: a report of a sanitizer still fails it
+# A test that passes on a regular expression ignores its exit code: an error exit code or a report of a sanitizer still
+# fails it
 cam_fail_on_sanitizer_report(iso.shapley.two iso.shapley.three)
