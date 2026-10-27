@@ -30,6 +30,7 @@
 #include <chrono>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <string>
 #include <thread>
 #include <type_traits>
@@ -294,6 +295,14 @@ namespace {
 		bool m_done = false;
 	};
 
+	// Forwards every message it reads, without a copy, to an agent it holds: post() takes a message already built.
+	struct Forwarder final : cam::Agent {
+		Forwarder(const std::string& p_name, cam::AgentPointer p_target) : Agent(p_name), m_target(std::move(p_target)) {}
+		void action(const cam::MessagePointer& p_message) override { m_target->post(p_message); }
+	private:
+		cam::AgentPointer m_target;
+	};
+
 	// The position of an entry in the recorder, or the number of entries when absent
 	std::size_t position_of(const std::string& p_entry) {
 		const auto l_entries = g_recorder.entries();
@@ -544,6 +553,19 @@ TEST_SUITE("delivery") {
 			CHECK(l_env.agents_count() == 2);
 			CHECK(l_env.get_agents_by_name("victim").empty());
 		}
+	}
+
+	TEST_CASE("a message posted to another agent is read by it, with its first sender") {
+		g_recorder.clear();
+		cam::Environment l_env(3, Mode::Sequential);
+		const auto l_reader = std::make_shared<Reader>("reader");  // built here, so that the forwarder holds it
+		l_env.add(l_reader);
+		const cam::AgentId l_forwarder = l_env.add<Forwarder>("forwarder", l_reader);
+		l_env.start();  // turn 0: setup; then the forwarder reads the message below and posts it to the reader
+		l_env.send_content("ext", l_forwarder, cam::MessageContent(std::string("posted")));
+		l_env.continue_simulation(2);
+		CHECK(g_recorder.count_of("[ext -> forwarder]: posted") == 1);  // the message itself: its receiver stays the forwarder
+		CHECK(g_recorder.count_of("sender name:none") == 1);
 	}
 
 	TEST_CASE("a fragment is found anywhere in a name, by a search and by a send") {

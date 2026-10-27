@@ -287,6 +287,19 @@ TEST_SUITE("loopback") {
 		CHECK(l_late.environments().empty());  // the scoped one withdrew its presence
 	}
 
+	TEST_CASE("a closed loopback transport refuses the environments until it opens again") {
+		auto l_transport = open_loopback();
+		REQUIRE(l_transport->close(std::chrono::milliseconds(100)));
+		cam::Environment l_env(1, Mode::Sequential);
+		const auto l_refused = l_env.connect(l_transport, named("closed"));
+		REQUIRE_FALSE(l_refused);
+		CHECK(l_refused.error().m_code == ErrorCode::NotConnected);
+		CHECK_FALSE(l_env.is_connected());
+		REQUIRE(l_transport->open());
+		CHECK(l_env.connect(l_transport, named("reopened")));
+		CHECK(l_env.is_connected());
+	}
+
 	TEST_CASE("unicast by id across two environments, in memory") {
 		unicast_scenario(open_loopback());
 	}

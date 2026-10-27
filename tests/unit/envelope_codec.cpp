@@ -725,6 +725,19 @@ TEST_SUITE("envelope_codec") {
 			REQUIRE_FALSE(l_result);
 			CHECK(l_result.error().m_code == ErrorCode::TooLarge);
 		}
+		SUBCASE("unknown payload tag") {
+			// Each byte in turn takes a value that no tag has: the one of the payload tag is refused by name, wherever it is
+			bool l_refused_tag = false;
+			for (std::size_t i = 3; i < l_good.size(); i++) {
+				auto l_bytes = l_good;
+				l_bytes[i] = 0xEE;
+				const auto l_result = l_codec.decode(l_bytes, MAX_BYTES);
+				if (!l_result && l_result.error().m_message.find("unknown payload tag") != std::string::npos) {
+					l_refused_tag = true;
+				}
+			}
+			CHECK(l_refused_tag);
+		}
 		SUBCASE("random garbage never crashes") {
 			std::uint32_t l_seed = 12345;
 			for (int i = 0; i < 2000; i++) {

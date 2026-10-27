@@ -66,6 +66,12 @@ namespace {
 		}
 	};
 
+	// Uses observables without its own see: the default one does nothing, and the agent acts at every turn.
+	struct Unseeing final : cam::Agent {
+		explicit Unseeing(const std::string& p_name) : Agent(p_name, true) {}
+		void default_action() override { g_recorder.record("unseeing:acts"); }
+	};
+
 	// Shows a color without using observables: it is seen, but never sees.
 	struct Shown final : cam::Agent {
 		Shown(const std::string& p_name, std::string p_color) : Agent(p_name), m_color(std::move(p_color)) {}
@@ -130,6 +136,17 @@ TEST_SUITE("observables") {
 			CHECK(l_watcher.back() == "watcher:saw:red");  // once stopped, the quitter is no longer seen
 			CHECK(g_recorder.count_of("shown:saw") == 0);  // without observables, never perceives
 			CHECK(g_recorder.count_of("blind:saw:") == 5);  // the default filter lets nothing through
+		}
+	}
+
+	TEST_CASE("an agent that uses observables without its own see acts at every turn, in every mode") {
+		for (const auto l_mode: {Mode::Sequential, Mode::SequentialRandom, Mode::Parallel}) {
+			g_recorder.clear();
+			cam::Environment l_env(4, l_mode);
+			l_env.add<Unseeing>("unseeing");
+			l_env.add<Watcher>("red");
+			l_env.start();
+			CHECK(g_recorder.count_of("unseeing:acts") == 3);  // once per turn after the setup turn
 		}
 	}
 
