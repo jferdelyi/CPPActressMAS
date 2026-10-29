@@ -28,10 +28,10 @@ namespace cam::transport {
 		if (m_thread.joinable()) {
 			return;
 		}
+		// The jobs posted before the start are kept: they run first
 		{
 			const std::lock_guard<std::mutex> l_lock(m_mutex);
 			m_stop = false;
-			m_jobs.clear();
 		}
 		m_thread = std::thread(&Worker::run, this);
 	}
@@ -45,6 +45,8 @@ namespace cam::transport {
 		if (m_thread.joinable()) {
 			m_thread.join();
 		}
+		const std::lock_guard<std::mutex> l_lock(m_mutex);
+		m_jobs.clear();
 	}
 
 	void Worker::post(std::function<void()> p_job) {

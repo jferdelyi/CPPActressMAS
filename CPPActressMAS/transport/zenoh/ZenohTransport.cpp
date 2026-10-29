@@ -350,6 +350,7 @@ namespace cam::transport {
 						m_node->m_session.close();
 						wait_callbacks();
 						m_node.reset();
+						m_worker.stop();  // drops the requests of the failed session
 						return make_error(ErrorCategory::Transport, ErrorCode::Timeout,
 										  "no zenoh peer reached at " + json_array(m_options.m_connect));
 					}
@@ -360,10 +361,13 @@ namespace cam::transport {
 			}
 		} catch (const zenoh::ZException& p_exception) {
 			m_node.reset();
+			m_worker.stop();
 			return transport_error(std::string("zenoh session failed: ") + p_exception.what(), p_exception.e);
 		}
-		m_worker.start();
+		// Open before the worker starts: the presence requests posted by the liveliness history above run now, and
+		// must not find the transport closed
 		m_open.store(true);
+		m_worker.start();
 		return {};
 	}
 
@@ -388,6 +392,7 @@ namespace cam::transport {
 		}
 		wait_callbacks();
 		m_node.reset();
+		m_worker.stop();  // drops the requests posted by the callbacks of the closing session
 		return l_result;
 	}
 
@@ -438,9 +443,9 @@ namespace cam::transport {
 							if (!l_entry) {
 								return;
 							}
+							// On the key of the query: a query accepts only the replies whose key intersects its own
 							if (auto l_encoded = m_codec->encode(*l_entry); l_encoded) {
-								p_query.reply(zenoh::KeyExpr(key_of(AddressKind::EnvPresence, l_environment)),
-											  zenoh::Bytes(std::move(l_encoded.value())));
+								p_query.reply(p_query.get_keyexpr(), zenoh::Bytes(std::move(l_encoded.value())));
 							}
 						} catch (...) {
 						}

@@ -112,9 +112,9 @@ Notes:
   to MSVC.
 - The crash probes of `characterization/` have a verdict under a sanitizer only; without one, only the probes that
   must run to completion and the value cases of `known_defects.cpp` run.
-- `network.zenoh` opens TCP sockets on 127.0.0.1 (ports 17447 to 17454), no multicast: the Windows firewall may ask
-  for permission at the first run; `-LE network` keeps a run off the network. Zenoh is linked dynamically on Windows:
-  `zenohc.dll` must be next to the executable or in the `PATH`.
+- `network.zenoh` opens TCP sockets on 127.0.0.1 (ports 17447 to 17455 and 17460), no multicast: the Windows firewall
+  may ask for permission at the first run; `-LE network` keeps a run off the network. Zenoh is linked dynamically on
+  Windows: `zenohc.dll` must be next to the executable or in the `PATH`.
 - `network.mqtt` skips (exit code 77) without `CAM_MQTT_HOST` and `CAM_MQTT_PORT`. Its reconnection case calls the
   script named by `CAM_MQTT_BROKER_CONTROL` with `stop` and `start`: give a `.cmd` that does so, or leave the variable
   empty to skip that case.

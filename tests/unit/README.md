@@ -14,6 +14,7 @@ assert: in Parallel mode an exception thrown by an agent is swallowed, so they r
 | `unit.message_pointer` | `message_pointer.cpp` | The pointer to a message with its counter inside: copies, assignments, moves, kept messages, release across threads |
 | `unit.agent_id` | `agent_id.cpp` | The identifier of an agent: size, capacity, literals, comparisons, hash, stream, JSON |
 | `unit.identifier` | `identifier.cpp` | UUIDs and short agent identifiers, unique from several threads |
+| `unit.worker` | `worker.cpp` | The worker of the network transports: the jobs posted before its start run in order, a stop drops the pending ones |
 | `unit.removal` | `removal.cpp` | Removal of agents: deferred to the turn boundary during a turn, at once outside a turn |
 | `unit.observables` | `observables.cpp` | What an agent sees of the others before each action, as the C#: its filter, never itself, nor empty observables, nor a stopped agent; the default filter |
 | `unit.dotnet_random` | `dotnet_random.cpp` | The generator of the seeded `System.Random` of .NET, against the series of the C# |

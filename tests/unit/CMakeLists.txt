@@ -55,6 +55,9 @@ cam_add_doctest(agent_types cam_agent_types_tests agent_types.cpp)
 # Identifiers: version 4 UUIDs, short agent identifiers, uniqueness from several threads.
 cam_add_doctest(identifier cam_identifier_tests identifier.cpp)
 
+# Worker of the network transports: the jobs posted before the start run in order, a stop drops the pending ones.
+cam_add_doctest(worker cam_worker_tests worker.cpp)
+
 # The launcher of the tests that pass on a regular expression (support/run_checked.cmake): the output of a command that
 # succeeds goes through, an error exit code is reported.
 add_test(NAME unit.run_checked_passes COMMAND ${CAM_RUN_CHECKED} ${CMAKE_COMMAND} -E echo "launcher ok")

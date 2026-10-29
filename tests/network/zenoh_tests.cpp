@@ -375,7 +375,7 @@ TEST_SUITE("zenoh") {
 		REQUIRE(l_env_a.disconnect());
 	}
 
-	TEST_CASE("a late joiner learns the agents of the peers at once through the presence query") {
+	TEST_CASE("a late joiner learns the agents of a running peer from the presence it answers") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_c("C");
@@ -401,6 +401,21 @@ TEST_SUITE("zenoh") {
 		CHECK(attempts_of("sender") >= 1);
 		CHECK(attempts_of("sender") <= 10);
 		CHECK(g_recorder.contains("C:joined:A"));
+		REQUIRE(l_env_a.disconnect());
+		REQUIRE(l_env_c.disconnect());
+	}
+
+	TEST_CASE("a late joiner learns an idle peer through the presence query") {
+		// A only connects: it runs no turn, so it never answers the presence of the newcomer; the presence query,
+		// served by the transport of A from its cache, is the only way for C to learn it
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");
+		TestEnvironment l_env_c("C");
+		REQUIRE(connect(l_env_a, "A", listen_url(17455, "cam-test-idle")));
+		REQUIRE(connect(l_env_c, "C", connect_url(17455, "cam-test-idle")));
+		l_env_c.add<Keeper>("keeper-c");
+		const bool l_seen = run_until({&l_env_c}, [] { return g_recorder.contains("C:joined:A"); }, 10s);
+		CHECK(l_seen);
 		REQUIRE(l_env_a.disconnect());
 		REQUIRE(l_env_c.disconnect());
 	}
