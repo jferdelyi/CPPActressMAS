@@ -250,9 +250,10 @@ if (CAM_SANITIZER STREQUAL "asan")
 				 iso.PredatorPreyGui.seed42 iso.PredatorPrey.seed7 iso.PredatorPreyGui.seed7 APPEND PROPERTY ENVIRONMENT
 				 "ASAN_OPTIONS=detect_stack_use_after_return=0")
 endif()
-# Ten million messages in a sequential order take about four times the parallel PingPong: more than 300 s under TSan
+# Ten million messages in a sequential order take about four times the parallel PingPong: more than 300 s under TSan.
+# The game of life of Gardner took 885 s alone under the TSan of gcc, close to its 900 s on a loaded host
 if (CAM_SANITIZER)
-	set_tests_properties(iso.PingPongSeqRandom PROPERTIES TIMEOUT 1500)
+	set_tests_properties(iso.PingPongSeqRandom iso.gardner PROPERTIES TIMEOUT 1500)
 endif()
 # A test that passes on a regular expression ignores its exit code: an error exit code or a report of a sanitizer still
 # fails it
