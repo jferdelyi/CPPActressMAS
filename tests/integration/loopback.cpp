@@ -73,6 +73,14 @@ namespace {
 		bool m_sent = false;
 	};
 
+	// Records the sender of every message as "<name>:from:<sender name>@<environment of the sender>".
+	struct OriginReader final : cam::Agent {
+		explicit OriginReader(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override {
+			g_recorder.record(get_name() + ":from:" + p_message->get_sender_name() + "@" + p_message->get_sender_environment());
+		}
+	};
+
 	// Records every message as "<name>:<kind>:<content>".
 	struct TypedReceiver final : cam::Agent {
 		explicit TypedReceiver(const std::string& p_name) : Agent(p_name) {}
@@ -309,6 +317,32 @@ TEST_SUITE("loopback") {
 			CAPTURE(l_name);
 			g_recorder.clear();
 			unicast_scenario(open_loopback(LoopbackOptions{.m_serialize = true}, make_codec(l_name)));
+		}
+	}
+
+	TEST_CASE("a long sender name crosses the transport with the environment of the sender") {
+		// A name longer than any short string, and the environment of the remote sender: both must come through
+		const std::string l_long_name(40, 's');
+		const auto l_scenario = [&l_long_name](const std::shared_ptr<LoopbackTransport>& p_transport) {
+			g_recorder.clear();
+			TestEnvironment l_a("A");
+			TestEnvironment l_b("B");
+			const cam::AgentId l_reader = l_b.add<OriginReader>("r");
+			REQUIRE(l_b.connect(p_transport, named("B")));
+			REQUIRE(l_a.connect(p_transport, named("A")));
+			l_a.add<Sender>(l_long_name, l_reader);
+			l_b.start();  // r inserted and announced
+			l_a.start();  // directory learnt; the sender set up
+			l_a.start();  // the sender sends to r through the transport
+			l_b.start();  // the message is applied at the boundary and read in the turn
+			CHECK(g_recorder.count_of("r:from:" + l_long_name + "@" + l_a.get_id()) == 1);
+			REQUIRE(l_b.disconnect());
+			REQUIRE(l_a.disconnect());
+		};
+		l_scenario(open_loopback());
+		for (const auto& l_name: codec_names()) {
+			CAPTURE(l_name);
+			l_scenario(open_loopback(LoopbackOptions{.m_serialize = true}, make_codec(l_name)));
 		}
 	}
 

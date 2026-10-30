@@ -504,6 +504,35 @@ TEST_SUITE("delivery") {
 		CHECK(g_recorder.count_of("sender name:none") == 1);
 	}
 
+	TEST_CASE("a message keeps a sender name of any length once the sender is gone, in every mode") {
+		// Around the short strings of libstdc++ (15 bytes) and libc++ (22 bytes), a long name, and a name of 23 bytes
+		// in UTF-8 ("é" takes two bytes)
+		std::string l_utf8;
+		for (int i = 0; i < 11; i++) {
+			l_utf8 += "\xC3\xA9";
+		}
+		l_utf8 += "z";
+		REQUIRE(l_utf8.size() == 23);
+		const std::vector<std::string> l_names{"f", std::string(15, 'f'), std::string(16, 'f'), std::string(22, 'f'),
+											   std::string(23, 'f'), std::string(200, 'f'), l_utf8};
+		for (const auto& [l_mode, l_label]: {std::pair{Mode::Sequential, "Sequential"}, std::pair{Mode::SequentialRandom, "SequentialRandom"},
+											  std::pair{Mode::Parallel, "Parallel"}}) {
+			for (const std::string& l_name: l_names) {
+				INFO(l_label);
+				INFO(l_name.size());
+				g_recorder.clear();
+				cam::Environment l_env({.m_turns = 4, .m_mode = l_mode, .m_seed = 5});
+				const cam::AgentId l_reader = l_env.add<Reader>("reader");
+				l_env.add<Reader>("other");
+				l_env.add<Farewell>(l_name, l_reader);
+				l_env.start();
+				CHECK(g_recorder.count_of("[" + l_name + " -> reader]: by id") == 1);
+				CHECK(g_recorder.count_of("[" + l_name + " -> other]: by broadcast") == 1);
+				CHECK(g_recorder.count_of("sender name:" + l_name) == 5);
+			}
+		}
+	}
+
 	TEST_CASE("an agent added during a turn is reached at once by every send and search, and runs from the next turn") {
 		for (const auto& [l_mode, l_label]: {std::pair{Mode::Sequential, "Sequential"}, std::pair{Mode::SequentialRandom, "SequentialRandom"},
 											  std::pair{Mode::Parallel, "Parallel"}}) {
