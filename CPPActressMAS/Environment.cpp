@@ -112,7 +112,7 @@ void cam::Environment::remove(const AgentPointer& p_agent) {
 	// An agent added and not inserted yet leaves at once, as the immediate Remove of the C#; an inserted agent has left the
 	// table of the added agents before it was marked inserted, so the table is searched for the others only
 	const bool l_inserted = (p_agent->m_state.load(std::memory_order_relaxed) & Agent::INSERTED) != 0;
-	if (!l_inserted && m_agent_collection.remove_pending(l_id)) {
+	if (!l_inserted && m_agent_collection.take_pending(l_id)) {
 		return;
 	}
 	// During a simulation the collections change at turn boundaries only: the agent is marked, the boundary erases and
@@ -135,7 +135,20 @@ void cam::Environment::retire(Agent& p_agent) {
 }
 
 void cam::Environment::remove(const AgentId& p_agent_id) {
-	remove(get(p_agent_id));
+	AgentPointer l_agent;
+	AgentPointer l_taken;  // not inserted yet: destroyed here, after the lock, if this is its last holder
+	{
+		// Under the shared lock no boundary inserts: an agent added and not inserted yet is still in the table, and leaves
+		// it in the search that finds it
+		const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
+		l_agent = m_agent_collection.get(p_agent_id);
+		if (!l_agent) {
+			l_taken = m_agent_collection.take_pending(p_agent_id);
+		}
+	}
+	if (l_agent) {
+		remove(l_agent);
+	}
 }
 
 cam::transport::Result<void>

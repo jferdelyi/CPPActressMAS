@@ -121,11 +121,11 @@ std::vector<cam::AgentPointer> cam::AgentCollection::pending_named(const std::st
 	return pending_where([&p_name](const Agent& p_agent) { return p_agent.get_name() == p_name; });
 }
 
-bool cam::AgentCollection::remove_pending(const AgentId& p_id) {
+cam::AgentPointer cam::AgentCollection::take_pending(const AgentId& p_id) {
 	if (pending_count() == 0) {
-		return false;
+		return nullptr;
 	}
-	AgentPointer l_removed;  // destroyed outside the lock, once its last holder lets it go
+	AgentPointer l_removed;  // returned, destroyed outside the locks by its last holder
 	for (PendingShard& l_shard: m_pending_shards) {
 		const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
 		const auto l_it = std::find_if(l_shard.m_agents.begin(), l_shard.m_agents.end(),
@@ -138,11 +138,11 @@ bool cam::AgentCollection::remove_pending(const AgentId& p_id) {
 		}
 	}
 	if (!l_removed) {
-		return false;
+		return nullptr;
 	}
 	// A send that found it a moment ago skips it from now on
 	l_removed->m_state.fetch_or(Agent::DEAD, std::memory_order_relaxed);
-	return true;
+	return l_removed;
 }
 
 void cam::AgentCollection::set_simulation_running(const bool p_running) {
@@ -291,20 +291,23 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 	BufferChanges l_changes;
 	const std::unique_lock<std::shared_mutex> l_lock(m_agents_mutex);
 
-	// Remove dead agents in one pass that keeps the insertion order (an erase per agent would shift the rest each time)
-	size_t l_dead = 0;
-	for (auto& [l_id, l_agent]: m_agents) {
-		if (l_agent->is_dead()) {
-			++l_dead;
-			mark_removed(*l_agent);
-			remove_name(l_agent->get_name(), l_id);
-			if (p_track_changes) {
-				l_changes.m_removed.emplace_back(l_id, l_agent->get_name());
+	// Erase the dead agents in one pass that keeps the insertion order (an erase per agent would shift the rest each
+	// time), and only when one died: each dead agent of the collection is counted, so a turn without a death costs no
+	// pass. The predicate runs once per agent, in order: it decides and cleans up at once, even if another thread stops
+	// an agent meanwhile.
+	if (m_retired.load(std::memory_order_relaxed) != 0) {
+		erase_if(m_agents, [this, &l_changes, p_track_changes](const std::pair<AgentId, AgentPointer>& p_entry) {
+			Agent& l_agent = *p_entry.second;
+			if (!l_agent.is_dead()) {
+				return false;
 			}
-		}
-	}
-	if (l_dead != 0) {
-		erase_if(m_agents, [](const std::pair<AgentId, AgentPointer>& p_entry) { return p_entry.second->is_dead(); });
+			mark_removed(l_agent);
+			remove_name(l_agent.get_name(), p_entry.first);
+			if (p_track_changes) {
+				l_changes.m_removed.emplace_back(p_entry.first, l_agent.get_name());
+			}
+			return true;
+		});
 	}
 
 	insert_pending(l_changes, p_track_changes);

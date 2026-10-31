@@ -242,11 +242,11 @@ namespace cam {
 		[[nodiscard]] std::vector<AgentPointer> pending_named(const std::string& p_name) const;
 
 		/**
-		 * Remove at once an agent added and not inserted yet (any thread), as the immediate Remove of the C#
+		 * Take out at once an agent added and not inserted yet (any thread), as the immediate Remove of the C#
 		 * @param p_id The agent id
-		 * @return True if the agent was waiting for its insertion
+		 * @return The agent if it was waiting for its insertion, else nullptr: its last holder destroys it, outside the locks
 		 **/
-		bool remove_pending(const AgentId& p_id);
+		[[nodiscard]] AgentPointer take_pending(const AgentId& p_id);
 
 		/**
 		 * True while a start() or a continue_simulation() runs (removals are deferred to the next boundary)

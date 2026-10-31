@@ -126,6 +126,31 @@ namespace {
 		~Tracked() override { ++g_destroyed; }
 	};
 
+	// Stops itself at its p_actions-th action; counts its destruction.
+	struct LateQuitter final : cam::Agent {
+		LateQuitter(const std::string& p_name, const int p_actions) : Agent(p_name), m_actions(p_actions) {}
+		~LateQuitter() override { ++g_destroyed; }
+		void default_action() override {
+			if (++m_done == m_actions) {
+				stop();
+			}
+		}
+	private:
+		int m_actions;
+		int m_done = 0;
+	};
+
+	// Removes another agent from its destructor; counts its destruction.
+	struct Mourner final : cam::Agent {
+		Mourner(const std::string& p_name, const cam::AgentId p_friend) : Agent(p_name), m_friend(p_friend) {}
+		~Mourner() override {
+			get_environment()->remove(m_friend);
+			++g_destroyed;
+		}
+	private:
+		cam::AgentId m_friend;
+	};
+
 } // namespace
 
 TEST_SUITE("removal") {
@@ -196,6 +221,19 @@ TEST_SUITE("removal") {
 		CHECK(l_env.agents_count() == 1);
 	}
 
+	TEST_CASE("an agent removed by id before its insertion is destroyed after the locks are released") {
+		// Its destructor removes an inserted agent, which takes the exclusive lock: destroyed under the lock of the search,
+		// it would wait for itself
+		g_destroyed = 0;
+		cam::Environment l_env(1, Mode::Sequential);
+		const cam::AgentId l_friend = l_env.add<Plain>("friend");
+		l_env.start();  // the friend is inserted
+		const cam::AgentId l_mourner = l_env.add<Mourner>("mourner", l_friend);  // waits for its insertion
+		l_env.remove(l_mourner);
+		CHECK(g_destroyed == 1);
+		CHECK(l_env.agents_count() == 0);
+	}
+
 	TEST_CASE("removing one of two agents of the same name leaves the other reachable by that name") {
 		// Each twin in turn is the removed one, outside a turn and during a turn: whatever the order of the name index, the
 		// entry of the removed twin, and only it, leaves the index
@@ -236,6 +274,20 @@ TEST_SUITE("removal") {
 			l_env.start();
 			CHECK(l_env.agents_count() == 1);
 			CHECK(l_env.get_filtered_agents("i").size() == 1);  // only the killer
+		}
+	}
+
+	TEST_CASE("an agent that stops after quiet turns is destroyed at the next boundary, in every mode") {
+		// The boundaries of the turns without a death have nothing to erase; the one after the stop erases the agent
+		for (const auto l_mode: {Mode::Sequential, Mode::SequentialRandom, Mode::Parallel}) {
+			g_destroyed = 0;
+			cam::Environment l_env(6, l_mode);
+			l_env.add<Plain>("plain");
+			l_env.add<LateQuitter>("late", 3);
+			l_env.start();
+			CHECK(g_destroyed == 1);
+			CHECK(l_env.agents_count() == 1);
+			CHECK(l_env.get_agents_by_name("late").empty());
 		}
 	}
 
