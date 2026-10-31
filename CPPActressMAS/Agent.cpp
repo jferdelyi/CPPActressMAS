@@ -27,9 +27,8 @@ cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_name(std::move(p_name)),
 		m_environment(nullptr),
 		m_is_setup(false),
-		m_is_dead(false),
+		m_state(0),
 		m_in_transit(false),
-		m_is_inserted(false),
 		m_is_using_observables(p_using_observables),
 		m_observables(std::make_shared<Observables>()) {}
 
@@ -91,7 +90,7 @@ void cam::Agent::stop() {
 	if (m_environment) {
 		m_environment->retire(*this);
 	} else {
-		m_is_dead.store(true, std::memory_order_relaxed);  // stopped before being added
+		m_state.fetch_or(DEAD, std::memory_order_relaxed);  // stopped before being added
 	}
 }
 
@@ -225,7 +224,7 @@ cam::Agent::broadcast(const uint8_t* p_message, const size_t& p_length, const tr
 
 void cam::Agent::reset() {
 	m_is_setup = false;
-	m_is_dead.store(false, std::memory_order_relaxed);
+	m_state.fetch_and(static_cast<std::uint8_t>(~DEAD), std::memory_order_relaxed);
 }
 
 cam::transport::Result<void> cam::Agent::move(const std::string& p_environment_id, const transport::SendOptions& p_options) {

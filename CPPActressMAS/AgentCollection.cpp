@@ -141,7 +141,7 @@ bool cam::AgentCollection::remove_pending(const AgentId& p_id) {
 		return false;
 	}
 	// A send that found it a moment ago skips it from now on
-	l_removed->m_is_dead.store(true, std::memory_order_relaxed);
+	l_removed->m_state.fetch_or(Agent::DEAD, std::memory_order_relaxed);
 	return true;
 }
 
@@ -163,10 +163,7 @@ void cam::AgentCollection::insert(const AgentPointer& p_agent) {
 	const std::unique_lock<std::shared_mutex> l_lock(m_agents_mutex);
 	m_agents.insert(std::make_pair(p_agent->get_id(), p_agent));
 	m_agents_by_name.insert(std::make_pair(p_agent->get_name(), p_agent->get_id()));
-	p_agent->m_is_inserted.store(true, std::memory_order_relaxed);
-	if (p_agent->is_dead()) {
-		m_retired.fetch_add(1, std::memory_order_relaxed);
-	}
+	mark_inserted(*p_agent);
 }
 
 std::optional<cam::AgentId> cam::AgentCollection::random_agent() const {
@@ -218,10 +215,7 @@ void cam::AgentCollection::remove_locked(const AgentId& p_id) {
 	// Drop the (name, id) entry of the name index as well, otherwise a later send_by_name()
 	// dereferences a null pointer.
 	remove_name(l_it->second->get_name(), p_id);
-	if (l_it->second->is_dead()) {
-		m_retired.fetch_sub(1, std::memory_order_relaxed);
-	}
-	l_it->second->m_is_inserted.store(false, std::memory_order_relaxed);
+	mark_removed(*l_it->second);
 	m_agents.erase(l_it);
 }
 
@@ -232,6 +226,23 @@ void cam::AgentCollection::remove_name(const std::string& p_name, const AgentId&
 			m_agents_by_name.erase(l_name_it);
 			return;
 		}
+	}
+}
+
+void cam::AgentCollection::mark_inserted(Agent& p_agent) {
+	// Stopped before its insertion: counted now, the stop did not see it inserted
+	if (const std::uint8_t l_old = p_agent.m_state.fetch_or(Agent::INSERTED, std::memory_order_relaxed);
+		(l_old & Agent::DEAD) != 0 && (l_old & Agent::INSERTED) == 0) {
+		m_retired.fetch_add(1, std::memory_order_relaxed);
+	}
+}
+
+void cam::AgentCollection::mark_removed(Agent& p_agent) {
+	// A dead agent in the collection was counted, by its stop or by its insertion
+	constexpr auto l_keep = static_cast<std::uint8_t>(~Agent::INSERTED);
+	if (const std::uint8_t l_old = p_agent.m_state.fetch_and(l_keep, std::memory_order_relaxed);
+		(l_old & Agent::DEAD) != 0 && (l_old & Agent::INSERTED) != 0) {
+		m_retired.fetch_sub(1, std::memory_order_relaxed);
 	}
 }
 
@@ -285,7 +296,7 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 	for (auto& [l_id, l_agent]: m_agents) {
 		if (l_agent->is_dead()) {
 			++l_dead;
-			l_agent->m_is_inserted.store(false, std::memory_order_relaxed);
+			mark_removed(*l_agent);
 			remove_name(l_agent->get_name(), l_id);
 			if (p_track_changes) {
 				l_changes.m_removed.emplace_back(l_id, l_agent->get_name());
@@ -294,7 +305,6 @@ cam::AgentCollection::BufferChanges cam::AgentCollection::process_buffers(const 
 	}
 	if (l_dead != 0) {
 		erase_if(m_agents, [](const std::pair<AgentId, AgentPointer>& p_entry) { return p_entry.second->is_dead(); });
-		m_retired.fetch_sub(l_dead, std::memory_order_relaxed);
 	}
 
 	insert_pending(l_changes, p_track_changes);
@@ -317,10 +327,7 @@ void cam::AgentCollection::insert_pending(BufferChanges& p_changes, const bool p
 	for (const AgentPointer& l_agent: l_added) {
 		m_agents.insert(std::make_pair(l_agent->get_id(), l_agent));
 		m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
-		l_agent->m_is_inserted.store(true, std::memory_order_relaxed);
-		if (l_agent->is_dead()) {
-			m_retired.fetch_add(1, std::memory_order_relaxed);  // stopped before its insertion: never counted
-		}
+		mark_inserted(*l_agent);
 		if (p_track_changes) {
 			p_changes.m_added.emplace_back(l_agent->get_id(), l_agent->get_name());
 		}

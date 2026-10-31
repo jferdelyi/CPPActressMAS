@@ -111,7 +111,8 @@ void cam::Environment::remove(const AgentPointer& p_agent) {
 	const AgentId l_id = p_agent->get_id();
 	// An agent added and not inserted yet leaves at once, as the immediate Remove of the C#; an inserted agent has left the
 	// table of the added agents before it was marked inserted, so the table is searched for the others only
-	if (!p_agent->m_is_inserted.load(std::memory_order_relaxed) && m_agent_collection.remove_pending(l_id)) {
+	const bool l_inserted = (p_agent->m_state.load(std::memory_order_relaxed) & Agent::INSERTED) != 0;
+	if (!l_inserted && m_agent_collection.remove_pending(l_id)) {
 		return;
 	}
 	// During a simulation the collections change at turn boundaries only: the agent is marked, the boundary erases and
@@ -127,7 +128,8 @@ void cam::Environment::remove(const AgentPointer& p_agent) {
 
 void cam::Environment::retire(Agent& p_agent) {
 	// Counted once, and only while the agent is in the collection (an agent not yet inserted is counted at insertion)
-	if (!p_agent.m_is_dead.exchange(true, std::memory_order_relaxed) && p_agent.m_is_inserted.load(std::memory_order_relaxed)) {
+	if (const std::uint8_t l_old = p_agent.m_state.fetch_or(Agent::DEAD, std::memory_order_relaxed);
+		(l_old & Agent::DEAD) == 0 && (l_old & Agent::INSERTED) != 0) {
 		m_agent_collection.m_retired.fetch_add(1, std::memory_order_relaxed);
 	}
 }

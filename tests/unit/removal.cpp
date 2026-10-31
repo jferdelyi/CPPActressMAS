@@ -24,7 +24,10 @@
 #include <doctest/doctest.h>
 
 #include <atomic>
+#include <cstddef>
+#include <memory>
 #include <string>
+#include <thread>
 
 #include <Environment.h>
 
@@ -233,6 +236,36 @@ TEST_SUITE("removal") {
 			l_env.start();
 			CHECK(l_env.agents_count() == 1);
 			CHECK(l_env.get_filtered_agents("i").size() == 1);  // only the killer
+		}
+	}
+
+	TEST_CASE("an agent stopped from another thread while the boundary inserts it is counted once") {
+		// This thread adds agents while the environment runs and stops each one at once, without any lock: the stop may
+		// meet the insertion of the agent at a turn boundary. Each stopped agent must leave the count once, never twice nor
+		// never.
+		for (const auto l_mode: {Mode::Sequential, Mode::Parallel}) {
+			INFO((l_mode == Mode::Sequential ? "Sequential" : "Parallel"));
+			cam::Environment l_env(1000, l_mode);
+			l_env.add<Plain>("plain");
+			std::atomic<bool> l_done{false};
+			std::thread l_runner([&l_env, &l_done] {
+				l_env.start();
+				l_done = true;
+			});
+			std::size_t l_added = 0;
+			bool l_in_range = true;
+			while (!l_done && l_added < 20000) {
+				const auto l_agent = std::make_shared<Plain>("added");
+				l_env.add(l_agent);
+				l_agent->stop();
+				++l_added;
+				l_in_range = l_in_range && l_env.agents_count() <= l_added + 1;
+			}
+			l_runner.join();
+			CHECK(l_in_range);
+			l_env.continue_simulation(2);  // the last ones are inserted, then erased
+			CHECK(l_env.agents_count() == 1);
+			CHECK(l_env.get_filtered_agents("added").empty());
 		}
 	}
 }

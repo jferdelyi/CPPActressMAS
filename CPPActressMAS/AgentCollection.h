@@ -152,6 +152,18 @@ namespace cam {
 		void remove_name(const std::string& p_name, const AgentId& p_id);
 
 		/**
+		 * Mark an agent inserted in the collection; counted retired if it was stopped before.
+		 * @param p_agent The agent
+		 **/
+		void mark_inserted(Agent& p_agent);
+
+		/**
+		 * Mark an agent out of the collection; no longer counted retired if it was.
+		 * @param p_agent The agent
+		 **/
+		void mark_removed(Agent& p_agent);
+
+		/**
 		 * Fill a vector with a random permutation of 0 to p_number - 1 (Fisher-Yates shuffle), reusing its capacity.
 		 * @param p_number Number of values
 		 * @param p_numbers Receives the permutation

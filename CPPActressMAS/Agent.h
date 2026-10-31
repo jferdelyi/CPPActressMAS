@@ -21,6 +21,7 @@
 #include <atomic>
 #include <cassert>
 #include <concepts>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -85,20 +86,22 @@ namespace cam {
 		bool m_is_setup;
 
 		/**
-		 * True once stopped or removed: written and read by every thread of a Parallel turn.
+		 * Bits of m_state: stopped or removed; in the collection of its environment.
 		 **/
-		std::atomic<bool> m_is_dead;
+		static constexpr std::uint8_t DEAD = 1;
+		static constexpr std::uint8_t INSERTED = 2;
+
+		/**
+		 * DEAD and INSERTED, changed by one atomic operation each (any thread may stop the agent while the simulation
+		 * thread inserts it): of a stop and an insertion that race, exactly one sees the other, so the collection counts a
+		 * stopped agent once, and only while it holds it.
+		 **/
+		std::atomic<std::uint8_t> m_state;
 
 		/**
 		 * True while a migration of this agent is in progress: the agent does not run, its messages wait.
 		 **/
 		bool m_in_transit;
-
-		/**
-		 * True while the agent is in the collection of its environment (written by the simulation thread, read by a
-		 * removal from any thread): a stop is counted by the collection only then.
-		 **/
-		std::atomic<bool> m_is_inserted;
 
 		/**
 		 * Messages arrived.
@@ -164,7 +167,7 @@ namespace cam {
 		 * True if is dead.
 		 * @return True if is dead
 		 **/
-		[[nodiscard]] bool is_dead() const { return m_is_dead.load(std::memory_order_relaxed); }
+		[[nodiscard]] bool is_dead() const { return (m_state.load(std::memory_order_relaxed) & DEAD) != 0; }
 
 		/**
 		 * True while a migration of this agent is in progress.
