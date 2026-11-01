@@ -522,25 +522,25 @@ namespace cam {
 		[[nodiscard]] const std::string& get_id() const { return m_id; }
 
 		/**
-		 * Get data about the environement.
-		 * @return data about the environement
+		 * Get the data of the environment, shared with its agents.
+		 * @return The data
 		 **/
 		[[nodiscard]] json get_global_data() const {
 			return m_environment_data;
 		}
 
 		/**
-		 * Set data about the environement.
-		 * @param p_key key of the data
-		 * @param p_value value of the data
+		 * Set a data of the environment.
+		 * @param p_key The key
+		 * @param p_value The value
 		 **/
 		void set_global_data(const std::string& p_key, const json& p_value) {
 			m_environment_data[p_key] = p_value;
 		}
 
 		/**
-		 * Remove data about the environement.
-		 * @param p_key key of the data
+		 * Remove a data of the environment.
+		 * @param p_key The key
 		 **/
 		void remove_global_data(const std::string& p_key) {
 			m_environment_data.erase(p_key);
