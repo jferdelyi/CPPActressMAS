@@ -27,13 +27,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include "util/MPSCQueue.hpp"
 #include "Message.h"
 #include "transport/Types.h"
+#include "util/MPSCQueue.hpp"
 
 /**
  * CPPActressMAS
- */
+ **/
 namespace cam {
 	class Environment;
 
@@ -85,9 +85,13 @@ namespace cam {
 		bool m_is_setup;
 
 		/**
-		 * Bits of m_state: stopped or removed; in the collection of its environment.
+		 * Bit of m_state: the agent is stopped or removed.
 		 **/
 		static constexpr std::uint8_t DEAD = 1;
+
+		/**
+		 * Bit of m_state: the agent is in the collection of its environment.
+		 **/
 		static constexpr std::uint8_t INSERTED = 2;
 
 		/**
@@ -123,7 +127,7 @@ namespace cam {
 		/**
 		 * Create a new agent.
 		 * @param p_name Name of the new agent
-		 * @param p_using_observables If true, this agent can see
+		 * @param p_using_observables If true, this agent perceives the observable properties of the other agents (see())
 		 **/
 		explicit Agent(std::string p_name, bool p_using_observables = false);
 
@@ -157,8 +161,8 @@ namespace cam {
 		[[nodiscard]] ObservablesPointer get_observables() const { return m_observables; }
 
 		/**
-		 * True is must run setup.
-		 * @return True is must run setup
+		 * True once setup() has run.
+		 * @return True if the setup is done
 		 **/
 		[[nodiscard]] bool is_setup() const { return m_is_setup; }
 
@@ -198,8 +202,7 @@ namespace cam {
 
 		/**
 		 * Stops the execution of the agent and removes it from the environment.
-		 * Use the Stop method instead of Environment.
-		 * Remove when the decision to be stopped belongs to the agent itself.
+		 * Use the Stop method instead of Environment.Remove when the decision to be stopped belongs to the agent itself.
 		 * The agent is no longer counted, found by name nor sent to; it finishes its current turn and is
 		 * destroyed at the turn boundary. Stopping twice does nothing.
 		 **/
@@ -307,10 +310,28 @@ namespace cam {
 		transport::Result<void> broadcast(const uint8_t* p_message = nullptr, const size_t& p_length = 0,
 										  const transport::SendOptions& p_options = {}) const;
 
+		/**
+		 * Send a JSON value to all agents, as the bytes overload does.
+		 * @param p_message The value
+		 * @param p_options Send options
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
 		transport::Result<void> broadcast(const json& p_message, const transport::SendOptions& p_options = {}) const;
 
+		/**
+		 * Send a text to all agents, as the bytes overload does.
+		 * @param p_text The text
+		 * @param p_options Send options
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
 		transport::Result<void> broadcast(std::string p_text, const transport::SendOptions& p_options = {}) const;
 
+		/**
+		 * Send a text to all agents, as the bytes overload does.
+		 * @param p_text The text
+		 * @param p_options Send options
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
 		transport::Result<void> broadcast(const char* p_text, const transport::SendOptions& p_options = {}) const;
 
 		template<std::same_as<Text> T>
@@ -344,35 +365,35 @@ namespace cam {
 		virtual void load_state(const json& p_state) { (void) p_state; }
 
 		/**
-		 * Call to reset agent i.e. set setup and dead to false
+		 * Call to reset agent i.e. set setup and dead to false.
 		 **/
 		void reset();
 
 		/**
-		 * The number of agents in the environment
+		 * The number of agents in the environment.
 		 **/
 		[[nodiscard]] size_t agents_count() const;
 
 		/**
-		 * Get all agents by name
-		 * @param p_name the name of agent
-		 * @param p_first_only if true the first found
-		 * @return All agents by name
+		 * Get the agents of a name.
+		 * @param p_name The name
+		 * @param p_first_only If true, the first one found only
+		 * @return Their ids
 		 **/
 		[[nodiscard]] std::vector<AgentId>
 		get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
 
 		/**
-		 * Get first agent by name
-		 * @param p_name the name of agent
-		 * @return All agents by name
+		 * Get the first agent of a name.
+		 * @param p_name The name
+		 * @return Its id, or nothing
 		 **/
 		[[nodiscard]] std::optional<AgentId> get_first_agent_by_name(const std::string& p_name) const;
 
 		/**
-		 * Get agent name by id
-		 * @param p_id the name of agent
-		 * @return Agents name
+		 * Get the name of an agent.
+		 * @param p_id The agent id
+		 * @return Its name, or nothing
 		 **/
 		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
@@ -386,7 +407,7 @@ namespace cam {
 		[[nodiscard]] std::string format(const MessagePointer& p_message) const;
 
 		/**
-		 * Get all agents by fragment name
+		 * Get all agents by fragment name.
 		 * @param p_fragment_name the fragment name of agent
 		 * @param p_first_only if true the first found
 		 * @return All agents by fragment name
@@ -426,14 +447,14 @@ namespace cam {
 		// Delete copy constructor
 		Agent(const Agent&) = delete;
 
-		Agent& operator=(Agent&) = delete;
+		Agent& operator=(const Agent&) = delete;
 
 	protected:
 
 		/**
-		 * Get environment
+		 * Get environment.
 		 * @return The environment
-		 */
+		 **/
 		Environment* get_environment() const {
 			assert(m_environment);
 			return m_environment;

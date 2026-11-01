@@ -57,6 +57,9 @@ namespace cam {
 		 * A free block, linked to the next one.
 		 **/
 		struct Block {
+			/**
+			 * The next free block, null for the last one.
+			 **/
 			Block* m_next;
 		};
 
@@ -79,6 +82,9 @@ namespace cam {
 		 * Frees the blocks of a thread when it ends.
 		 **/
 		struct Owner {
+			/**
+			 * Free the blocks of the thread when it ends.
+			 **/
 			~Owner() {
 				while (Block* l_block = s_free) {
 					s_free = l_block->m_next;

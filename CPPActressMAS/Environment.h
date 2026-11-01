@@ -32,21 +32,21 @@
 
 using json = nlohmann::json;
 
+#include "Agent.h"
 #include "AgentCollection.h"
 #include "AgentTypes.h"
 #include "Message.h"
-#include "Agent.h"
 #include "transport/Endpoint.h"
 #include "util/RecyclingAllocator.hpp"
 
 /**
  * CPPActressMAS
- */
+ **/
 namespace cam {
 
 	/**
-	 * Environments execution modes
-	 */
+	 * Environments execution modes.
+	 **/
 	enum class EnvironmentMasMode {
 		Parallel,
 		Sequential,
@@ -75,13 +75,44 @@ namespace cam {
 	 * of the catalogue of the process when absent).
 	 **/
 	struct EnvironmentConfig {
+		/**
+		 * Maximum number of turns, 0 for no limit.
+		 **/
 		int m_turns = 0;
+
+		/**
+		 * Execution mode of the turns.
+		 **/
 		EnvironmentMasMode m_mode = EnvironmentMasMode::Parallel;
+
+		/**
+		 * Delay after each turn, in milliseconds.
+		 **/
 		int m_delay_after_turn = 0;
+
+		/**
+		 * Seed of the random order, drawn from std::random_device when absent.
+		 **/
 		std::optional<unsigned int> m_seed{};
+
+		/**
+		 * Generator of the random order and of random_agent.
+		 **/
 		RandomEngine m_random = RandomEngine::Mt19937;
+
+		/**
+		 * Transport URL: the environment connects through it at its first start() (offline when empty).
+		 **/
 		std::string m_url{};
+
+		/**
+		 * Name and limits of that connection.
+		 **/
 		transport::EndpointConfig m_endpoint{};
+
+		/**
+		 * Wire names of the agent types that may arrive by migration (every type of the catalogue when absent).
+		 **/
 		std::optional<std::vector<std::string>> m_accepted_agent_types{};
 	};
 
@@ -108,8 +139,19 @@ namespace cam {
 		 * A move asked by an agent during a turn, handled at the end of the turn.
 		 **/
 		struct MoveRequest {
+			/**
+			 * Agent that moves.
+			 **/
 			AgentId m_agent_id;
+
+			/**
+			 * Environment it moves to.
+			 **/
 			std::string m_target;
+
+			/**
+			 * Priority of the move, copied to its offer (reserved, 0 today).
+			 **/
 			std::uint32_t m_priority = 0;
 		};
 
@@ -117,8 +159,19 @@ namespace cam {
 		 * A migration started here, waiting for the destination.
 		 **/
 		struct Transit {
+			/**
+			 * Agent on the move.
+			 **/
 			AgentId m_agent_id;
+
+			/**
+			 * Environment it moves to.
+			 **/
 			std::string m_target;
+
+			/**
+			 * When the move fails without an answer (EndpointConfig::m_migration_timeout).
+			 **/
 			std::chrono::steady_clock::time_point m_deadline;
 			std::vector<MessagePointer> m_carried;  ///< messages sent with the offer, given back if the move fails
 		};
@@ -127,8 +180,19 @@ namespace cam {
 		 * An agent received here, waiting for the confirmation of its origin.
 		 **/
 		struct PendingArrival {
+			/**
+			 * The agent received, not inserted yet.
+			 **/
 			AgentPointer m_agent;
+
+			/**
+			 * Environment it comes from.
+			 **/
 			std::string m_origin;
+
+			/**
+			 * When its migration fails without the confirmation of its origin (EndpointConfig::m_accept_hold_timeout).
+			 **/
 			std::chrono::steady_clock::time_point m_deadline;
 		};
 
@@ -136,7 +200,14 @@ namespace cam {
 		 * An agent that left: messages still arriving for it are forwarded for a few turns.
 		 **/
 		struct MovedAgent {
+			/**
+			 * Its new environment.
+			 **/
 			std::string m_host;
+
+			/**
+			 * Turn boundary when it left.
+			 **/
 			std::uint64_t m_boundary;
 		};
 
@@ -146,7 +217,7 @@ namespace cam {
 		std::string m_id;
 
 		/**
-		 * The maximum number of turns of the simulation..
+		 * The maximum number of turns of the simulation.
 		 **/
 		int m_no_turns;
 
@@ -156,14 +227,14 @@ namespace cam {
 		int m_delay_after_turn;
 
 		/**
-		 * The agents in the environment
+		 * The agents in the environment.
 		 **/
 		AgentCollection m_agent_collection;
 
 		/**
-		 * Information that agent can get about the environment
+		 * Information that agent can get about the environment.
 		 **/
-		json m_environement_data;
+		json m_environment_data;
 
 		/**
 		 * Side of this environment on its transport; null while offline.
@@ -171,9 +242,13 @@ namespace cam {
 		std::unique_ptr<transport::Endpoint> m_endpoint;
 
 		/**
-		 * Transport URL of this environment (empty: none) and the factory that opens it (empty: default).
+		 * Transport URL of this environment (empty: none).
 		 **/
 		std::string m_transport_url;
+
+		/**
+		 * Factory that opens the transport URL (empty: the default one).
+		 **/
 		TransportFactory m_transport_factory;
 
 		/**
@@ -181,6 +256,10 @@ namespace cam {
 		 * explicit disconnect().
 		 **/
 		bool m_connect_on_start = false;
+
+		/**
+		 * Endpoint configuration of that connection.
+		 **/
 		transport::EndpointConfig m_endpoint_config;
 
 		/**
@@ -189,15 +268,23 @@ namespace cam {
 		std::optional<std::vector<std::string>> m_accepted_agent_types;
 
 		/**
-		 * Moves asked during the turn (any thread), handled at the end of the turn.
+		 * Guards m_move_requests.
 		 **/
 		std::mutex m_move_mutex;
+
+		/**
+		 * Moves asked during the turn (any thread), handled at the end of the turn.
+		 **/
 		std::vector<MoveRequest> m_move_requests;
 
 		/**
-		 * Migrations in progress, by transfer id: started here (m_transits) or received here (m_arrivals).
+		 * Migrations started here and in progress, by transfer id.
 		 **/
 		std::unordered_map<std::string, Transit> m_transits;
+
+		/**
+		 * Migrations received here and waiting for the confirmation of their origin, by transfer id.
+		 **/
 		std::unordered_map<std::string, PendingArrival> m_arrivals;
 
 		/**
@@ -377,35 +464,35 @@ namespace cam {
 		void start();
 
 		/**
-		 * The number of agents in the environment, the stopped or removed ones excluded
+		 * The number of agents in the environment, the stopped or removed ones excluded.
 		 **/
 		[[nodiscard]] size_t agents_count() const;
 
 		/**
-		 * Get all agents by name (the stopped or removed ones excluded)
-		 * @param p_name the name of agent
-		 * @param p_first_only if true the first found
-		 * @return All agents by name
+		 * Get the agents of a name, the stopped or removed ones excluded.
+		 * @param p_name The name
+		 * @param p_first_only If true, the first one found only
+		 * @return Their ids
 		 **/
 		[[nodiscard]] std::vector<AgentId>
 		get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
 
 		/**
-		 * Get first agent by name
-		 * @param p_name the name of agent
-		 * @return All agents by name
+		 * Get the first agent of a name.
+		 * @param p_name The name
+		 * @return Its id, or nothing
 		 **/
 		[[nodiscard]] std::optional<AgentId> get_first_agent_by_name(const std::string& p_name) const;
 
 		/**
-		 * Get agent name by id
-		 * @param p_id the name of agent
-		 * @return Agents name
+		 * Get the name of an agent.
+		 * @param p_id The agent id
+		 * @return Its name, or nothing
 		 **/
 		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 		/**
-		 * Get all agents by fragment name (the stopped or removed ones excluded)
+		 * Get all agents by fragment name (the stopped or removed ones excluded).
 		 * @param p_fragment_name the fragment name of agent
 		 * @param p_first_only if true the first found
 		 * @return All agents by fragment name
@@ -435,28 +522,28 @@ namespace cam {
 		[[nodiscard]] const std::string& get_id() const { return m_id; }
 
 		/**
-		 * Get data about the environement
+		 * Get data about the environement.
 		 * @return data about the environement
 		 **/
 		[[nodiscard]] json get_global_data() const {
-			return m_environement_data;
+			return m_environment_data;
 		}
 
 		/**
-		 * Set data about the environement
+		 * Set data about the environement.
 		 * @param p_key key of the data
 		 * @param p_value value of the data
 		 **/
 		void set_global_data(const std::string& p_key, const json& p_value) {
-			m_environement_data[p_key] = p_value;
+			m_environment_data[p_key] = p_value;
 		}
 
 		/**
-		 * Remove data about the environement
+		 * Remove data about the environement.
 		 * @param p_key key of the data
 		 **/
 		void remove_global_data(const std::string& p_key) {
-			m_environement_data.erase(p_key);
+			m_environment_data.erase(p_key);
 		}
 
 		//###############################################################
@@ -579,7 +666,7 @@ namespace cam {
 		// Delete copy constructor
 		Environment(const Environment&) = delete;
 
-		Environment& operator=(Environment&) = delete;
+		Environment& operator=(const Environment&) = delete;
 
 	protected:
 
@@ -619,26 +706,26 @@ namespace cam {
 		/**
 		 * Handler called when the connection of the transport changes (connected, lost, recovered).
 		 * @param p_event The event
-		 */
+		 **/
 		virtual void on_transport_event(transport::TransportEvent) {}
 
 		/**
 		 * Handler called when another environment appears on the transport.
 		 * @param p_environment The environment
-		 */
+		 **/
 		virtual void on_environment_joined(const transport::EnvironmentInfo&) {}
 
 		/**
 		 * Handler called when another environment leaves the transport, or when its node dies.
 		 * @param p_environment The environment
-		 */
+		 **/
 		virtual void on_environment_left(const transport::EnvironmentInfo&) {}
 
 		/**
 		 * Handler called when an envelope could not be published at the end of a turn, or when a
 		 * migration started here failed (refused, timed out: the agent resumed here).
 		 * @param p_error The error
-		 */
+		 **/
 		virtual void on_delivery_failure(const transport::Error&) {}
 
 	private:
@@ -678,16 +765,29 @@ namespace cam {
 		void apply_incoming(transport::Envelope&& p_envelope);
 
 		/**
-		 * Sends a message of an agent by id (see the public send_content): the message keeps the name of its sender.
+		 * Send a message of an agent by id (see the public send_content): the message keeps the name of its sender.
+		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
+		 * @param p_receiver_id Id of the receiver
+		 * @param p_content The content
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
 		transport::Result<void> send_content(const AgentId& p_sender_id, const std::string& p_sender_name,
 											 const AgentId& p_receiver_id, MessageContent p_content,
 											 const transport::SendOptions& p_options) const;
 
 		/**
-		 * Sends a message of an agent by name (see the public send_content_by_name): the message keeps the name of its sender.
+		 * Send a message of an agent by name (see the public send_content_by_name): the message keeps the name of its
+		 * sender.
+		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
+		 * @param p_receiver_name Name, or fragment of name, of the receivers
+		 * @param p_content The content
+		 * @param p_is_fragment If true, every agent whose name contains p_receiver_name
+		 * @param p_first_only If true, the first matching agent only
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
 		transport::Result<void> send_content_by_name(const AgentId& p_sender_id, const std::string& p_sender_name,
 													 const std::string& p_receiver_name, MessageContent p_content, bool p_is_fragment,
@@ -695,7 +795,11 @@ namespace cam {
 
 		/**
 		 * Broadcast a message of an agent (see the public broadcast_content): the messages keep the name of their sender.
+		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
+		 * @param p_content The content
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
 		 **/
 		transport::Result<void> broadcast_content(const AgentId& p_sender_id, const std::string& p_sender_name,
 												  MessageContent p_content, const transport::SendOptions& p_options) const;
@@ -727,7 +831,9 @@ namespace cam {
 
 		/**
 		 * Deliver a message to a local agent by id; nothing leaves the environment.
+		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
+		 * @param p_receiver_id Id of the receiver
 		 * @param p_content The content, moved into the message
 		 * @param p_sender_environment Origin environment of a message received through the transport
 		 * @return True if the agent exists here
@@ -737,8 +843,13 @@ namespace cam {
 
 		/**
 		 * Deliver a message to the local agents matching a name or a fragment.
+		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
+		 * @param p_receiver_name Name, or fragment of name, of the receivers
 		 * @param p_content The content, copied for every receiver but the last, which takes it
+		 * @param p_is_fragment If true, every agent whose name contains p_receiver_name
+		 * @param p_first_only If true, the first matching agent only
+		 * @param p_sender_environment Origin environment of a message received through the transport
 		 * @return True if at least one agent received it
 		 **/
 		bool deliver_by_name(const AgentId& p_sender_id, const std::string& p_sender_name,
@@ -747,16 +858,22 @@ namespace cam {
 
 		/**
 		 * Deliver a message to every local agent but the sender.
+		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
 		 * @param p_content The content, copied for every receiver but the last, which takes it
+		 * @param p_sender_environment Origin environment of a message received through the transport
 		 **/
 		void deliver_broadcast(const AgentId& p_sender_id, const std::string& p_sender_name, MessageContent p_content,
 							   const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Build a message for a local queue.
+		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
+		 * @param p_receiver_id Id of the receiver
 		 * @param p_content The content, moved into the message (a reference: one move less per message)
+		 * @param p_sender_environment Origin environment of a message received through the transport
+		 * @return The message
 		 **/
 		static MessagePointer make_message(const AgentId& p_sender_id, const std::string& p_sender_name,
 										   const AgentId& p_receiver_id, MessageContent&& p_content, const std::string& p_sender_environment);
@@ -767,6 +884,10 @@ namespace cam {
 
 		/**
 		 * Called by Agent::move from the agent's thread: checks, then queues the move for the end of the turn.
+		 * @param p_agent The agent that moves
+		 * @param p_environment_id The environment it moves to
+		 * @param p_options Send options of the offer
+		 * @return Success, or the reason the move is refused
 		 **/
 		transport::Result<void> request_move(const Agent& p_agent, const std::string& p_environment_id,
 											 const transport::SendOptions& p_options);
@@ -784,21 +905,41 @@ namespace cam {
 
 		/**
 		 * Queue a control envelope (accept, reject, commit, abort) about a transfer.
+		 * @param p_kind The kind of control
+		 * @param p_environment_id The environment it goes to
+		 * @param p_transfer_id The transfer
+		 * @param p_agent_id The agent on the move
+		 * @param p_accepted True if the agent is accepted
+		 * @param p_reason Why it is refused or abandoned, if it is
 		 **/
 		void send_control(transport::EnvelopeKind p_kind, const std::string& p_environment_id, const std::string& p_transfer_id,
 						  const AgentId& p_agent_id, bool p_accepted, const std::string& p_reason);
 
 		/**
 		 * End of a transit without success: the agent runs here again with all its messages.
+		 * @param p_transit The transit
+		 * @param p_error Why it failed, reported to on_delivery_failure()
 		 **/
 		void restore_agent(const Transit& p_transit, const transport::Error& p_error);
 
 		/**
 		 * Forward to the new host of an agent the messages it received here while leaving.
+		 * @param p_agent_id The agent
+		 * @param p_host Its new environment
+		 * @param p_messages The messages
 		 **/
 		void forward_messages(const AgentId& p_agent_id, const std::string& p_host, const std::vector<MessagePointer>& p_messages);
 
+		/**
+		 * Apply an agent offer: rebuild the agent and accept it, held until its origin commits the move, or refuse it.
+		 * @param p_envelope The offer
+		 **/
 		void apply_agent_offer(const transport::Envelope& p_envelope);
+
+		/**
+		 * Apply an answer or a confirmation of a migration (accept, reject, commit, abort).
+		 * @param p_envelope The control
+		 **/
 		void apply_agent_control(const transport::Envelope& p_envelope);
 
 		/**
@@ -809,6 +950,9 @@ namespace cam {
 
 		/**
 		 * Queue a directory event about a local agent for the end of the turn.
+		 * @param p_event What happened to the agent
+		 * @param p_agent_id The agent
+		 * @param p_agent_name Its name
 		 **/
 		void announce_agent(transport::DirectoryEventKind p_event, const AgentId& p_agent_id, const std::string& p_agent_name);
 
@@ -819,6 +963,18 @@ namespace cam {
 
 		/**
 		 * Queue a message envelope carrying already encoded bytes.
+		 * @param p_address The destination
+		 * @param p_target_kind Kind of target
+		 * @param p_target_id Id of the target agent (TargetKind::Id)
+		 * @param p_target_name Name or fragment of the targets (TargetKind::Name, Fragment)
+		 * @param p_first_only If true, the first matching agent only
+		 * @param p_sender_id Id of the sending agent
+		 * @param p_sender_name Name of the sender; empty when unknown
+		 * @param p_content The encoded content
+		 * @param p_content_encoding Its encoding
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @param p_origin_environment Environment whose agent emitted the message, when this one forwards it
+		 * @return Success, OutboxFull or NotAttached
 		 **/
 		transport::Result<void> enqueue_message(const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
@@ -828,6 +984,17 @@ namespace cam {
 
 		/**
 		 * Encode a content for the wire and queue its envelope.
+		 * @param p_address The destination
+		 * @param p_target_kind Kind of target
+		 * @param p_target_id Id of the target agent (TargetKind::Id)
+		 * @param p_target_name Name or fragment of the targets (TargetKind::Name, Fragment)
+		 * @param p_first_only If true, the first matching agent only
+		 * @param p_sender_id Id of the sending agent
+		 * @param p_sender_name Name of the sender; empty when unknown
+		 * @param p_content The content
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @param p_origin_environment Environment whose agent emitted the message, when this one forwards it
+		 * @return Success, a validation error of the content, OutboxFull or NotAttached
 		 **/
 		transport::Result<void> enqueue_content(const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,

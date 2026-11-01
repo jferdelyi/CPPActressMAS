@@ -29,7 +29,7 @@
 
 /**
  * CPPActressMAS
- */
+ **/
 namespace cam {
 
 	/**
@@ -45,62 +45,62 @@ namespace cam {
 	 * Thread-safe; one catalogue per process (a shared library holds it).
 	 **/
 	class AgentTypes final {
-		public:
-			/**
-			 * Factory of an agent from its name.
-			 **/
-			using Factory = std::function<AgentPointer(const std::string&)>;
+	public:
+		/**
+		 * Factory of an agent from its name.
+		 **/
+		using Factory = std::function<AgentPointer(const std::string&)>;
 
-			/**
-			 * Put a type in the catalogue under a name. An explicit name replaces an automatic one; two explicit names
-			 * for one type, or one name for two types, are refused.
-			 * @param p_type The type
-			 * @param p_name The wire name
-			 * @param p_factory The factory
-			 * @param p_explicit True for a name given by CAM_AGENT_TYPE or register_agent_type
-			 * @throw std::logic_error If the name or the type is already taken otherwise
-			 **/
-			static void add(std::type_index p_type, const std::string& p_name, Factory p_factory, bool p_explicit);
+		/**
+		 * Put a type in the catalogue under a name. An explicit name replaces an automatic one; two explicit names
+		 * for one type, or one name for two types, are refused.
+		 * @param p_type The type
+		 * @param p_name The wire name
+		 * @param p_factory The factory
+		 * @param p_explicit True for a name given by CAM_AGENT_TYPE or register_agent_type
+		 * @throw std::logic_error If the name or the type is already taken otherwise
+		 **/
+		static void add(std::type_index p_type, const std::string& p_name, Factory p_factory, bool p_explicit);
 
-			/**
-			 * Put a type in the catalogue under its automatic name: its qualified C++ name, without spaces; nothing for a
-			 * type without a stable name (anonymous namespace, local class, template).
-			 * @param p_type The type
-			 * @param p_factory The factory
-			 **/
-			static void add_automatic(const std::type_info& p_type, Factory p_factory);
+		/**
+		 * Put a type in the catalogue under its automatic name: its qualified C++ name, without spaces; nothing for a
+		 * type without a stable name (anonymous namespace, local class, template).
+		 * @param p_type The type
+		 * @param p_factory The factory
+		 **/
+		static void add_automatic(const std::type_info& p_type, Factory p_factory);
 
-			/**
-			 * Wire name of a type.
-			 * @param p_type The type
-			 * @return The name, or nothing if the type is not in the catalogue
-			 **/
-			[[nodiscard]] static std::optional<std::string> name_of(std::type_index p_type);
+		/**
+		 * Wire name of a type.
+		 * @param p_type The type
+		 * @return The name, or nothing if the type is not in the catalogue
+		 **/
+		[[nodiscard]] static std::optional<std::string> name_of(std::type_index p_type);
 
-			/**
-			 * Factory of a wire name.
-			 * @param p_name The wire name
-			 * @return The factory, empty if the name is not in the catalogue
-			 **/
-			[[nodiscard]] static Factory factory_of(const std::string& p_name);
+		/**
+		 * Factory of a wire name.
+		 * @param p_name The wire name
+		 * @return The factory, empty if the name is not in the catalogue
+		 **/
+		[[nodiscard]] static Factory factory_of(const std::string& p_name);
 
-			/**
-			 * Put T in the catalogue, under the name of CAM_AGENT_TYPE(T) or under its automatic name, if it can be
-			 * built from a name (a type that cannot is never moved).
-			 * @return True, so that it can initialize a static
-			 **/
-			template<ConceptAgent T>
-			static bool catalogue() {
-				if constexpr (std::is_constructible_v<T, const std::string&>) {
-					Factory l_factory = [](const std::string& p_name) -> AgentPointer { return std::make_shared<T>(p_name); };
-					if constexpr (requires { AgentTypeName<T>::VALUE; }) {
-						add(std::type_index(typeid(T)), AgentTypeName<T>::VALUE, std::move(l_factory), true);
-					} else {
-						add_automatic(typeid(T), std::move(l_factory));
-					}
+		/**
+		 * Put T in the catalogue, under the name of CAM_AGENT_TYPE(T) or under its automatic name, if it can be
+		 * built from a name (a type that cannot is never moved).
+		 * @return True, so that it can initialize a static
+		 **/
+		template<ConceptAgent T>
+		static bool catalogue() {
+			if constexpr (std::is_constructible_v<T, const std::string&>) {
+				Factory l_factory = [](const std::string& p_name) -> AgentPointer { return std::make_shared<T>(p_name); };
+				if constexpr (requires { AgentTypeName<T>::VALUE; }) {
+					add(std::type_index(typeid(T)), AgentTypeName<T>::VALUE, std::move(l_factory), true);
+				} else {
+					add_automatic(typeid(T), std::move(l_factory));
 				}
-				return true;
 			}
+			return true;
+		}
 	};
 
 } // namespace cam

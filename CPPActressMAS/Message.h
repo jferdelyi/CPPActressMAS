@@ -35,7 +35,7 @@ using json = nlohmann::json;
 
 /**
  * CPPActressMAS
- */
+ **/
 namespace cam {
 
 	/**
@@ -49,7 +49,7 @@ namespace cam {
 
 	/**
 	 * What a message carries.
-	 */
+	 **/
 	enum class ContentKind {
 		None, Text, Json, Bytes
 	};
@@ -145,6 +145,9 @@ namespace cam {
 		class Key final {
 			friend Environment;
 
+			/**
+			 * Only the environment builds a key.
+			 **/
 			Key() = default;
 		};
 
@@ -201,6 +204,9 @@ namespace cam {
 		 **/
 		Message(AgentId p_sender, AgentId p_receiver, MessageContent p_content);
 
+		/**
+		 * Empty message: no sender, no receiver, no content.
+		 **/
 		Message();
 
 		/**
@@ -307,7 +313,7 @@ namespace cam {
 		// Delete copy constructor
 		Message(const Message&) = delete;
 
-		Message& operator=(Message&) = delete;
+		Message& operator=(const Message&) = delete;
 
 		/**
 		 * Memory of a message built on the heap, from the free blocks of the current thread.
