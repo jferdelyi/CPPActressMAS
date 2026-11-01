@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.22)
 project(CPPActressMAS)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Third-party libraries are git submodules (ThirdParty/README.md): stop with a clear message when they are not checked out
 foreach (l_header json/single_include/nlohmann/json.hpp ordered-map/include/tsl/ordered_map.h)
@@ -14,8 +16,9 @@ include_directories(CPPActressMAS)
 
 # The core has no network dependency by default: each network transport joins the library behind its
 # option, with its own dependencies, and Environment::connect(url) selects the schemes
-# compiled in (CAM_TRANSPORT_* definitions, no registry).
-file(GLOB SOURCES
+# compiled in (CAM_TRANSPORT_* definitions, no registry). A source file added later joins the next build without a new
+# configuration (CONFIGURE_DEPENDS).
+file(GLOB SOURCES CONFIGURE_DEPENDS
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h**
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.hpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp
@@ -49,6 +52,12 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 	set(CAM_WARNING_OPTIONS -Wall -Wextra -Wpedantic)
 endif()
 
+# Link-time optimization of Release: GCC runs its LTRANS jobs in parallel (-flto=auto), Clang takes -flto.
+set(CAM_LTO_OPTION -flto)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	set(CAM_LTO_OPTION -flto=auto)
+endif()
+
 if (BUILD_STATIC)
 	add_library(CPPActressMASStatic STATIC ${SOURCES})
 	target_compile_options(CPPActressMASStatic PRIVATE ${CAM_WARNING_OPTIONS})
@@ -56,7 +65,7 @@ if (BUILD_STATIC)
 		if (WIN32)
 			target_compile_options(CPPActressMASStatic PRIVATE /O2 /W4 /LTCG)
 		else()
-			target_compile_options(CPPActressMASStatic PRIVATE -march=native -O3 -flto)
+			target_compile_options(CPPActressMASStatic PRIVATE -march=native -O3 ${CAM_LTO_OPTION})
 		endif()
 	endif()
 	set_target_properties(CPPActressMASStatic PROPERTIES OUTPUT_NAME CPPActressMAS)
@@ -69,9 +78,9 @@ if (BUILD_SHARED)
 		if (WIN32)
 			target_compile_options(CPPActressMAS PRIVATE /O2 /W4 /LTCG)
 		else()
-			target_compile_options(CPPActressMAS PRIVATE -march=native -O3 -flto)
+			target_compile_options(CPPActressMAS PRIVATE -march=native -O3 ${CAM_LTO_OPTION})
 			# Objects compiled with -flto are LLVM bitcode under clang: GNU ld needs -flto at link time too.
-			target_link_options(CPPActressMAS PRIVATE -flto)
+			target_link_options(CPPActressMAS PRIVATE ${CAM_LTO_OPTION})
 		endif()
 	endif()
 endif()
