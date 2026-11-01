@@ -8,12 +8,11 @@
  *  CPP version of ActressMAS by Florin Leon                              *
  *  https://github.com/florinleon/ActressMas                              *
  *                                                                        *
- *  This program is free software; you can redistribute it and/or modify  *
- *  it under the terms of the GNU General License as published by         *
- *  the Free Software Foundation. This program is distributed in the      *
- *  hope that it will be useful, but WITHOUT ANY WARRANTY; without even   *
- *  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR   *
- *  PURPOSE. See the GNU General License for more details.                *
+ *  This program and the accompanying materials are made available under  *
+ *  the terms of the Eclipse Public License 2.0, which is available at    *
+ *  https://www.eclipse.org/legal/epl-2.0/ and in the LICENSE file.       *
+ *                                                                        *
+ *  SPDX-License-Identifier: EPL-2.0                                      *
  *                                                                        *
  **************************************************************************/
 
