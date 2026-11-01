@@ -21,7 +21,7 @@
 
 /**
  * CPPActressMAS transport layer.
- */
+ **/
 namespace cam::transport {
 
 	/**
@@ -31,13 +31,47 @@ namespace cam::transport {
 	 **/
 	class CompactCodec final : public EnvelopeCodec {
 	public:
+		/**
+		 * Codec id, second byte of the header.
+		 **/
 		static constexpr std::uint8_t ID = 1;
+
+		/**
+		 * Major version of the format, third byte of the header.
+		 **/
 		static constexpr std::uint8_t VERSION_MAJOR = 1;
 
+		/**
+		 * Codec id.
+		 * @return ID
+		 **/
 		[[nodiscard]] std::uint8_t id() const override { return ID; }
+
+		/**
+		 * Major version of the format.
+		 * @return VERSION_MAJOR
+		 **/
 		[[nodiscard]] std::uint8_t version_major() const override { return VERSION_MAJOR; }
+
+		/**
+		 * Name of the codec.
+		 * @return "compact"
+		 **/
 		[[nodiscard]] const char* name() const override { return "compact"; }
+
+		/**
+		 * Encode an envelope, header included.
+		 * @param p_envelope The envelope
+		 * @return The bytes, or a validation error
+		 **/
 		[[nodiscard]] Result<std::vector<std::uint8_t>> encode(const Envelope& p_envelope) const override;
+
+		/**
+		 * Decode an envelope, header included, and validate it.
+		 * @param p_bytes The bytes
+		 * @param p_max_bytes Largest size accepted
+		 * @return The envelope, or a validation error
+		 **/
 		[[nodiscard]] Result<Envelope> decode(std::span<const std::uint8_t> p_bytes, std::size_t p_max_bytes) const override;
 	};
 

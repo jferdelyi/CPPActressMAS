@@ -38,6 +38,9 @@ namespace cam::transport {
 		 **/
 		class Writer final {
 		private:
+			/**
+			 * Buffer written to (not owned).
+			 **/
 			std::vector<std::uint8_t>& m_out;
 
 		public:
@@ -73,8 +76,19 @@ namespace cam::transport {
 		 **/
 		class Reader final {
 		private:
+			/**
+			 * Bytes read.
+			 **/
 			std::span<const std::uint8_t> m_in;
+
+			/**
+			 * Position of the next byte to read.
+			 **/
 			std::size_t m_position = 0;
+
+			/**
+			 * First failure, kept: every later read fails too.
+			 **/
 			std::optional<Error> m_error;
 
 			bool need(const std::size_t p_count) {
@@ -95,12 +109,16 @@ namespace cam::transport {
 			[[nodiscard]] bool finished() const { return m_position == m_in.size(); }
 
 			std::uint8_t u8() {
-				if (!need(1)) return 0;
+				if (!need(1)) {
+					return 0;
+				}
 				return m_in[m_position++];
 			}
 
 			std::uint32_t u32() {
-				if (!need(4)) return 0;
+				if (!need(4)) {
+					return 0;
+				}
 				std::uint32_t l_value = 0;
 				for (int i = 0; i < 4; i++) {
 					l_value |= static_cast<std::uint32_t>(m_in[m_position++]) << (8 * i);
@@ -109,7 +127,9 @@ namespace cam::transport {
 			}
 
 			std::uint64_t u64() {
-				if (!need(8)) return 0;
+				if (!need(8)) {
+					return 0;
+				}
 				std::uint64_t l_value = 0;
 				for (int i = 0; i < 8; i++) {
 					l_value |= static_cast<std::uint64_t>(m_in[m_position++]) << (8 * i);
@@ -119,12 +139,16 @@ namespace cam::transport {
 
 			std::vector<std::uint8_t> bytes(const std::size_t p_max) {
 				const std::uint32_t l_size = u32();
-				if (m_error) return {};
+				if (m_error) {
+					return {};
+				}
 				if (l_size > p_max) {
 					m_error = make_error(ErrorCategory::Validation, ErrorCode::TooLarge, "byte array too large");
 					return {};
 				}
-				if (!need(l_size)) return {};
+				if (!need(l_size)) {
+					return {};
+				}
 				std::vector<std::uint8_t> l_result(m_in.begin() + static_cast<std::ptrdiff_t>(m_position),
 												   m_in.begin() + static_cast<std::ptrdiff_t>(m_position + l_size));
 				m_position += l_size;
@@ -133,12 +157,16 @@ namespace cam::transport {
 
 			std::string text() {
 				const std::uint32_t l_size = u32();
-				if (m_error) return {};
+				if (m_error) {
+					return {};
+				}
 				if (l_size > ENVELOPE_MAX_STRING_BYTES) {
 					m_error = make_error(ErrorCategory::Validation, ErrorCode::TooLarge, "string too large");
 					return {};
 				}
-				if (!need(l_size)) return {};
+				if (!need(l_size)) {
+					return {};
+				}
 				std::string l_result(reinterpret_cast<const char*>(m_in.data() + m_position), l_size);
 				m_position += l_size;
 				return l_result;
@@ -257,7 +285,9 @@ namespace cam::transport {
 					}
 					for (std::uint32_t i = 0; i < l_count && !p_reader.error(); i++) {
 						const auto l_nested = p_reader.bytes(p_max_bytes);
-						if (p_reader.error()) break;
+						if (p_reader.error()) {
+							break;
+						}
 						auto l_decoded = read_envelope(l_nested, p_max_bytes, p_codec, p_depth + 1);
 						if (!l_decoded) {
 							p_reader.fail("invalid queued envelope: " + l_decoded.error().m_message);
@@ -288,7 +318,9 @@ namespace cam::transport {
 					l_presence.m_online = p_reader.u8() != 0;
 					const bool l_has_turn = p_reader.u8() != 0;
 					const std::uint64_t l_turn = p_reader.u64();
-					if (l_has_turn) l_presence.m_turn = l_turn;
+					if (l_has_turn) {
+						l_presence.m_turn = l_turn;
+					}
 					l_presence.m_timestamp_ms = p_reader.u64();
 					const std::uint32_t l_count = p_reader.u32();
 					if (l_count > ENVELOPE_MAX_LIST_ITEMS) {

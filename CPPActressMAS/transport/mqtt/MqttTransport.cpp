@@ -98,15 +98,54 @@ namespace cam::transport {
 	 * none can run once the thread is joined.
 	 **/
 	struct MqttTransport::Client {
+		/**
+		 * The libmosquitto client.
+		 **/
 		struct mosquitto* m_handle = nullptr;
+
+		/**
+		 * The network thread: reads, dispatches the callbacks and reconnects.
+		 **/
 		std::thread m_loop;
+
+		/**
+		 * Guards the acknowledgements below.
+		 **/
 		std::mutex m_mutex;
+
+		/**
+		 * Wakes the threads waiting for an acknowledgement.
+		 **/
 		std::condition_variable m_condition;
-		bool m_connack = false;              ///< a CONNACK arrived (reason below)
+
+		/**
+		 * A CONNACK arrived (reason below).
+		 **/
+		bool m_connack = false;
+
+		/**
+		 * Reason code of the last CONNACK, 0 on success.
+		 **/
 		int m_connack_reason = 0;
-		std::set<int> m_subscribed;          ///< message ids acknowledged by a SUBACK
-		std::map<int, int> m_refused;        ///< message id -> reason code of a refused subscription
-		std::set<int> m_published;           ///< message ids acknowledged by a PUBACK
+
+		/**
+		 * Message ids acknowledged by a SUBACK.
+		 **/
+		std::set<int> m_subscribed;
+
+		/**
+		 * Reason code of each refused subscription, by message id.
+		 **/
+		std::map<int, int> m_refused;
+
+		/**
+		 * Message ids acknowledged by a PUBACK.
+		 **/
+		std::set<int> m_published;
+
+		/**
+		 * True while the connection to the broker is up.
+		 **/
 		std::atomic<bool> m_connected{false};
 
 		~Client() {

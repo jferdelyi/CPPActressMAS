@@ -29,7 +29,7 @@
 /**
  * CPPActressMAS transport layer: the interface every transport implements. The core never includes a
  * network header; transports are separate libraries behind CMake options.
- */
+ **/
 namespace cam::transport {
 
 	class Endpoint;
@@ -42,6 +42,9 @@ namespace cam::transport {
 	 **/
 	class Transport {
 	public:
+		/**
+		 * Destroy the transport.
+		 **/
 		virtual ~Transport() = default;
 
 		/**
@@ -121,9 +124,21 @@ namespace cam::transport {
 	 **/
 	class EndpointRegistry final {
 	private:
+		/**
+		 * Shared by the deliveries, exclusive for add() and remove().
+		 **/
 		mutable std::shared_mutex m_mutex;
+
+		/**
+		 * Registered endpoints, in the order of their registration (not owned).
+		 **/
 		std::vector<Endpoint*> m_endpoints;
 
+		/**
+		 * Endpoint of an environment; the caller holds the lock.
+		 * @param p_environment_id The environment id
+		 * @return The endpoint, or null
+		 **/
 		[[nodiscard]] Endpoint* find_unlocked(const std::string& p_environment_id) const;
 
 	public:
@@ -183,9 +198,20 @@ namespace cam::transport {
 		 * Result of a local fan-out.
 		 **/
 		struct LocalDelivery {
-			bool m_delivered_locally = false;  ///< at least one local endpoint received it
-			bool m_needs_network = false;      ///< the key also goes to the network
-			bool m_target_is_local = false;    ///< unicast key whose environment is attached here
+			/**
+			 * At least one local endpoint received it.
+			 **/
+			bool m_delivered_locally = false;
+
+			/**
+			 * The key also goes to the network.
+			 **/
+			bool m_needs_network = false;
+
+			/**
+			 * Unicast key whose environment is attached here.
+			 **/
+			bool m_target_is_local = false;
 		};
 
 		/**

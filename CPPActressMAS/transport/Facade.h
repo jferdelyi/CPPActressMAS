@@ -37,7 +37,7 @@
  * Zenoh: mode=peer|client, listen=tcp/host:port (repeatable, comma separated), scouting=multicast.
  * Without connect(), an environment stays offline; a Zenoh URL needs a host, a listen option or
  * multicast scouting.
- */
+ **/
 namespace cam::transport {
 
 	/**
@@ -50,11 +50,30 @@ namespace cam::transport {
 	 * A transport URL taken apart: scheme, configuration, and the scheme-specific options of the query.
 	 **/
 	struct ParsedUrl {
+		/**
+		 * Scheme: "loopback", "mqtt", "mqtts" or "zenoh".
+		 **/
 		std::string m_scheme;
+
+		/**
+		 * Host, empty when the URL has none.
+		 **/
 		std::string m_host;
+
+		/**
+		 * Port; for MQTT and Zenoh, the default of the scheme when the URL has none.
+		 **/
 		std::string m_port;
+
+		/**
+		 * Configuration built from the URL and the defaults.
+		 **/
 		TransportConfig m_config;
-		std::vector<std::pair<std::string, std::string>> m_options;  ///< query pairs the scheme interprets
+
+		/**
+		 * Pairs of the query that only the scheme interprets (mqtt=, mode=, listen=, connect=, scouting=).
+		 **/
+		std::vector<std::pair<std::string, std::string>> m_options;
 	};
 
 	/**

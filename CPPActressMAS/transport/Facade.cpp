@@ -50,7 +50,9 @@ namespace cam::transport {
 				} else {
 					l_pairs.emplace_back(l_item.substr(0, l_equal), l_item.substr(l_equal + 1));
 				}
-				if (l_amp == std::string::npos) break;
+				if (l_amp == std::string::npos) {
+					break;
+				}
 				l_start = l_amp + 1;
 			}
 			return l_pairs;
@@ -64,8 +66,12 @@ namespace cam::transport {
 			while (l_start <= p_text.size()) {
 				const std::size_t l_comma = p_text.find(',', l_start);
 				const std::string l_value = p_text.substr(l_start, l_comma == std::string::npos ? std::string::npos : l_comma - l_start);
-				if (!l_value.empty()) l_values.push_back(l_value);
-				if (l_comma == std::string::npos) break;
+				if (!l_value.empty()) {
+					l_values.push_back(l_value);
+				}
+				if (l_comma == std::string::npos) {
+					break;
+				}
 				l_start = l_comma + 1;
 			}
 			return l_values;
@@ -148,20 +154,34 @@ namespace cam::transport {
 		}
 
 		for (const auto& [l_key, l_value]: parse_query(l_query)) {
-			if (l_key == "ns" || l_key == "namespace") p_config.m_namespace = l_value;
-			else if (l_key == "codec") p_config.m_codec = l_value;
-			else if (is_mqtt(l_parsed.m_scheme) && l_key == "user") p_config.m_username = l_value;
-			else if (is_mqtt(l_parsed.m_scheme) && l_key == "password") p_config.m_password = l_value;
-			else if (is_mqtt(l_parsed.m_scheme) && l_key == "ca") p_config.m_ca_file = l_value;
-			else if (is_mqtt(l_parsed.m_scheme) && l_key == "cert") p_config.m_certificate_file = l_value;
-			else if (is_mqtt(l_parsed.m_scheme) && l_key == "key") p_config.m_key_file = l_value;
-			else if (is_mqtt(l_parsed.m_scheme) && l_key == "verify") p_config.m_verify_peer = l_value != "0" && l_value != "false";
-			else if (is_mqtt(l_parsed.m_scheme) && l_key == "mqtt") {
-				if (l_value != "5" && l_value != "3.1.1") return invalid_url("unknown MQTT version: " + l_value);
+			if (l_key == "ns" || l_key == "namespace") {
+				p_config.m_namespace = l_value;
+			} else if (l_key == "codec") {
+				p_config.m_codec = l_value;
+			} else if (is_mqtt(l_parsed.m_scheme) && l_key == "user") {
+				p_config.m_username = l_value;
+			} else if (is_mqtt(l_parsed.m_scheme) && l_key == "password") {
+				p_config.m_password = l_value;
+			} else if (is_mqtt(l_parsed.m_scheme) && l_key == "ca") {
+				p_config.m_ca_file = l_value;
+			} else if (is_mqtt(l_parsed.m_scheme) && l_key == "cert") {
+				p_config.m_certificate_file = l_value;
+			} else if (is_mqtt(l_parsed.m_scheme) && l_key == "key") {
+				p_config.m_key_file = l_value;
+			} else if (is_mqtt(l_parsed.m_scheme) && l_key == "verify") {
+				p_config.m_verify_peer = l_value != "0" && l_value != "false";
+			} else if (is_mqtt(l_parsed.m_scheme) && l_key == "mqtt") {
+				if (l_value != "5" && l_value != "3.1.1") {
+					return invalid_url("unknown MQTT version: " + l_value);
+				}
 				l_parsed.m_options.emplace_back(l_key, l_value);
 			} else if (l_parsed.m_scheme == "zenoh" && (l_key == "mode" || l_key == "listen" || l_key == "connect" || l_key == "scouting")) {
-				if (l_key == "mode" && l_value != "peer" && l_value != "client") return invalid_url("unknown zenoh mode: " + l_value);
-				if (l_key == "scouting" && l_value != "multicast") return invalid_url("unknown zenoh scouting: " + l_value);
+				if (l_key == "mode" && l_value != "peer" && l_value != "client") {
+					return invalid_url("unknown zenoh mode: " + l_value);
+				}
+				if (l_key == "scouting" && l_value != "multicast") {
+					return invalid_url("unknown zenoh scouting: " + l_value);
+				}
 				l_parsed.m_options.emplace_back(l_key, l_value);
 			} else {
 				return invalid_url("unknown transport option: " + l_key);
@@ -208,7 +228,9 @@ namespace cam::transport {
 #if CAM_TRANSPORT_MQTT
 			MqttOptions l_options;
 			for (const auto& [l_key, l_value]: l_url.m_options) {
-				if (l_key == "mqtt") l_options.m_mqtt5 = l_value != "3.1.1";
+				if (l_key == "mqtt") {
+					l_options.m_mqtt5 = l_value != "3.1.1";
+				}
 			}
 			l_transport = std::make_shared<MqttTransport>(std::move(l_url.m_config), l_options, l_codec);
 #else
@@ -221,10 +243,19 @@ namespace cam::transport {
 				l_options.m_connect.push_back(l_url.m_config.m_endpoint);
 			}
 			for (const auto& [l_key, l_value]: l_url.m_options) {
-				if (l_key == "mode") l_options.m_mode = l_value;
-				else if (l_key == "scouting") l_options.m_multicast_scouting = true;
-				else if (l_key == "listen") for (auto& l_endpoint: split_list(l_value)) l_options.m_listen.push_back(std::move(l_endpoint));
-				else if (l_key == "connect") for (auto& l_endpoint: split_list(l_value)) l_options.m_connect.push_back(std::move(l_endpoint));
+				if (l_key == "mode") {
+					l_options.m_mode = l_value;
+				} else if (l_key == "scouting") {
+					l_options.m_multicast_scouting = true;
+				} else if (l_key == "listen") {
+					for (auto& l_endpoint: split_list(l_value)) {
+						l_options.m_listen.push_back(std::move(l_endpoint));
+					}
+				} else if (l_key == "connect") {
+					for (auto& l_endpoint: split_list(l_value)) {
+						l_options.m_connect.push_back(std::move(l_endpoint));
+					}
+				}
 			}
 			l_transport = std::make_shared<ZenohTransport>(std::move(l_url.m_config), std::move(l_options), l_codec);
 #else

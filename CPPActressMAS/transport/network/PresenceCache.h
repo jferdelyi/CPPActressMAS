@@ -27,7 +27,7 @@
 
 /**
  * CPPActressMAS transport layer.
- */
+ **/
 namespace cam::transport {
 
 	/**
@@ -37,8 +37,15 @@ namespace cam::transport {
 	 **/
 	class PresenceCache final {
 	private:
+		/**
+		 * Guards m_entries.
+		 **/
 		mutable std::mutex m_mutex;
-		std::map<std::string, Envelope> m_entries;  ///< environment id -> current presence envelope
+
+		/**
+		 * Current presence envelope of each environment, by environment id.
+		 **/
+		std::map<std::string, Envelope> m_entries;
 
 	public:
 		/**

@@ -76,7 +76,9 @@ namespace cam::transport {
 		std::string json_array(const std::vector<std::string>& p_values) {
 			std::string l_result = "[";
 			for (std::size_t i = 0; i < p_values.size(); i++) {
-				if (i > 0) l_result += ",";
+				if (i > 0) {
+					l_result += ",";
+				}
 				l_result += "\"" + p_values[i] + "\"";
 			}
 			return l_result + "]";
@@ -107,19 +109,61 @@ namespace cam::transport {
 	 * Subscribers, queryables and tokens are RAII objects: their destruction undeclares them.
 	 **/
 	struct ZenohTransport::Node {
+		/**
+		 * Declarations of one attached endpoint.
+		 **/
 		struct Handles {
+			/**
+			 * Subscribers of its keys.
+			 **/
 			std::vector<zenoh::Subscriber<void>> m_subscribers;
+
+			/**
+			 * Queryable that serves its presence to the newcomers.
+			 **/
 			std::optional<zenoh::Queryable<void>> m_queryable;
+
+			/**
+			 * Liveliness token of the environment.
+			 **/
 			std::optional<zenoh::LivelinessToken> m_token;
 		};
 
+		/**
+		 * The session.
+		 **/
 		zenoh::Session m_session;
-		std::vector<zenoh::Subscriber<void>> m_shared;
-		std::optional<zenoh::Subscriber<void>> m_liveliness;
-		std::optional<zenoh::LivelinessToken> m_node_token;
-		std::mutex m_mutex;
-		std::map<std::string, Handles> m_endpoints;  ///< environment id -> declarations
 
+		/**
+		 * Subscribers of the shared keys of the namespace.
+		 **/
+		std::vector<zenoh::Subscriber<void>> m_shared;
+
+		/**
+		 * Subscriber of the liveliness tokens of the namespace.
+		 **/
+		std::optional<zenoh::Subscriber<void>> m_liveliness;
+
+		/**
+		 * Liveliness token of this node.
+		 **/
+		std::optional<zenoh::LivelinessToken> m_node_token;
+
+		/**
+		 * Guards m_endpoints.
+		 **/
+		std::mutex m_mutex;
+
+		/**
+		 * Declarations of each attached endpoint, by environment id.
+		 **/
+		std::map<std::string, Handles> m_endpoints;
+
+		/**
+		 * Open the session.
+		 * @param p_config The Zenoh configuration
+		 * @throw zenoh::ZException If the session does not open
+		 **/
 		explicit Node(zenoh::Config&& p_config) : m_session(zenoh::Session::open(std::move(p_config))) {}
 	};
 

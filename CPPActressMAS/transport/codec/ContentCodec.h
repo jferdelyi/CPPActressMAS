@@ -27,7 +27,7 @@
  * CPPActressMAS transport layer: encoding of a message content at the network boundary. A local message
  * keeps its typed content; the bytes of the envelope are produced here once when the message leaves the
  * node, and read back here once when it arrives.
- */
+ **/
 namespace cam::transport {
 
 	/**

@@ -104,12 +104,28 @@ namespace cam::transport {
 		static constexpr std::string_view ASSEMBLY = "ActressMas, Version=3.1.0.0, Culture=neutral, PublicKeyToken=null";
 
 		/**
-		 * Commands, in the Info of a ContainerMessage.
+		 * Command of a container that registers under its name (Info of a ContainerMessage).
 		 **/
 		static constexpr std::string_view REQUEST_REGISTER = "Request Register";
+
+		/**
+		 * Command of the server that gives the list of the containers.
+		 **/
 		static constexpr std::string_view INFORM_CONTAINERS = "Inform Containers";
+
+		/**
+		 * Command of the server that refuses the name of a container.
+		 **/
 		static constexpr std::string_view INFORM_INVALID_NAME = "Inform Invalid Name";
+
+		/**
+		 * Command that carries a message to an agent of another container.
+		 **/
 		static constexpr std::string_view SEND_REMOTE_MESSAGE = "Send Remote Message";
+
+		/**
+		 * Command that carries an agent to another container.
+		 **/
 		static constexpr std::string_view REQUEST_MOVE_AGENT = "Request Move Agent";
 
 		/**

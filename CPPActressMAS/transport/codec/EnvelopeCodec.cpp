@@ -34,9 +34,15 @@ namespace cam::transport {
 	// ---------------------------------------------------------------- codecs
 
 	std::shared_ptr<const EnvelopeCodec> make_codec(const std::string_view p_name) {
-		if (p_name == "protobuf") return std::make_shared<ProtobufCodec>();
-		if (p_name == "compact") return std::make_shared<CompactCodec>();
-		if (p_name == "json") return std::make_shared<JsonCodec>();
+		if (p_name == "protobuf") {
+			return std::make_shared<ProtobufCodec>();
+		}
+		if (p_name == "compact") {
+			return std::make_shared<CompactCodec>();
+		}
+		if (p_name == "json") {
+			return std::make_shared<JsonCodec>();
+		}
 		return nullptr;
 	}
 
@@ -104,14 +110,20 @@ namespace cam::transport {
 			}
 			switch (p_envelope.m_target_kind) {
 				case TargetKind::Id:
-					if (!is_valid_identifier(p_envelope.m_target_id)) return invalid("invalid target id");
+					if (!is_valid_identifier(p_envelope.m_target_id)) {
+						return invalid("invalid target id");
+					}
 					break;
 				case TargetKind::Name:
 				case TargetKind::Fragment:
-					if (p_envelope.m_target_name.empty() || p_envelope.m_target_name.size() > ENVELOPE_MAX_STRING_BYTES) return invalid("invalid target name");
+					if (p_envelope.m_target_name.empty() || p_envelope.m_target_name.size() > ENVELOPE_MAX_STRING_BYTES) {
+						return invalid("invalid target name");
+					}
 					break;
 				case TargetKind::Environment:
-					if (!is_valid_identifier(p_envelope.m_target_id)) return invalid("invalid target environment");
+					if (!is_valid_identifier(p_envelope.m_target_id)) {
+						return invalid("invalid target environment");
+					}
 					break;
 				case TargetKind::Broadcast:
 				default:
@@ -122,7 +134,9 @@ namespace cam::transport {
 			}
 		} else if (p_envelope.m_kind == EnvelopeKind::AgentOffer) {
 			const auto* l_transfer = std::get_if<AgentTransfer>(&p_envelope.m_payload);
-			if (!l_transfer) return invalid("agent offer without transfer payload");
+			if (!l_transfer) {
+				return invalid("agent offer without transfer payload");
+			}
 			if (!is_valid_identifier(l_transfer->m_transfer_id) || !is_valid_identifier(l_transfer->m_agent_id) ||
 				l_transfer->m_type_name.empty() || l_transfer->m_type_name.size() > ENVELOPE_MAX_STRING_BYTES) {
 				return invalid("invalid agent transfer");
@@ -133,23 +147,31 @@ namespace cam::transport {
 		} else if (p_envelope.m_kind == EnvelopeKind::AgentAccept || p_envelope.m_kind == EnvelopeKind::AgentReject ||
 				   p_envelope.m_kind == EnvelopeKind::AgentCommit || p_envelope.m_kind == EnvelopeKind::AgentAbort) {
 			const auto* l_control = std::get_if<AgentControl>(&p_envelope.m_payload);
-			if (!l_control) return invalid("agent control without control payload");
+			if (!l_control) {
+				return invalid("agent control without control payload");
+			}
 			if (!is_valid_identifier(l_control->m_transfer_id) || !is_valid_identifier(l_control->m_agent_id)) {
 				return invalid("invalid agent control");
 			}
 		} else if (p_envelope.m_kind == EnvelopeKind::Presence) {
 			const auto* l_presence = std::get_if<Presence>(&p_envelope.m_payload);
-			if (!l_presence) return invalid("presence without presence payload");
+			if (!l_presence) {
+				return invalid("presence without presence payload");
+			}
 			if (!is_valid_identifier(l_presence->m_node_id) || !is_valid_identifier(l_presence->m_environment_id) ||
 				!is_valid_namespace(l_presence->m_namespace)) {
 				return invalid("invalid presence");
 			}
 			for (const auto& [l_id, l_name]: l_presence->m_agents) {
-				if (!is_valid_identifier(l_id)) return invalid("invalid agent id in presence");
+				if (!is_valid_identifier(l_id)) {
+					return invalid("invalid agent id in presence");
+				}
 			}
 		} else if (p_envelope.m_kind == EnvelopeKind::Directory) {
 			const auto* l_event = std::get_if<DirectoryEvent>(&p_envelope.m_payload);
-			if (!l_event) return invalid("directory event without payload");
+			if (!l_event) {
+				return invalid("directory event without payload");
+			}
 			if (static_cast<std::uint8_t>(l_event->m_event) > static_cast<std::uint8_t>(DirectoryEventKind::AgentMoved) ||
 				!is_valid_identifier(l_event->m_agent_id) || !is_valid_identifier(l_event->m_environment_id)) {
 				return invalid("invalid directory event");
@@ -166,7 +188,9 @@ namespace cam::transport {
 		}
 		for (const char l_char: p_namespace) {
 			const bool l_ok = (l_char >= 'a' && l_char <= 'z') || (l_char >= '0' && l_char <= '9') || l_char == '-';
-			if (!l_ok) return false;
+			if (!l_ok) {
+				return false;
+			}
 		}
 		return true;
 	}
@@ -190,10 +214,14 @@ namespace cam::transport {
 		for (std::size_t i = 0; i < 36; i++) {
 			const char l_char = p_text[i];
 			if (i == 8 || i == 13 || i == 18 || i == 23) {
-				if (l_char != '-') return false;
+				if (l_char != '-') {
+					return false;
+				}
 			} else {
 				const bool l_hex = (l_char >= '0' && l_char <= '9') || (l_char >= 'a' && l_char <= 'f') || (l_char >= 'A' && l_char <= 'F');
-				if (!l_hex) return false;
+				if (!l_hex) {
+					return false;
+				}
 			}
 		}
 		return true;
@@ -255,7 +283,9 @@ namespace cam::transport {
 			const std::size_t l_slash = p_key.find('/', l_start);
 			const std::size_t l_end = l_slash == std::string_view::npos ? p_key.size() : l_slash;
 			l_levels.push_back(p_key.substr(l_start, l_end - l_start));
-			if (l_slash == std::string_view::npos) break;
+			if (l_slash == std::string_view::npos) {
+				break;
+			}
 			l_start = l_slash + 1;
 		}
 		if (l_levels.size() < 5 || l_levels[0] != "cam" || l_levels[1] != "v1" || !is_valid_namespace(l_levels[2])) {
@@ -272,18 +302,26 @@ namespace cam::transport {
 		}
 		l_address.m_target = std::string(l_levels[4]);
 		if (l_levels[3] == "node") {
-			if (l_levels[5] != "presence") return std::nullopt;
+			if (l_levels[5] != "presence") {
+				return std::nullopt;
+			}
 			l_address.m_kind = AddressKind::NodePresence;
 			return l_address;
 		}
 		if (l_levels[3] != "env") {
 			return std::nullopt;
 		}
-		if (l_levels[5] == "in") l_address.m_kind = AddressKind::EnvIn;
-		else if (l_levels[5] == "agent") l_address.m_kind = AddressKind::EnvAgent;
-		else if (l_levels[5] == "query") l_address.m_kind = AddressKind::EnvQuery;
-		else if (l_levels[5] == "presence") l_address.m_kind = AddressKind::EnvPresence;
-		else return std::nullopt;
+		if (l_levels[5] == "in") {
+			l_address.m_kind = AddressKind::EnvIn;
+		} else if (l_levels[5] == "agent") {
+			l_address.m_kind = AddressKind::EnvAgent;
+		} else if (l_levels[5] == "query") {
+			l_address.m_kind = AddressKind::EnvQuery;
+		} else if (l_levels[5] == "presence") {
+			l_address.m_kind = AddressKind::EnvPresence;
+		} else {
+			return std::nullopt;
+		}
 		return l_address;
 	}
 

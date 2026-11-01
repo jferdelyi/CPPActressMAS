@@ -29,7 +29,7 @@
 /**
  * CPPActressMAS transport layer: the envelope carried between environments. The structure is the
  * contract; an EnvelopeCodec gives it a form on the wire.
- */
+ **/
 namespace cam::transport {
 
 	/**
@@ -87,14 +87,49 @@ namespace cam::transport {
 	 * the agent, never the message being handled.
 	 **/
 	struct AgentTransfer {
+		/**
+		 * Id of this transfer, repeated by its controls.
+		 **/
 		std::string m_transfer_id;
+
+		/**
+		 * Wire name of the type of the agent (AgentTypes), how the destination rebuilds it.
+		 **/
 		std::string m_type_name;
+
+		/**
+		 * Id of the agent.
+		 **/
 		std::string m_agent_id;
+
+		/**
+		 * Name of the agent.
+		 **/
 		std::string m_agent_name;
+
+		/**
+		 * Encoding of m_state.
+		 **/
 		ContentEncoding m_state_encoding = ContentEncoding::MessagePack;
+
+		/**
+		 * State of the agent (Agent::save_state()), encoded.
+		 **/
 		std::vector<std::uint8_t> m_state;
+
+		/**
+		 * Messages the agent had not consumed, in order.
+		 **/
 		std::vector<Envelope> m_queue;
+
+		/**
+		 * True if the agent uses observables.
+		 **/
 		bool m_uses_observables = false;
+
+		/**
+		 * Observables of the agent, in MessagePack.
+		 **/
 		std::vector<std::uint8_t> m_observables;
 	};
 
@@ -102,9 +137,24 @@ namespace cam::transport {
 	 * Payload of AgentAccept, AgentReject, AgentCommit and AgentAbort.
 	 **/
 	struct AgentControl {
+		/**
+		 * Id of the transfer this control is about.
+		 **/
 		std::string m_transfer_id;
+
+		/**
+		 * Id of the agent on the move.
+		 **/
 		std::string m_agent_id;
+
+		/**
+		 * True if the destination accepts the agent.
+		 **/
 		bool m_accepted = false;
+
+		/**
+		 * Why the agent is refused or the transfer abandoned, if it is.
+		 **/
 		std::string m_reason;
 	};
 
@@ -112,24 +162,74 @@ namespace cam::transport {
 	 * Payload of a Presence: an environment (or a node) announces itself, with its agents.
 	 **/
 	struct Presence {
+		/**
+		 * Id of the node (transport instance) of the environment.
+		 **/
 		std::string m_node_id;
+
+		/**
+		 * Id of the environment; for the presence of a node, its node id.
+		 **/
 		std::string m_environment_id;
+
+		/**
+		 * Name of the environment.
+		 **/
 		std::string m_environment_name;
+
+		/**
+		 * Namespace of the environment.
+		 **/
 		std::string m_namespace;
+
+		/**
+		 * False when the environment leaves.
+		 **/
 		bool m_online = true;
+
+		/**
+		 * Turn of the environment, if it gives it.
+		 **/
 		std::optional<std::uint64_t> m_turn;
+
+		/**
+		 * When the presence was made, in milliseconds since the epoch.
+		 **/
 		std::uint64_t m_timestamp_ms = 0;
-		std::vector<std::pair<std::string, std::string>> m_agents;  ///< (id, name)
+
+		/**
+		 * Agents of the environment, as (id, name).
+		 **/
+		std::vector<std::pair<std::string, std::string>> m_agents;
 	};
 
 	/**
 	 * Payload of a Directory event.
 	 **/
 	struct DirectoryEvent {
+		/**
+		 * What happened to the agent.
+		 **/
 		DirectoryEventKind m_event = DirectoryEventKind::AgentAdded;
+
+		/**
+		 * Id of the agent.
+		 **/
 		std::string m_agent_id;
+
+		/**
+		 * Name of the agent.
+		 **/
 		std::string m_agent_name;
+
+		/**
+		 * Environment that hosts the agent now.
+		 **/
 		std::string m_environment_id;
+
+		/**
+		 * Environment that hosted it before, for a move.
+		 **/
 		std::string m_previous_environment_id;
 	};
 
@@ -143,26 +243,109 @@ namespace cam::transport {
 	 * and agents created by the framework).
 	 **/
 	struct Envelope {
+		/**
+		 * Major version of the envelope.
+		 **/
 		std::uint8_t m_version_major = 1;
+
+		/**
+		 * Minor version: 1 since the name of the sender travels.
+		 **/
 		std::uint8_t m_version_minor = 0;
+
+		/**
+		 * Kind of envelope.
+		 **/
 		EnvelopeKind m_kind = EnvelopeKind::Message;
+
+		/**
+		 * Environment that published the envelope.
+		 **/
 		std::string m_sender_environment;
-		std::string m_origin_environment;  ///< empty unless forwarded by another environment
+
+		/**
+		 * Environment whose agent emitted it, when another one forwarded it; empty otherwise.
+		 **/
+		std::string m_origin_environment;
+
+		/**
+		 * Epoch of the endpoint that published it.
+		 **/
 		std::uint32_t m_epoch = 0;
+
+		/**
+		 * Stream it was published on.
+		 **/
 		StreamKind m_stream_kind = StreamKind::In;
-		std::string m_stream_target;       ///< destination environment of the stream; empty for All
+
+		/**
+		 * Destination environment of the stream; empty for All.
+		 **/
+		std::string m_stream_target;
+
+		/**
+		 * Sequence in its stream, from 1.
+		 **/
 		std::uint64_t m_sequence = 0;
+
+		/**
+		 * Conversation id of the message (the ActressMAS transport only).
+		 **/
 		std::string m_conversation_id;
+
+		/**
+		 * Id of the agent that sent the message.
+		 **/
 		std::string m_sender_agent;
-		std::string m_sender_name;         ///< name of the sender agent (version 1.1); empty when unknown
+
+		/**
+		 * Name of the sender agent (version 1.1); empty when unknown.
+		 **/
+		std::string m_sender_name;
+
+		/**
+		 * Kind of target of the message.
+		 **/
 		TargetKind m_target_kind = TargetKind::Id;
+
+		/**
+		 * Id of the target agent (TargetKind::Id), or of the target environment.
+		 **/
 		std::string m_target_id;
+
+		/**
+		 * Name or fragment of name of the target agents.
+		 **/
 		std::string m_target_name;
+
+		/**
+		 * True if a message by name goes to the first matching agent only.
+		 **/
 		bool m_first_only = false;
+
+		/**
+		 * Scope of the send.
+		 **/
 		Scope m_scope = Scope::Local;
+
+		/**
+		 * Encoding of m_content.
+		 **/
 		ContentEncoding m_content_encoding = ContentEncoding::Raw;
+
+		/**
+		 * Content of the message, encoded.
+		 **/
 		std::vector<std::uint8_t> m_content;
-		std::uint32_t m_priority = 0;      ///< reserved
+
+		/**
+		 * Reserved.
+		 **/
+		std::uint32_t m_priority = 0;
+
+		/**
+		 * Payload of the kinds that have one (migration, presence, directory).
+		 **/
 		std::variant<std::monostate, AgentTransfer, AgentControl, Presence, DirectoryEvent> m_payload;
 
 		/**

@@ -52,12 +52,16 @@ namespace cam::transport {
 		template<std::size_t N>
 		std::uint8_t enum_value(const std::array<const char*, N>& p_names, const json& p_json, const char* p_what, std::optional<Error>& p_error) {
 			if (!p_json.is_string()) {
-				if (!p_error) p_error = invalid(std::string(p_what) + " is not a string");
+				if (!p_error) {
+					p_error = invalid(std::string(p_what) + " is not a string");
+				}
 				return 255;
 			}
 			const auto& l_text = p_json.get_ref<const std::string&>();
 			for (std::size_t i = 0; i < N; i++) {
-				if (l_text == p_names[i]) return static_cast<std::uint8_t>(i);
+				if (l_text == p_names[i]) {
+					return static_cast<std::uint8_t>(i);
+				}
 			}
 			return 255;
 		}
@@ -149,7 +153,14 @@ namespace cam::transport {
 
 		class Reader final {
 		private:
+			/**
+			 * First failure, kept: the decoding fails with it.
+			 **/
 			std::optional<Error> m_error;
+
+			/**
+			 * Largest string or byte array accepted.
+			 **/
 			std::size_t m_max_bytes;
 
 		public:
@@ -158,19 +169,25 @@ namespace cam::transport {
 			[[nodiscard]] const std::optional<Error>& error() const { return m_error; }
 
 			void fail(std::string p_message) {
-				if (!m_error) m_error = invalid(std::move(p_message));
+				if (!m_error) {
+					m_error = invalid(std::move(p_message));
+				}
 			}
 
 			std::string text(const json& p_object, const char* p_key) {
 				const auto l_it = p_object.find(p_key);
-				if (l_it == p_object.end() || l_it->is_null()) return {};
+				if (l_it == p_object.end() || l_it->is_null()) {
+					return {};
+				}
 				if (!l_it->is_string()) {
 					fail(std::string(p_key) + " is not a string");
 					return {};
 				}
 				const auto& l_text = l_it->get_ref<const std::string&>();
 				if (l_text.size() > ENVELOPE_MAX_STRING_BYTES) {
-					if (!m_error) m_error = make_error(ErrorCategory::Validation, ErrorCode::TooLarge, "string too large");
+					if (!m_error) {
+						m_error = make_error(ErrorCategory::Validation, ErrorCode::TooLarge, "string too large");
+					}
 					return {};
 				}
 				return l_text;
@@ -178,7 +195,9 @@ namespace cam::transport {
 
 			std::uint64_t uint(const json& p_object, const char* p_key) {
 				const auto l_it = p_object.find(p_key);
-				if (l_it == p_object.end() || l_it->is_null()) return 0;
+				if (l_it == p_object.end() || l_it->is_null()) {
+					return 0;
+				}
 				if (!l_it->is_number_unsigned()) {
 					fail(std::string(p_key) + " is not an unsigned integer");
 					return 0;
@@ -193,7 +212,9 @@ namespace cam::transport {
 
 			bool boolean(const json& p_object, const char* p_key) {
 				const auto l_it = p_object.find(p_key);
-				if (l_it == p_object.end() || l_it->is_null()) return false;
+				if (l_it == p_object.end() || l_it->is_null()) {
+					return false;
+				}
 				if (!l_it->is_boolean()) {
 					fail(std::string(p_key) + " is not a boolean");
 					return false;
@@ -204,13 +225,17 @@ namespace cam::transport {
 			template<std::size_t N>
 			std::uint8_t enumeration(const json& p_object, const char* p_key, const std::array<const char*, N>& p_names) {
 				const auto l_it = p_object.find(p_key);
-				if (l_it == p_object.end() || l_it->is_null()) return 0;
+				if (l_it == p_object.end() || l_it->is_null()) {
+					return 0;
+				}
 				return enum_value(p_names, *l_it, p_key, m_error);
 			}
 
 			std::vector<std::uint8_t> bytes(const json& p_object, const char* p_key) {
 				const auto l_it = p_object.find(p_key);
-				if (l_it == p_object.end() || l_it->is_null()) return {};
+				if (l_it == p_object.end() || l_it->is_null()) {
+					return {};
+				}
 				if (!l_it->is_string()) {
 					fail(std::string(p_key) + " is not a base64 string");
 					return {};
@@ -221,7 +246,9 @@ namespace cam::transport {
 					return {};
 				}
 				if (l_bytes->size() > m_max_bytes) {
-					if (!m_error) m_error = make_error(ErrorCategory::Validation, ErrorCode::TooLarge, "byte array too large");
+					if (!m_error) {
+						m_error = make_error(ErrorCategory::Validation, ErrorCode::TooLarge, "byte array too large");
+					}
 					return {};
 				}
 				return std::move(*l_bytes);
@@ -229,7 +256,9 @@ namespace cam::transport {
 
 			const json* object(const json& p_object, const char* p_key) {
 				const auto l_it = p_object.find(p_key);
-				if (l_it == p_object.end() || l_it->is_null()) return nullptr;
+				if (l_it == p_object.end() || l_it->is_null()) {
+					return nullptr;
+				}
 				if (!l_it->is_object()) {
 					fail(std::string(p_key) + " is not an object");
 					return nullptr;

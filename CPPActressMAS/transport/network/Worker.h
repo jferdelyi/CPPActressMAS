@@ -25,7 +25,7 @@
 
 /**
  * CPPActressMAS transport layer.
- */
+ **/
 namespace cam::transport {
 
 	/**
@@ -35,19 +35,50 @@ namespace cam::transport {
 	 **/
 	class Worker final {
 	private:
+		/**
+		 * The thread, from start() to stop().
+		 **/
 		std::thread m_thread;
+
+		/**
+		 * Guards m_jobs and m_stop.
+		 **/
 		std::mutex m_mutex;
+
+		/**
+		 * Wakes the thread for a job or for the stop.
+		 **/
 		std::condition_variable m_condition;
+
+		/**
+		 * Jobs waiting, oldest first.
+		 **/
 		std::deque<std::function<void()>> m_jobs;
+
+		/**
+		 * True once stop() was asked.
+		 **/
 		bool m_stop = false;
 
+		/**
+		 * Body of the thread: run the jobs in order until the stop.
+		 **/
 		void run();
 
 	public:
+		/**
+		 * Create a worker; its thread starts with start().
+		 **/
 		Worker() = default;
+
+		/**
+		 * Stop the thread.
+		 **/
 		~Worker();
 
+		// Delete copy constructor
 		Worker(const Worker&) = delete;
+
 		Worker& operator=(const Worker&) = delete;
 
 		/**

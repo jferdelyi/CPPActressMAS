@@ -56,6 +56,9 @@ namespace cam::transport {
 		 **/
 		class Writer final {
 		private:
+			/**
+			 * Buffer written to (not owned).
+			 **/
 			std::vector<std::uint8_t>& m_out;
 
 			void tag(const std::uint64_t p_field, const std::uint64_t p_wire_type) { varint((p_field << 3) | p_wire_type); }
@@ -109,8 +112,19 @@ namespace cam::transport {
 		 **/
 		class Reader final {
 		private:
+			/**
+			 * Bytes read.
+			 **/
 			std::span<const std::uint8_t> m_in;
+
+			/**
+			 * Position of the next byte to read.
+			 **/
 			std::size_t m_position = 0;
+
+			/**
+			 * First failure, kept: every later read fails too.
+			 **/
 			std::optional<Error> m_error;
 
 		public:
@@ -169,7 +183,9 @@ namespace cam::transport {
 			// The bytes of a length-delimited field.
 			std::span<const std::uint8_t> length_delimited() {
 				const std::uint64_t l_size = varint();
-				if (m_error) return {};
+				if (m_error) {
+					return {};
+				}
 				if (l_size > m_in.size() - m_position) {
 					fail("truncated field");
 					return {};
@@ -185,7 +201,9 @@ namespace cam::transport {
 					return {};
 				}
 				const auto l_bytes = length_delimited();
-				if (m_error) return {};
+				if (m_error) {
+					return {};
+				}
 				if (l_bytes.size() > ENVELOPE_MAX_STRING_BYTES) {
 					fail_size("string too large");
 					return {};
@@ -199,7 +217,9 @@ namespace cam::transport {
 					return {};
 				}
 				const auto l_bytes = length_delimited();
-				if (m_error) return {};
+				if (m_error) {
+					return {};
+				}
 				if (l_bytes.size() > p_max) {
 					fail_size("byte array too large");
 					return {};
@@ -363,7 +383,9 @@ namespace cam::transport {
 					case field::STATE: l_transfer.m_state = l_reader.bytes(l_wire, p_max_bytes); break;
 					case field::QUEUE: {
 						const auto l_nested = l_reader.message(l_wire);
-						if (l_reader.error()) break;
+						if (l_reader.error()) {
+							break;
+						}
 						if (l_transfer.m_queue.size() >= ENVELOPE_MAX_LIST_ITEMS) {
 							l_reader.fail("too many queued envelopes");
 							break;
@@ -424,7 +446,9 @@ namespace cam::transport {
 					case field::TIMESTAMP_MS: l_presence.m_timestamp_ms = l_reader.uint(l_wire); break;
 					case field::AGENTS: {
 						const auto l_entry = l_reader.message(l_wire);
-						if (l_reader.error()) break;
+						if (l_reader.error()) {
+							break;
+						}
 						if (l_presence.m_agents.size() >= ENVELOPE_MAX_LIST_ITEMS) {
 							l_reader.fail("too many agents in presence");
 							break;
@@ -508,33 +532,49 @@ namespace cam::transport {
 					case field::PRIORITY: l_envelope.m_priority = static_cast<std::uint32_t>(l_reader.uint(l_wire)); break;
 					case field::TRANSFER: {
 						const auto l_nested = l_reader.message(l_wire);
-						if (l_reader.error()) break;
+						if (l_reader.error()) {
+							break;
+						}
 						auto l_transfer = read_transfer(l_nested, p_max_bytes, p_depth);
-						if (!l_transfer) return l_transfer.error();
+						if (!l_transfer) {
+							return l_transfer.error();
+						}
 						l_envelope.m_payload = std::move(l_transfer.value());
 						break;
 					}
 					case field::CONTROL: {
 						const auto l_nested = l_reader.message(l_wire);
-						if (l_reader.error()) break;
+						if (l_reader.error()) {
+							break;
+						}
 						auto l_control = read_control(l_nested);
-						if (!l_control) return l_control.error();
+						if (!l_control) {
+							return l_control.error();
+						}
 						l_envelope.m_payload = std::move(l_control.value());
 						break;
 					}
 					case field::PRESENCE: {
 						const auto l_nested = l_reader.message(l_wire);
-						if (l_reader.error()) break;
+						if (l_reader.error()) {
+							break;
+						}
 						auto l_presence = read_presence(l_nested);
-						if (!l_presence) return l_presence.error();
+						if (!l_presence) {
+							return l_presence.error();
+						}
 						l_envelope.m_payload = std::move(l_presence.value());
 						break;
 					}
 					case field::DIRECTORY: {
 						const auto l_nested = l_reader.message(l_wire);
-						if (l_reader.error()) break;
+						if (l_reader.error()) {
+							break;
+						}
 						auto l_event = read_directory(l_nested);
-						if (!l_event) return l_event.error();
+						if (!l_event) {
+							return l_event.error();
+						}
 						l_envelope.m_payload = std::move(l_event.value());
 						break;
 					}

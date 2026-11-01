@@ -24,6 +24,9 @@ namespace cam::transport {
 
 	namespace {
 
+		/**
+		 * Namespace of a detached endpoint (ns() returns a reference to it).
+		 **/
 		const std::string DEFAULT_NAMESPACE = "default";
 
 		std::uint32_t random_epoch() {

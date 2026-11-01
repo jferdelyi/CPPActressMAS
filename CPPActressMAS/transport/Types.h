@@ -30,7 +30,7 @@
 /**
  * CPPActressMAS transport layer: basic types shared by the core, the codecs and the transports.
  * None of these types depends on a network library.
- */
+ **/
 namespace cam::transport {
 
 	/**
@@ -50,8 +50,19 @@ namespace cam::transport {
 	 * EnvPresence), a node id (NodePresence) or empty (AllIn).
 	 **/
 	struct Address {
+		/**
+		 * Kind of destination.
+		 **/
 		AddressKind m_kind = AddressKind::EnvIn;
+
+		/**
+		 * Namespace of the key, the same for every environment of a simulation.
+		 **/
 		std::string m_namespace = "default";
+
+		/**
+		 * Environment id, node id, or empty for AllIn.
+		 **/
 		std::string m_target;
 
 		/**
@@ -67,6 +78,9 @@ namespace cam::transport {
 		 **/
 		static std::optional<Address> parse(std::string_view p_key);
 
+		/**
+		 * Two addresses are equal when their kind, namespace and target are.
+		 **/
 		bool operator==(const Address&) const = default;
 	};
 
@@ -105,8 +119,19 @@ namespace cam::transport {
 	 * the send overload, priority reserved (always 0 today).
 	 **/
 	struct SendOptions {
+		/**
+		 * Encoding of the content on the wire; empty: the one of the content (Text, Raw, MessagePack for JSON).
+		 **/
 		std::optional<ContentEncoding> m_encoding{};
+
+		/**
+		 * Local or network scope.
+		 **/
 		Scope m_scope = Scope::Local;
+
+		/**
+		 * Reserved, always 0 today.
+		 **/
 		std::uint32_t m_priority = 0;
 	};
 
@@ -114,12 +139,39 @@ namespace cam::transport {
 	 * What a transport can do; the core only requires pubsub.
 	 **/
 	struct Capabilities {
+		/**
+		 * Publish on keys and subscribe to them: the only capability the core requires.
+		 **/
 		bool m_pubsub = true;
+
+		/**
+		 * Queries answered by the other nodes (directory fallback).
+		 **/
 		bool m_request_reply = false;
+
+		/**
+		 * Presence of the nodes followed by the transport itself: the death of a process takes its environments offline.
+		 **/
 		bool m_liveliness = false;
+
+		/**
+		 * A newcomer receives the last presence of every attached environment.
+		 **/
 		bool m_retained_presence = false;
+
+		/**
+		 * The publications of one sender arrive in the order they were published.
+		 **/
 		bool m_ordered_per_sender = false;
+
+		/**
+		 * No publication is lost.
+		 **/
 		bool m_at_least_once = false;
+
+		/**
+		 * publish() may be called from several threads at once.
+		 **/
 		bool m_thread_safe_publish = false;
 	};
 
@@ -127,18 +179,69 @@ namespace cam::transport {
 	 * Configuration of a transport instance (one node: one connection, one namespace, one codec).
 	 **/
 	struct TransportConfig {
+		/**
+		 * Namespace of the keys ([a-z0-9-], 1 to 32 characters): the environments of one simulation share it.
+		 **/
 		std::string m_namespace = "default";
+
+		/**
+		 * Broker or peer to connect to ("tcp://host:port" or "ssl://host:port" for MQTT, "tcp/host:port" for Zenoh).
+		 **/
 		std::string m_endpoint{};
+
+		/**
+		 * Time open() waits for the connection.
+		 **/
 		std::chrono::milliseconds m_connect_timeout{5000};
+
+		/**
+		 * Time the MQTT broker keeps the session of a disconnected client.
+		 **/
 		std::chrono::seconds m_session_expiry{300};
-		std::string m_codec = "protobuf";  ///< envelope codec: "protobuf" (default), "compact" or "json"
+
+		/**
+		 * Envelope codec: "protobuf" (default), "compact" or "json".
+		 **/
+		std::string m_codec = "protobuf";
+
+		/**
+		 * Largest envelope sent or accepted; a larger one is refused.
+		 **/
 		std::size_t m_max_envelope_bytes = 1u << 20;
+
+		/**
+		 * TLS connection (mqtts).
+		 **/
 		bool m_tls = false;
+
+		/**
+		 * File of the certificate authority that signed the certificate of the broker (TLS).
+		 **/
 		std::string m_ca_file{};
+
+		/**
+		 * File of the certificate of the client (TLS).
+		 **/
 		std::string m_certificate_file{};
+
+		/**
+		 * File of the private key of the client (TLS).
+		 **/
 		std::string m_key_file{};
+
+		/**
+		 * Verify the certificate of the broker (TLS).
+		 **/
 		bool m_verify_peer = true;
+
+		/**
+		 * User name given to the MQTT broker.
+		 **/
 		std::string m_username{};
+
+		/**
+		 * Password given to the MQTT broker.
+		 **/
 		std::string m_password{};
 	};
 
@@ -146,17 +249,64 @@ namespace cam::transport {
 	 * Configuration of an endpoint (one environment attached to a transport).
 	 **/
 	struct EndpointConfig {
+		/**
+		 * Name of the environment, announced in its presence (EnvironmentInfo::m_name of the others).
+		 **/
 		std::string m_name{};
+
+		/**
+		 * Envelopes waiting for the next turn boundary; beyond, an arrival is dropped and counted (m_inbox_overflow).
+		 **/
 		std::size_t m_inbox_capacity = 65536;
+
+		/**
+		 * Envelopes waiting to be published; beyond, a send is refused (ErrorCode::OutboxFull).
+		 **/
 		std::size_t m_outbox_capacity = 65536;
+
+		/**
+		 * Sequences remembered by flow to recognize a duplicate.
+		 **/
 		std::size_t m_dedup_window = 4096;
+
+		/**
+		 * Envelopes held by flow behind a missing sequence; beyond, the missing ones are given up.
+		 **/
 		std::size_t m_reorder_capacity = 256;
+
+		/**
+		 * Turns a missing sequence is waited for before it is counted lost.
+		 **/
 		std::uint32_t m_reorder_turns = 2;
+
+		/**
+		 * Time a leaving agent waits for the answer of its destination; then it stays.
+		 **/
 		std::chrono::milliseconds m_migration_timeout{5000};
+
+		/**
+		 * Time an arrived agent waits for the confirmation of its origin; then its migration fails.
+		 **/
 		std::chrono::milliseconds m_accept_hold_timeout{15000};
+
+		/**
+		 * Turns during which the messages for an agent that left are forwarded to its new environment.
+		 **/
 		std::uint32_t m_forward_grace_turns = 10;
+
+		/**
+		 * Reserved: not used today.
+		 **/
 		std::uint32_t m_pending_agent_turns = 10;
+
+		/**
+		 * Publications of one flush at the turn boundary (0: no limit).
+		 **/
 		std::size_t m_flush_max_messages = 0;
+
+		/**
+		 * Time of one flush at the turn boundary; the rest waits for the next one.
+		 **/
 		std::chrono::milliseconds m_flush_max_time{50};
 	};
 
@@ -164,31 +314,109 @@ namespace cam::transport {
 	 * Counters of an endpoint. Losses are counted, never silent.
 	 **/
 	struct Statistics {
+		/**
+		 * Envelopes published.
+		 **/
 		std::uint64_t m_sent = 0;
+
+		/**
+		 * Envelopes accepted in the inbox.
+		 **/
 		std::uint64_t m_received = 0;
+
+		/**
+		 * Envelopes handed to the environment, in order.
+		 **/
 		std::uint64_t m_delivered = 0;
+
+		/**
+		 * Envelopes received twice, dropped.
+		 **/
 		std::uint64_t m_duplicates = 0;
+
+		/**
+		 * Envelopes delivered out of order: late, or behind a sequence given up.
+		 **/
 		std::uint64_t m_out_of_order = 0;
+
+		/**
+		 * Sequences given up, and publications that failed.
+		 **/
 		std::uint64_t m_lost = 0;
+
+		/**
+		 * Envelopes refused: undecodable, invalid or inconsistent.
+		 **/
 		std::uint64_t m_rejected = 0;
+
+		/**
+		 * Envelopes of this environment received back, dropped.
+		 **/
 		std::uint64_t m_echo = 0;
+
+		/**
+		 * Arrivals dropped because the inbox was full.
+		 **/
 		std::uint64_t m_inbox_overflow = 0;
+
+		/**
+		 * Sends refused because the outbox was full.
+		 **/
 		std::uint64_t m_outbox_overflow = 0;
+
+		/**
+		 * Messages forwarded to the new environment of an agent that left.
+		 **/
 		std::uint64_t m_forwarded = 0;
+
+		/**
+		 * Migration controls about a transfer unknown or already finished.
+		 **/
 		std::uint64_t m_stale_control = 0;
+
+		/**
+		 * Messages for an agent found nowhere.
+		 **/
 		std::uint64_t m_unknown_destination = 0;
-		std::uint64_t m_migrations_completed = 0;  ///< agents that left or arrived with a confirmed migration
-		std::uint64_t m_migrations_failed = 0;     ///< refused, timed out or abandoned migrations
+
+		/**
+		 * Agents that left or arrived with a confirmed migration.
+		 **/
+		std::uint64_t m_migrations_completed = 0;
+
+		/**
+		 * Refused, timed out or abandoned migrations.
+		 **/
+		std::uint64_t m_migrations_failed = 0;
 	};
 
 	/**
 	 * What an environment knows about another one (snapshot value, never a pointer).
 	 **/
 	struct EnvironmentInfo {
+		/**
+		 * Id of the environment.
+		 **/
 		std::string m_id;
+
+		/**
+		 * Name of the environment.
+		 **/
 		std::string m_name;
+
+		/**
+		 * Id of the node (transport instance) it is attached to.
+		 **/
 		std::string m_node;
+
+		/**
+		 * True while it is online.
+		 **/
 		bool m_online = false;
+
+		/**
+		 * When its last presence arrived.
+		 **/
 		std::chrono::steady_clock::time_point m_last_seen;
 	};
 
@@ -248,9 +476,24 @@ namespace cam::transport {
 	 * Error value: category, code, message and the native code of the transport, if any.
 	 **/
 	struct Error {
+		/**
+		 * Category of the error.
+		 **/
 		ErrorCategory m_category = ErrorCategory::State;
+
+		/**
+		 * Code of the error.
+		 **/
 		ErrorCode m_code = ErrorCode::None;
+
+		/**
+		 * Readable description.
+		 **/
 		std::string m_message;
+
+		/**
+		 * Native code of the transport library, 0 if none.
+		 **/
 		int m_native = 0;
 	};
 
@@ -259,7 +502,15 @@ namespace cam::transport {
 	 * of its configuration does not connect.
 	 **/
 	struct TransportError final : std::runtime_error {
+		/**
+		 * The error.
+		 **/
 		Error m_error;
+
+		/**
+		 * Create the exception of an error.
+		 * @param p_error The error
+		 **/
 		explicit TransportError(Error p_error) : std::runtime_error(p_error.m_message), m_error(std::move(p_error)) {}
 	};
 
@@ -276,16 +527,52 @@ namespace cam::transport {
 	template<typename T>
 	class Result final {
 	private:
+		/**
+		 * The value, or the error.
+		 **/
 		std::variant<T, Error> m_value;
 
 	public:
+		/**
+		 * Create a successful result.
+		 * @param p_value The value
+		 **/
 		Result(T p_value) : m_value(std::move(p_value)) {}  // NOLINT(google-explicit-constructor)
+
+		/**
+		 * Create a failed result.
+		 * @param p_error The error
+		 **/
 		Result(Error p_error) : m_value(std::move(p_error)) {}  // NOLINT(google-explicit-constructor)
 
+		/**
+		 * True if the operation succeeded.
+		 * @return True if there is a value
+		 **/
 		[[nodiscard]] bool has_value() const { return std::holds_alternative<T>(m_value); }
+
+		/**
+		 * True if the operation succeeded.
+		 * @return has_value()
+		 **/
 		explicit operator bool() const { return has_value(); }
+
+		/**
+		 * The value; the result must have one.
+		 * @return The value
+		 **/
 		[[nodiscard]] T& value() { return std::get<T>(m_value); }
+
+		/**
+		 * The value; the result must have one.
+		 * @return The value
+		 **/
 		[[nodiscard]] const T& value() const { return std::get<T>(m_value); }
+
+		/**
+		 * The error; the result must have one.
+		 * @return The error
+		 **/
 		[[nodiscard]] const Error& error() const { return std::get<Error>(m_value); }
 	};
 
@@ -295,14 +582,39 @@ namespace cam::transport {
 	template<>
 	class Result<void> final {
 	private:
+		/**
+		 * The error, empty on success.
+		 **/
 		std::optional<Error> m_error;
 
 	public:
+		/**
+		 * Create a successful result.
+		 **/
 		Result() = default;
+
+		/**
+		 * Create a failed result.
+		 * @param p_error The error
+		 **/
 		Result(Error p_error) : m_error(std::move(p_error)) {}  // NOLINT(google-explicit-constructor)
 
+		/**
+		 * True if the operation succeeded.
+		 * @return True if there is no error
+		 **/
 		[[nodiscard]] bool has_value() const { return !m_error.has_value(); }
+
+		/**
+		 * True if the operation succeeded.
+		 * @return has_value()
+		 **/
 		explicit operator bool() const { return has_value(); }
+
+		/**
+		 * The error; the result must have one.
+		 * @return The error
+		 **/
 		[[nodiscard]] const Error& error() const { return *m_error; }
 	};
 

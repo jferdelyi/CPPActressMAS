@@ -30,19 +30,41 @@
  * CPPActressMAS transport layer: interchangeable envelope codec. Every encoded envelope starts
  * with a fixed 4-byte header: magic 0xCA, codec id, codec major version, reserved. One codec per
  * transport instance, never per message.
- */
+ **/
 namespace cam::transport {
 
+	/**
+	 * First byte of every encoded envelope.
+	 **/
 	constexpr std::uint8_t ENVELOPE_MAGIC = 0xCA;
+
+	/**
+	 * Size of the header: magic, codec id, major version, reserved.
+	 **/
 	constexpr std::size_t ENVELOPE_HEADER_SIZE = 4;
-	constexpr std::size_t ENVELOPE_MAX_STRING_BYTES = 65535;  ///< longest string a codec accepts
-	constexpr std::size_t ENVELOPE_MAX_LIST_ITEMS = 65535;    ///< longest list a codec accepts
+
+	/**
+	 * Longest string a codec accepts.
+	 **/
+	constexpr std::size_t ENVELOPE_MAX_STRING_BYTES = 65535;
+
+	/**
+	 * Longest list a codec accepts.
+	 **/
+	constexpr std::size_t ENVELOPE_MAX_LIST_ITEMS = 65535;
 
 	/**
 	 * Header found in front of every encoded envelope.
 	 **/
 	struct EnvelopeHeader {
+		/**
+		 * Codec id.
+		 **/
 		std::uint8_t m_codec_id = 0;
+
+		/**
+		 * Major version of the format.
+		 **/
 		std::uint8_t m_version_major = 0;
 	};
 
@@ -51,6 +73,9 @@ namespace cam::transport {
 	 **/
 	class EnvelopeCodec {
 	public:
+		/**
+		 * Destroy the codec.
+		 **/
 		virtual ~EnvelopeCodec() = default;
 
 		/**
