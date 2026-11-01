@@ -28,10 +28,11 @@
 #include <unordered_set>
 #include <vector>
 
-#include <Environment.h>
-#include <util/Identifier.h>
-#include <transport/Types.h>
 #include <tsl/ordered_map.h>
+
+#include <Environment.h>
+#include <transport/Types.h>
+#include <util/Identifier.h>
 
 namespace {
 

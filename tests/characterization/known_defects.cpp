@@ -25,16 +25,16 @@
 
 #include <doctest/doctest.h>
 
-#include <Environment.h>
-#include <transport/codec/ContentCodec.h>
-#include <transport/loopback/LoopbackTransport.h>
-
 #include <map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
+
+#include <Environment.h>
+#include <transport/codec/ContentCodec.h>
+#include <transport/loopback/LoopbackTransport.h>
 
 #if defined(__APPLE__)
 #include <mach/mach.h>

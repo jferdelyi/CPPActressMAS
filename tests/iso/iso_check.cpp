@@ -394,18 +394,42 @@ namespace {
 		const double l_left = evaluate(p_node.m_operands[0], p_tuple, p_previous);
 		const double l_right = evaluate(p_node.m_operands[1], p_tuple, p_previous);
 		const std::string& l_operator = p_node.m_operator;
-		if (l_operator == "+") return l_left + l_right;
-		if (l_operator == "-") return l_left - l_right;
-		if (l_operator == "*") return l_left * l_right;
-		if (l_operator == "/") return l_left / l_right;
-		if (l_operator == "==") return l_left == l_right ? 1 : 0;
-		if (l_operator == "!=") return l_left != l_right ? 1 : 0;
-		if (l_operator == "<") return l_left < l_right ? 1 : 0;
-		if (l_operator == "<=") return l_left <= l_right ? 1 : 0;
-		if (l_operator == ">") return l_left > l_right ? 1 : 0;
-		if (l_operator == ">=") return l_left >= l_right ? 1 : 0;
-		if (l_operator == "and") return l_left != 0 && l_right != 0 ? 1 : 0;
-		if (l_operator == "or") return l_left != 0 || l_right != 0 ? 1 : 0;
+		if (l_operator == "+") {
+			return l_left + l_right;
+		}
+		if (l_operator == "-") {
+			return l_left - l_right;
+		}
+		if (l_operator == "*") {
+			return l_left * l_right;
+		}
+		if (l_operator == "/") {
+			return l_left / l_right;
+		}
+		if (l_operator == "==") {
+			return l_left == l_right ? 1 : 0;
+		}
+		if (l_operator == "!=") {
+			return l_left != l_right ? 1 : 0;
+		}
+		if (l_operator == "<") {
+			return l_left < l_right ? 1 : 0;
+		}
+		if (l_operator == "<=") {
+			return l_left <= l_right ? 1 : 0;
+		}
+		if (l_operator == ">") {
+			return l_left > l_right ? 1 : 0;
+		}
+		if (l_operator == ">=") {
+			return l_left >= l_right ? 1 : 0;
+		}
+		if (l_operator == "and") {
+			return l_left != 0 && l_right != 0 ? 1 : 0;
+		}
+		if (l_operator == "or") {
+			return l_left != 0 || l_right != 0 ? 1 : 0;
+		}
 		throw UsageError("unknown operator " + l_operator);
 	}
 
@@ -817,12 +841,24 @@ namespace {
 		} else {
 			l_reference = std::stod(p_reference);
 		}
-		if (p_operator == "==") return p_value == l_reference;
-		if (p_operator == "!=") return p_value != l_reference;
-		if (p_operator == "<") return p_value < l_reference;
-		if (p_operator == "<=") return p_value <= l_reference;
-		if (p_operator == ">") return p_value > l_reference;
-		if (p_operator == ">=") return p_value >= l_reference;
+		if (p_operator == "==") {
+			return p_value == l_reference;
+		}
+		if (p_operator == "!=") {
+			return p_value != l_reference;
+		}
+		if (p_operator == "<") {
+			return p_value < l_reference;
+		}
+		if (p_operator == "<=") {
+			return p_value <= l_reference;
+		}
+		if (p_operator == ">") {
+			return p_value > l_reference;
+		}
+		if (p_operator == ">=") {
+			return p_value >= l_reference;
+		}
 		throw UsageError("unknown operator " + p_operator);
 	}
 

@@ -58,7 +58,9 @@ namespace {
 		Sender(const std::string& p_name, cam::AgentId p_target_id, std::string p_text = "hello") :
 				Agent(p_name), m_target_id(p_target_id), m_text(std::move(p_text)) {}
 		void default_action() override {
-			if (m_sent) return;
+			if (m_sent) {
+				return;
+			}
 			if (const auto l_result = send(m_target_id, raw(m_text), m_text.size()); l_result) {
 				m_sent = true;
 				g_recorder.record(get_name() + ":sent");
@@ -96,7 +98,9 @@ namespace {
 		SharedTextSender(const std::string& p_name, cam::AgentId p_target_id, const std::string& p_text) :
 				Agent(p_name), m_target_id(p_target_id), m_text(p_text) {}
 		void default_action() override {
-			if (m_sent) return;
+			if (m_sent) {
+				return;
+			}
 			if (send(m_target_id, m_text)) {
 				m_sent = true;
 			}
@@ -112,7 +116,9 @@ namespace {
 		TextSender(const std::string& p_name, cam::AgentId p_target_id, std::string p_text) :
 				Agent(p_name), m_target_id(p_target_id), m_text(std::move(p_text)) {}
 		void default_action() override {
-			if (m_sent) return;
+			if (m_sent) {
+				return;
+			}
 			if (send(m_target_id, m_text)) {
 				m_sent = true;
 			}
@@ -128,7 +134,9 @@ namespace {
 		MultiSender(const std::string& p_name, cam::AgentId p_target_id, const int p_total) :
 				Agent(p_name), m_target_id(p_target_id), m_total(p_total) {}
 		void default_action() override {
-			if (m_count >= m_total) return;
+			if (m_count >= m_total) {
+				return;
+			}
 			const std::string l_text = "m" + std::to_string(++m_count);
 			if (send(m_target_id, raw(l_text), l_text.size())) {
 				g_recorder.record(get_name() + ":sent:" + l_text);
@@ -145,7 +153,9 @@ namespace {
 		BurstSender(const std::string& p_name, cam::AgentId p_target_id, const int p_total) :
 				Agent(p_name), m_target_id(p_target_id), m_total(p_total) {}
 		void default_action() override {
-			if (m_done) return;
+			if (m_done) {
+				return;
+			}
 			m_done = true;
 			for (int i = 0; i < m_total; i++) {
 				if (!send(m_target_id, "b" + std::to_string(i))) {
@@ -163,7 +173,9 @@ namespace {
 	struct Broadcaster final : cam::Agent {
 		Broadcaster(const std::string& p_name, const Scope p_scope) : Agent(p_name), m_scope(p_scope) {}
 		void default_action() override {
-			if (m_done) return;
+			if (m_done) {
+				return;
+			}
 			m_done = true;
 			const auto l_result = broadcast(raw("all"), 3, SendOptions{.m_scope = m_scope});
 			g_recorder.record(get_name() + (l_result ? ":sent" : ":" + std::string(to_string(l_result.error().m_code))));
@@ -178,7 +190,9 @@ namespace {
 		Namer(const std::string& p_name, std::string p_target, const bool p_fragment, const bool p_first_only, const Scope p_scope) :
 				Agent(p_name), m_target(std::move(p_target)), m_fragment(p_fragment), m_first_only(p_first_only), m_scope(p_scope) {}
 		void default_action() override {
-			if (m_done) return;
+			if (m_done) {
+				return;
+			}
 			m_done = true;
 			const SendOptions l_options{.m_scope = m_scope};
 			const auto l_result = m_fragment ? send_by_fragment_name(m_target, raw("hi"), 2, m_first_only, l_options)

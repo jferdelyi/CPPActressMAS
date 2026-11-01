@@ -21,11 +21,11 @@
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
+
 #include <Environment.h>
 #include <transport/Facade.h>
 #include <transport/loopback/LoopbackTransport.h>
-
-#include <algorithm>
 
 namespace {
 

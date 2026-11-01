@@ -24,9 +24,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include <doctest/doctest.h>
 
-#include <Environment.h>
-#include <transport/Facade.h>
-
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -34,6 +31,9 @@
 #include <string>
 #include <thread>
 #include <vector>
+
+#include <Environment.h>
+#include <transport/Facade.h>
 
 #include "Recorder.hpp"
 #include "wait_until.hpp"

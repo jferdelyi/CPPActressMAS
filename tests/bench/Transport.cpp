@@ -59,7 +59,9 @@ namespace {
 			(void) send(p_message->get_sender(), l_bytes.data(), l_bytes.size());
 		}
 		void default_action() override {
-			if (g_done.load()) stop();
+			if (g_done.load()) {
+				stop();
+			}
 		}
 	};
 
@@ -108,7 +110,9 @@ namespace {
 
 	bool has_scheme(const std::string& p_scheme) {
 		for (const auto& l_scheme: cam::transport::schemes()) {
-			if (l_scheme == p_scheme) return true;
+			if (l_scheme == p_scheme) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -120,12 +124,17 @@ int main(int argc, char** argv) {
 	for (int i = 1; i < argc; i++) {
 		const std::string l_argument = argv[i];
 		const char* l_value = i + 1 < argc ? argv[i + 1] : nullptr;
-		if (l_argument == "--transport" && l_value) l_settings.m_transport = argv[++i];
-		else if (l_argument == "--url-a" && l_value) l_settings.m_url_a = argv[++i];
-		else if (l_argument == "--url-b" && l_value) l_settings.m_url_b = argv[++i];
-		else if (l_argument == "--pings" && l_value) l_settings.m_pings = std::atol(argv[++i]);
-		else if (l_argument == "--trials" && l_value) l_settings.m_trials = std::atoi(argv[++i]);
-		else {
+		if (l_argument == "--transport" && l_value) {
+			l_settings.m_transport = argv[++i];
+		} else if (l_argument == "--url-a" && l_value) {
+			l_settings.m_url_a = argv[++i];
+		} else if (l_argument == "--url-b" && l_value) {
+			l_settings.m_url_b = argv[++i];
+		} else if (l_argument == "--pings" && l_value) {
+			l_settings.m_pings = std::atol(argv[++i]);
+		} else if (l_argument == "--trials" && l_value) {
+			l_settings.m_trials = std::atoi(argv[++i]);
+		} else {
 			std::cerr << "usage: bench_Transport [--transport loopback|mqtt|zenoh] [--url-a URL] [--url-b URL] [--pings N] [--trials N]\n";
 			return 2;
 		}
@@ -159,7 +168,9 @@ int main(int argc, char** argv) {
 			cam::transport::LoopbackOptions l_options;
 			l_options.m_serialize = true;
 			l_loopback = std::make_shared<cam::transport::LoopbackTransport>(cam::transport::TransportConfig{}, l_options);
-			if (!l_loopback->open()) return 1;
+			if (!l_loopback->open()) {
+				return 1;
+			}
 		}
 		cam::Environment l_environment_a(0, cam::EnvironmentMasMode::Sequential);
 		cam::Environment l_environment_b(0, cam::EnvironmentMasMode::Sequential);

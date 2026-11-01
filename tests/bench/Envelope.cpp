@@ -62,7 +62,7 @@ namespace {
 		const Envelope l_envelope = sample(p_content_size);
 		const auto l_first = p_codec.encode(l_envelope);
 		if (!l_first) {
-			std::cerr << p_codec.name() << ": encode failed: " << l_first.error().m_message << std::endl;
+			std::cerr << p_codec.name() << ": encode failed: " << l_first.error().m_message << '\n';
 			return;
 		}
 		std::size_t l_sink = 0;
@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
 		} else if (std::strcmp(argv[i], "--codec") == 0 && i + 1 < argc) {
 			l_only = argv[++i];
 		} else {
-			std::cerr << "usage: bench_Envelope [--count N] [--codec protobuf|compact|json]" << std::endl;
+			std::cerr << "usage: bench_Envelope [--count N] [--codec protobuf|compact|json]\n";
 			return 2;
 		}
 	}

@@ -27,15 +27,14 @@
 // Usage: cam_probes            lists the probes (exit 0)
 //        cam_probes <name>     runs one probe; unknown name: exit 2
 
-#include <Environment.h>
-
-
 #include <atomic>
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <thread>
 #include <vector>
+
+#include <Environment.h>
 
 namespace {
 
