@@ -22,9 +22,14 @@ if (NOT EXISTS ${CAM_DOCTEST_HEADER})
 	message(FATAL_ERROR "ThirdParty/doctest is missing: run git submodule update --init --depth 1")
 endif()
 
+# Every program of the tests is built with the warnings of the project (CAM_WARNING_OPTIONS, root CMakeLists.txt)
+add_compile_options(${CAM_WARNING_OPTIONS})
+
 # ---------------------------------------------------------------- shared by the types
 add_library(cam_test_support INTERFACE)
-target_include_directories(cam_test_support INTERFACE ${CMAKE_CURRENT_LIST_DIR}/support ${CMAKE_SOURCE_DIR}/ThirdParty/doctest)
+target_include_directories(cam_test_support INTERFACE ${CMAKE_CURRENT_LIST_DIR}/support)
+# doctest is a dependency: its warnings are not those of the project
+target_include_directories(cam_test_support SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/ThirdParty/doctest)
 
 add_library(cam_doctest_main STATIC support/doctest_main.cpp)
 target_link_libraries(cam_doctest_main PUBLIC cam_test_support)

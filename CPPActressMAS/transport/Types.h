@@ -106,7 +106,7 @@ namespace cam::transport {
 	 * the send overload, priority reserved (always 0 today).
 	 **/
 	struct SendOptions {
-		std::optional<MessageBinaryFormat> m_encoding;
+		std::optional<MessageBinaryFormat> m_encoding{};
 		Scope m_scope = Scope::Local;
 		std::uint32_t m_priority = 0;
 	};
@@ -129,25 +129,25 @@ namespace cam::transport {
 	 **/
 	struct TransportConfig {
 		std::string m_namespace = "default";
-		std::string m_endpoint;
+		std::string m_endpoint{};
 		std::chrono::milliseconds m_connect_timeout{5000};
 		std::chrono::seconds m_session_expiry{300};
 		std::string m_codec = "protobuf";  ///< envelope codec: "protobuf" (default), "compact" or "json"
 		std::size_t m_max_envelope_bytes = 1u << 20;
 		bool m_tls = false;
-		std::string m_ca_file;
-		std::string m_certificate_file;
-		std::string m_key_file;
+		std::string m_ca_file{};
+		std::string m_certificate_file{};
+		std::string m_key_file{};
 		bool m_verify_peer = true;
-		std::string m_username;
-		std::string m_password;
+		std::string m_username{};
+		std::string m_password{};
 	};
 
 	/**
 	 * Configuration of an endpoint (one environment attached to a transport).
 	 **/
 	struct EndpointConfig {
-		std::string m_name;
+		std::string m_name{};
 		std::size_t m_inbox_capacity = 65536;
 		std::size_t m_outbox_capacity = 65536;
 		std::size_t m_dedup_window = 4096;

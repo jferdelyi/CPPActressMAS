@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      # Release adds -Wall -Wextra -Wpedantic: a warning of the project fails the build
+      # Every configuration builds with -Wall -Wextra -Wpedantic: a warning of the project fails the build
       - name: Configure
         run: cmake --preset core -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
       - name: Build

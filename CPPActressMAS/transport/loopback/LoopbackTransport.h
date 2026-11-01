@@ -38,8 +38,8 @@ namespace cam::transport {
 		std::size_t m_drop_every_n = 0;       ///< drop one publication out of n (0: never)
 		std::size_t m_duplicate_every_n = 0;  ///< deliver one publication out of n twice (0: never)
 		std::size_t m_reorder_window = 0;     ///< hold n publications then deliver them in reverse order (0: never)
-		std::function<bool(const Envelope&)> m_drop_if;  ///< drop the publications matching the predicate
-		std::function<bool(const Envelope&)> m_hold_if;  ///< hold the publications matching the predicate until release_held()
+		std::function<bool(const Envelope&)> m_drop_if{};  ///< drop the publications matching the predicate
+		std::function<bool(const Envelope&)> m_hold_if{};  ///< hold the matching publications until release_held()
 	};
 
 	/**

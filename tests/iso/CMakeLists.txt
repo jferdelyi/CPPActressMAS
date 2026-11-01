@@ -52,14 +52,13 @@ target_include_directories(cam_dotnet_seed_tests PRIVATE ${CMAKE_CURRENT_LIST_DI
 
 # ---------------------------------------------------------------- the ports of the C# examples
 # One program per C# project, named after it: the C# original as it is, its bugs included, on the mechanics of the
-# library, with the .NET helpers of DotNet.hpp. Floating point as the C# (-ffp-contract=off: no fused multiply-add),
-# and the warnings of the project in Release.
+# library, with the .NET helpers of DotNet.hpp. Floating point as the C# (-ffp-contract=off: no fused multiply-add).
 function(cam_add_iso_port p_project)
 	add_executable(iso_${p_project} ports/${p_project}.cpp)
 	target_link_libraries(iso_${p_project} ${CAM_TEST_LIBRARY})
 	target_include_directories(iso_${p_project} PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-		target_compile_options(iso_${p_project} PRIVATE -ffp-contract=off $<$<CONFIG:Release>:-Wall -Wextra -Wpedantic>)
+		target_compile_options(iso_${p_project} PRIVATE -ffp-contract=off)
 	endif()
 endfunction()
 

@@ -7,6 +7,9 @@ if (NOT TARGET CPPActressMASStatic)
 	message(FATAL_ERROR "tests/bench/ links to CPPActressMASStatic: configure with -DBUILD_STATIC=ON")
 endif()
 
+# The warnings of the project (CAM_WARNING_OPTIONS, root CMakeLists.txt)
+add_compile_options(${CAM_WARNING_OPTIONS})
+
 function(cam_add_bench p_name)
 	add_executable(bench_${p_name} ${CMAKE_CURRENT_LIST_DIR}/${p_name}.cpp)
 	target_include_directories(bench_${p_name} PRIVATE ${CMAKE_CURRENT_LIST_DIR})

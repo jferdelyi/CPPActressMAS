@@ -42,13 +42,21 @@ option(CAM_BUILD_TESTS "Enable building tests (tests/, CTest)" ${PROJECT_IS_TOP_
 option(CAM_TRANSPORT_MQTT "Build the MQTT transport (libmosquitto fetched and built by the project, needs OpenSSL)" OFF)
 option(CAM_TRANSPORT_ZENOH "Build the Zenoh transport (zenoh-c and zenoh-cpp 1.7.1 from the system)" OFF)
 
+# Warnings of the project, in every configuration, for the library, the tests, the benchmarks and the examples (GCC and
+# Clang; MSVC keeps /W4 in Release). Not for the dependencies built by the project.
+set(CAM_WARNING_OPTIONS)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+	set(CAM_WARNING_OPTIONS -Wall -Wextra -Wpedantic)
+endif()
+
 if (BUILD_STATIC)
 	add_library(CPPActressMASStatic STATIC ${SOURCES})
+	target_compile_options(CPPActressMASStatic PRIVATE ${CAM_WARNING_OPTIONS})
 	if (CMAKE_BUILD_TYPE STREQUAL "Release")
 		if (WIN32)
 			target_compile_options(CPPActressMASStatic PRIVATE /O2 /W4 /LTCG)
 		else()
-			target_compile_options(CPPActressMASStatic PRIVATE -march=native -O3 -flto -Wall -Wextra -Wpedantic)
+			target_compile_options(CPPActressMASStatic PRIVATE -march=native -O3 -flto)
 		endif()
 	endif()
 	set_target_properties(CPPActressMASStatic PROPERTIES OUTPUT_NAME CPPActressMAS)
@@ -56,11 +64,12 @@ endif()
 
 if (BUILD_SHARED)
 	add_library(CPPActressMAS SHARED ${SOURCES})
+	target_compile_options(CPPActressMAS PRIVATE ${CAM_WARNING_OPTIONS})
 	if (CMAKE_BUILD_TYPE STREQUAL "Release")
 		if (WIN32)
 			target_compile_options(CPPActressMAS PRIVATE /O2 /W4 /LTCG)
 		else()
-			target_compile_options(CPPActressMAS PRIVATE -march=native -O3 -flto -Wall -Wextra -Wpedantic)
+			target_compile_options(CPPActressMAS PRIVATE -march=native -O3 -flto)
 			# Objects compiled with -flto are LLVM bitcode under clang: GNU ld needs -flto at link time too.
 			target_link_options(CPPActressMAS PRIVATE -flto)
 		endif()
