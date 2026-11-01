@@ -48,7 +48,7 @@ enum Scope {
   NETWORK = 1;
 }
 
-// Encoding of the content bytes (cam::MessageBinaryFormat).
+// Encoding of the content bytes (cam::ContentEncoding).
 enum ContentEncoding {
   RAW = 0;
   BJDATA = 1;

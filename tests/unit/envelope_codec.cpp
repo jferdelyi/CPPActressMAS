@@ -140,7 +140,7 @@ namespace {
 		l_envelope.m_target_name = p_json.at("target_name").get<std::string>();
 		l_envelope.m_first_only = p_json.at("first_only").get<bool>();
 		l_envelope.m_scope = static_cast<Scope>(p_json.at("scope").get<int>());
-		l_envelope.m_content_encoding = static_cast<cam::MessageBinaryFormat>(p_json.at("content_encoding").get<int>());
+		l_envelope.m_content_encoding = static_cast<cam::ContentEncoding>(p_json.at("content_encoding").get<int>());
 		l_envelope.m_content = unhex(p_json.at("content").get<std::string>());
 		l_envelope.m_priority = p_json.at("priority").get<std::uint32_t>();
 		const json& l_payload = p_json.at("payload");
@@ -151,7 +151,7 @@ namespace {
 			l_transfer.m_type_name = l_payload.at("type_name").get<std::string>();
 			l_transfer.m_agent_id = l_payload.at("agent_id").get<std::string>();
 			l_transfer.m_agent_name = l_payload.at("agent_name").get<std::string>();
-			l_transfer.m_state_encoding = static_cast<cam::MessageBinaryFormat>(l_payload.at("state_encoding").get<int>());
+			l_transfer.m_state_encoding = static_cast<cam::ContentEncoding>(l_payload.at("state_encoding").get<int>());
 			l_transfer.m_state = unhex(l_payload.at("state").get<std::string>());
 			for (const auto& l_queued: l_payload.at("queue")) {
 				l_transfer.m_queue.push_back(from_json(l_queued));
@@ -206,7 +206,7 @@ namespace {
 		l_envelope.m_sender_agent = AGENT_1;
 		l_envelope.m_target_kind = TargetKind::Id;
 		l_envelope.m_target_id = AGENT_2;
-		l_envelope.m_content_encoding = cam::MessageBinaryFormat::MessagePack;
+		l_envelope.m_content_encoding = cam::ContentEncoding::MessagePack;
 		l_envelope.m_content = json::to_msgpack(json{{"hello", "world"}, {"n", 7}});
 		return l_envelope;
 	}
@@ -221,7 +221,7 @@ namespace {
 		l_envelope.m_target_name = "worker 1";
 		l_envelope.m_first_only = true;
 		l_envelope.m_scope = Scope::Network;
-		l_envelope.m_content_encoding = cam::MessageBinaryFormat::RAW;
+		l_envelope.m_content_encoding = cam::ContentEncoding::Raw;
 		l_envelope.m_content = bytes("ping");
 		return l_envelope;
 	}
@@ -236,7 +236,7 @@ namespace {
 		l_envelope.m_target_kind = TargetKind::Broadcast;
 		l_envelope.m_target_id.clear();
 		l_envelope.m_scope = Scope::Network;
-		l_envelope.m_content_encoding = cam::MessageBinaryFormat::CBOR;
+		l_envelope.m_content_encoding = cam::ContentEncoding::Cbor;
 		l_envelope.m_content = json::to_cbor(json::array({1, 2, 3}));
 		l_envelope.m_priority = 5;
 		return l_envelope;
@@ -245,14 +245,14 @@ namespace {
 	Envelope text_message() {
 		Envelope l_envelope = message_by_id();
 		l_envelope.m_sequence = 43;
-		l_envelope.m_content_encoding = cam::MessageBinaryFormat::Text;
+		l_envelope.m_content_encoding = cam::ContentEncoding::Text;
 		l_envelope.m_content = bytes("hello in clear");
 		return l_envelope;
 	}
 
 	Envelope empty_message() {
 		Envelope l_envelope = message_by_id();
-		l_envelope.m_content_encoding = cam::MessageBinaryFormat::RAW;
+		l_envelope.m_content_encoding = cam::ContentEncoding::Raw;
 		l_envelope.m_content.clear();
 		return l_envelope;
 	}
@@ -335,7 +335,7 @@ namespace {
 		l_transfer.m_type_name = "MobileAgent";
 		l_transfer.m_agent_id = AGENT_1;
 		l_transfer.m_agent_name = "alice";
-		l_transfer.m_state_encoding = cam::MessageBinaryFormat::MessagePack;
+		l_transfer.m_state_encoding = cam::ContentEncoding::MessagePack;
 		l_transfer.m_state = json::to_msgpack(json{{"counter", 3}});
 		l_transfer.m_queue.push_back(message_by_id());
 		l_transfer.m_queue.push_back(empty_message());
@@ -438,6 +438,19 @@ TEST_SUITE("envelope_codec") {
 			CHECK(l_codec->name() == l_name);
 			CHECK(l_codec->version_major() == 1);
 		}
+	}
+
+	TEST_CASE("content encodings keep the values of the wire") {
+		// The codecs write the value of the encoding (ContentEncoding of envelope.proto): a renamed or reordered
+		// encoding must keep it
+		CHECK(static_cast<int>(cam::ContentEncoding::Raw) == 0);
+		CHECK(static_cast<int>(cam::ContentEncoding::BjData) == 1);
+		CHECK(static_cast<int>(cam::ContentEncoding::Bson) == 2);
+		CHECK(static_cast<int>(cam::ContentEncoding::Cbor) == 3);
+		CHECK(static_cast<int>(cam::ContentEncoding::MessagePack) == 4);
+		CHECK(static_cast<int>(cam::ContentEncoding::Ubjson) == 5);
+		CHECK(static_cast<int>(cam::ContentEncoding::Text) == 6);
+		CHECK(static_cast<int>(cam::ContentEncoding::Json) == 7);
 	}
 
 	TEST_CASE("every sample round-trips through every codec") {
@@ -571,7 +584,7 @@ TEST_SUITE("envelope_codec") {
 			CHECK(l_result.error().m_code == ErrorCode::UnsupportedVersion);
 		}
 		SUBCASE("defaults are omitted") {
-			// A RAW empty content writes neither the encoding (0) nor the content (empty): the bare message
+			// A Raw empty content writes neither the encoding (0) nor the content (empty): the bare message
 			// is just the header, the version, the kind and the four identifiers with their tags.
 			const auto l_empty = encode(l_codec, empty_message());
 			CHECK(l_empty.size() < l_good.size());
@@ -816,7 +829,7 @@ TEST_SUITE("envelope_codec") {
 			l_scope.m_scope = static_cast<Scope>(200);
 			CHECK_FALSE(validate_envelope(l_scope, MAX_BYTES));
 			Envelope l_encoding = l_envelope;
-			l_encoding.m_content_encoding = static_cast<cam::MessageBinaryFormat>(200);
+			l_encoding.m_content_encoding = static_cast<cam::ContentEncoding>(200);
 			CHECK_FALSE(validate_envelope(l_encoding, MAX_BYTES));
 		}
 		SUBCASE("origin environment with a slash") {

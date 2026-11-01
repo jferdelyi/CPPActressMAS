@@ -105,7 +105,7 @@ namespace cam::transport {
 	 * the send overload, priority reserved (always 0 today).
 	 **/
 	struct SendOptions {
-		std::optional<MessageBinaryFormat> m_encoding{};
+		std::optional<ContentEncoding> m_encoding{};
 		Scope m_scope = Scope::Local;
 		std::uint32_t m_priority = 0;
 	};

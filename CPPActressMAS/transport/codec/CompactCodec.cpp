@@ -244,7 +244,7 @@ namespace cam::transport {
 					l_transfer.m_type_name = p_reader.text();
 					l_transfer.m_agent_id = p_reader.text();
 					l_transfer.m_agent_name = p_reader.text();
-					l_transfer.m_state_encoding = static_cast<MessageBinaryFormat>(p_reader.u8());
+					l_transfer.m_state_encoding = static_cast<ContentEncoding>(p_reader.u8());
 					l_transfer.m_state = p_reader.bytes(p_max_bytes);
 					const std::uint32_t l_count = p_reader.u32();
 					if (l_count > ENVELOPE_MAX_LIST_ITEMS) {
@@ -352,7 +352,7 @@ namespace cam::transport {
 			l_envelope.m_target_name = l_reader.text();
 			l_envelope.m_first_only = l_reader.u8() != 0;
 			l_envelope.m_scope = static_cast<Scope>(l_reader.u8());
-			l_envelope.m_content_encoding = static_cast<MessageBinaryFormat>(l_reader.u8());
+			l_envelope.m_content_encoding = static_cast<ContentEncoding>(l_reader.u8());
 			l_envelope.m_content = l_reader.bytes(p_max_bytes);
 			l_envelope.m_priority = l_reader.u32();
 			read_payload(l_reader, l_envelope, p_max_bytes, p_codec, p_depth);

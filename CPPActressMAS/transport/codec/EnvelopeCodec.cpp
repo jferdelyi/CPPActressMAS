@@ -79,7 +79,7 @@ namespace cam::transport {
 		if (static_cast<std::uint8_t>(p_envelope.m_scope) > static_cast<std::uint8_t>(Scope::Network)) {
 			return invalid("unknown scope");
 		}
-		if (static_cast<std::uint8_t>(p_envelope.m_content_encoding) > static_cast<std::uint8_t>(MessageBinaryFormat::JSON)) {
+		if (static_cast<std::uint8_t>(p_envelope.m_content_encoding) > static_cast<std::uint8_t>(ContentEncoding::Json)) {
 			return invalid("unknown content encoding");
 		}
 		if (!is_valid_identifier(p_envelope.m_sender_environment)) {

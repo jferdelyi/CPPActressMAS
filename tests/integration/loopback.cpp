@@ -551,7 +551,7 @@ TEST_SUITE("loopback") {
 			l_envelope.m_sender_agent = p_sender;
 			l_envelope.m_target_kind = TargetKind::Id;
 			l_envelope.m_target_id = l_receiver.str();
-			l_envelope.m_content_encoding = cam::MessageBinaryFormat::Text;
+			l_envelope.m_content_encoding = cam::ContentEncoding::Text;
 			l_envelope.m_content.assign(p_text.begin(), p_text.end());
 			REQUIRE(l_peer.enqueue(Address{AddressKind::EnvIn, l_peer.ns(), l_b.get_id()}, std::move(l_envelope)));
 			CHECK(l_peer.flush_outbox().empty());

@@ -91,7 +91,7 @@ namespace cam::transport {
 		std::string m_type_name;
 		std::string m_agent_id;
 		std::string m_agent_name;
-		MessageBinaryFormat m_state_encoding = MessageBinaryFormat::MessagePack;
+		ContentEncoding m_state_encoding = ContentEncoding::MessagePack;
 		std::vector<std::uint8_t> m_state;
 		std::vector<Envelope> m_queue;
 		bool m_uses_observables = false;
@@ -160,7 +160,7 @@ namespace cam::transport {
 		std::string m_target_name;
 		bool m_first_only = false;
 		Scope m_scope = Scope::Local;
-		MessageBinaryFormat m_content_encoding = MessageBinaryFormat::RAW;
+		ContentEncoding m_content_encoding = ContentEncoding::Raw;
 		std::vector<std::uint8_t> m_content;
 		std::uint32_t m_priority = 0;      ///< reserved
 		std::variant<std::monostate, AgentTransfer, AgentControl, Presence, DirectoryEvent> m_payload;

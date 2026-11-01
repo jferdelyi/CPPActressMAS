@@ -186,7 +186,7 @@ void remove(const AgentId& p_agent_id);
  * @param p_length The message length
  * @param p_binary_format The message binary format
  **/
-void send(const AgentId& p_sender_id, const AgentId& p_receiver_id, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+void send(const AgentId& p_sender_id, const AgentId& p_receiver_id, const uint8_t* p_message, const size_t& p_length, const ContentEncoding& p_binary_format = ContentEncoding::Raw) const;
 
 /**
  * Sends a message by name.
@@ -198,7 +198,7 @@ void send(const AgentId& p_sender_id, const AgentId& p_receiver_id, const uint8_
  * @param p_first_only If true send to the first agent found
  * @param p_binary_format The message binary format
  **/
-void send_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message, const size_t& p_length, bool p_is_fragment, bool p_first_only, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+void send_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message, const size_t& p_length, bool p_is_fragment, bool p_first_only, const ContentEncoding& p_binary_format = ContentEncoding::Raw) const;
 
 /**
  * Send a new message to all agents.
@@ -207,7 +207,7 @@ void send_by_name(const AgentId& p_sender_id, const std::string& p_receiver_name
  * @param p_length The message length
  * @param p_binary_format The message binary format
  **/
-void broadcast(const AgentId& p_sender_id, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+void broadcast(const AgentId& p_sender_id, const uint8_t* p_message, const size_t& p_length, const ContentEncoding& p_binary_format = ContentEncoding::Raw) const;
 
 /**
  * Starts the simulation.
@@ -451,8 +451,8 @@ Agent& operator=(Agent& ) = delete;
  * @param p_message Message.
  * @param p_binary_format Binary format used.
  **/
-Message(std::string p_sender, std::string p_receiver, const json& p_message, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::MessagePack);
-Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW);
+Message(std::string p_sender, std::string p_receiver, const json& p_message, const ContentEncoding& p_binary_format = ContentEncoding::MessagePack);
+Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length, const ContentEncoding& p_binary_format = ContentEncoding::Raw);
 
 /**
  * Nothing to delete.
@@ -481,7 +481,7 @@ Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, 
  * Get binary message.
  * @return binary message JSON
  **/
-[[nodiscard]] const MessageBinaryFormat& get_binary_format() const;
+[[nodiscard]] const ContentEncoding& get_binary_format() const;
 
 /**
  * Get message.

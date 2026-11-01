@@ -44,7 +44,7 @@ namespace {
 		l_envelope.m_sender_agent = "11111111-2222-4333-8444-555555555555";
 		l_envelope.m_target_kind = TargetKind::Id;
 		l_envelope.m_target_id = "66666666-7777-4888-9999-aaaaaaaaaaaa";
-		l_envelope.m_content_encoding = cam::MessageBinaryFormat::RAW;
+		l_envelope.m_content_encoding = cam::ContentEncoding::Raw;
 		l_envelope.m_content.resize(p_content_size);
 		for (std::size_t i = 0; i < p_content_size; i++) {
 			l_envelope.m_content[i] = static_cast<std::uint8_t>(i * 31 + 7);

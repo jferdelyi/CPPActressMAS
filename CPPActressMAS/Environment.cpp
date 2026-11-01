@@ -360,7 +360,7 @@ cam::transport::Result<void>
 cam::Environment::enqueue_message(const transport::Address& p_address, const transport::TargetKind p_target_kind,
 								  const std::string& p_target_id, const std::string& p_target_name, const bool p_first_only,
 								  const std::string& p_sender_id, const std::string& p_sender_name, std::vector<std::uint8_t> p_content,
-								  const MessageBinaryFormat p_content_encoding, const transport::SendOptions& p_options,
+								  const ContentEncoding p_content_encoding, const transport::SendOptions& p_options,
 								  const std::string& p_origin_environment) const {
 	transport::Envelope l_envelope = m_endpoint->make_envelope(transport::EnvelopeKind::Message);
 	l_envelope.m_origin_environment = p_origin_environment == m_id ? std::string() : p_origin_environment;
@@ -872,7 +872,7 @@ void cam::Environment::process_move_requests() {
 		l_transfer.m_type_name = AgentTypes::name_of(std::type_index(typeid(l_agent_ref))).value_or("");
 		l_transfer.m_agent_id = l_agent->get_id().str();
 		l_transfer.m_agent_name = l_agent->get_name();
-		l_transfer.m_state_encoding = MessageBinaryFormat::MessagePack;
+		l_transfer.m_state_encoding = ContentEncoding::MessagePack;
 		l_transfer.m_state = json::to_msgpack(l_agent->save_state());
 		l_transfer.m_uses_observables = l_agent->is_using_observables();
 		json l_observables = json::object();

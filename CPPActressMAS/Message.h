@@ -39,11 +39,12 @@ using json = nlohmann::json;
 namespace cam {
 
 	/**
-	 * Encoding of a message content on the wire: RAW for opaque bytes, Text for UTF-8 text, JSON for
+	 * Encoding of a message content on the wire: Raw for opaque bytes, Text for UTF-8 text, Json for
 	 * JSON text, the others for the binary encodings of a JSON value. A local message is never encoded.
-	 */
-	enum class MessageBinaryFormat {
-		RAW, BJData, BSON, CBOR, MessagePack, UBJSON, Text, JSON
+	 * The values are those of the wire (ContentEncoding of envelope.proto): their order never changes.
+	 **/
+	enum class ContentEncoding {
+		Raw, BjData, Bson, Cbor, MessagePack, Ubjson, Text, Json
 	};
 
 	/**

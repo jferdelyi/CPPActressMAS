@@ -334,8 +334,8 @@ TEST_SUITE("characterization") {
 		CHECK(l_text.kind() == cam::ContentKind::Text);
 		CHECK(l_text.to_string() == "hello");
 		const auto l_refused = cam::transport::wire_encoding(l_message.get_content(),
-															cam::transport::SendOptions{.m_encoding = cam::MessageBinaryFormat::RAW});
-		CHECK_FALSE(l_refused);  // used to be silently encoded in MessagePack and tagged RAW
+															cam::transport::SendOptions{.m_encoding = cam::ContentEncoding::Raw});
+		CHECK_FALSE(l_refused);  // used to be silently encoded in MessagePack and tagged Raw
 	}
 
 	// ---------------------------------------------------------------- move without a transport

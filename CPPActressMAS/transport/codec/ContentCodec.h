@@ -31,13 +31,13 @@
 namespace cam::transport {
 
 	/**
-	 * Encoding used on the wire for a content: Text for text, RAW for bytes (or the tag asked by the
+	 * Encoding used on the wire for a content: Text for text, Raw for bytes (or the tag asked by the
 	 * options), the binary encoding of the options for a JSON value (MessagePack by default).
 	 * @param p_content The content
 	 * @param p_options The send options
-	 * @return The encoding, or a validation error (a JSON value cannot travel RAW)
+	 * @return The encoding, or a validation error (a JSON value cannot travel Raw)
 	 **/
-	[[nodiscard]] Result<MessageBinaryFormat> wire_encoding(const MessageContent& p_content, const SendOptions& p_options);
+	[[nodiscard]] Result<ContentEncoding> wire_encoding(const MessageContent& p_content, const SendOptions& p_options);
 
 	/**
 	 * Encode a content.
@@ -45,7 +45,7 @@ namespace cam::transport {
 	 * @param p_encoding The encoding (see wire_encoding)
 	 * @return The bytes, or a validation error
 	 **/
-	[[nodiscard]] Result<std::vector<std::uint8_t>> encode_content(const MessageContent& p_content, MessageBinaryFormat p_encoding);
+	[[nodiscard]] Result<std::vector<std::uint8_t>> encode_content(const MessageContent& p_content, ContentEncoding p_encoding);
 
 	/**
 	 * Decode a content received from the network.
@@ -53,6 +53,6 @@ namespace cam::transport {
 	 * @param p_encoding The encoding announced by the envelope
 	 * @return The content, or a validation error when the bytes do not match the encoding
 	 **/
-	[[nodiscard]] Result<MessageContent> decode_content(std::span<const std::uint8_t> p_bytes, MessageBinaryFormat p_encoding);
+	[[nodiscard]] Result<MessageContent> decode_content(std::span<const std::uint8_t> p_bytes, ContentEncoding p_encoding);
 
 } // namespace cam::transport

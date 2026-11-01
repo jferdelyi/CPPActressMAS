@@ -359,7 +359,7 @@ namespace cam::transport {
 					case field::TYPE_NAME: l_transfer.m_type_name = l_reader.text(l_wire); break;
 					case field::AGENT_ID: l_transfer.m_agent_id = l_reader.text(l_wire); break;
 					case field::AGENT_NAME: l_transfer.m_agent_name = l_reader.text(l_wire); break;
-					case field::STATE_ENCODING: l_transfer.m_state_encoding = static_cast<MessageBinaryFormat>(enum_byte(l_reader.uint(l_wire))); break;
+					case field::STATE_ENCODING: l_transfer.m_state_encoding = static_cast<ContentEncoding>(enum_byte(l_reader.uint(l_wire))); break;
 					case field::STATE: l_transfer.m_state = l_reader.bytes(l_wire, p_max_bytes); break;
 					case field::QUEUE: {
 						const auto l_nested = l_reader.message(l_wire);
@@ -503,7 +503,7 @@ namespace cam::transport {
 					case field::TARGET_NAME: l_envelope.m_target_name = l_reader.text(l_wire); break;
 					case field::FIRST_ONLY: l_envelope.m_first_only = l_reader.uint(l_wire) != 0; break;
 					case field::SCOPE: l_envelope.m_scope = static_cast<Scope>(enum_byte(l_reader.uint(l_wire))); break;
-					case field::CONTENT_ENCODING: l_envelope.m_content_encoding = static_cast<MessageBinaryFormat>(enum_byte(l_reader.uint(l_wire))); break;
+					case field::CONTENT_ENCODING: l_envelope.m_content_encoding = static_cast<ContentEncoding>(enum_byte(l_reader.uint(l_wire))); break;
 					case field::CONTENT: l_envelope.m_content = l_reader.bytes(l_wire, p_max_bytes); break;
 					case field::PRIORITY: l_envelope.m_priority = static_cast<std::uint32_t>(l_reader.uint(l_wire)); break;
 					case field::TRANSFER: {

@@ -595,25 +595,25 @@ TEST_SUITE("unit") {
 		using cam::transport::decode_content;
 		using cam::transport::encode_content;
 		using cam::transport::wire_encoding;
-		CHECK(wire_encoding(l_textual.get_content(), {}).value() == cam::MessageBinaryFormat::Text);
-		CHECK(wire_encoding(l_raw.get_content(), {}).value() == cam::MessageBinaryFormat::RAW);
-		CHECK(wire_encoding(l_message.get_content(), {}).value() == cam::MessageBinaryFormat::MessagePack);
-		const auto l_refused = wire_encoding(l_message.get_content(), cam::transport::SendOptions{.m_encoding = cam::MessageBinaryFormat::RAW});
+		CHECK(wire_encoding(l_textual.get_content(), {}).value() == cam::ContentEncoding::Text);
+		CHECK(wire_encoding(l_raw.get_content(), {}).value() == cam::ContentEncoding::Raw);
+		CHECK(wire_encoding(l_message.get_content(), {}).value() == cam::ContentEncoding::MessagePack);
+		const auto l_refused = wire_encoding(l_message.get_content(), cam::transport::SendOptions{.m_encoding = cam::ContentEncoding::Raw});
 		REQUIRE_FALSE(l_refused);
 		CHECK(l_refused.error().m_code == cam::transport::ErrorCode::InvalidEnvelope);
-		for (const auto l_format: {cam::MessageBinaryFormat::MessagePack, cam::MessageBinaryFormat::CBOR, cam::MessageBinaryFormat::BSON,
-								   cam::MessageBinaryFormat::UBJSON, cam::MessageBinaryFormat::BJData, cam::MessageBinaryFormat::JSON}) {
+		for (const auto l_format: {cam::ContentEncoding::MessagePack, cam::ContentEncoding::Cbor, cam::ContentEncoding::Bson,
+								   cam::ContentEncoding::Ubjson, cam::ContentEncoding::BjData, cam::ContentEncoding::Json}) {
 			const auto l_bytes = encode_content(l_message.get_content(), l_format);
 			REQUIRE(l_bytes);
 			const auto l_back = decode_content(l_bytes.value(), l_format);
 			REQUIRE(l_back);
 			CHECK(*std::get<std::shared_ptr<const json>>(l_back.value()) == l_content);
 		}
-		const auto l_text_back = decode_content(encode_content(l_textual.get_content(), cam::MessageBinaryFormat::Text).value(),
-												cam::MessageBinaryFormat::Text);
+		const auto l_text_back = decode_content(encode_content(l_textual.get_content(), cam::ContentEncoding::Text).value(),
+												cam::ContentEncoding::Text);
 		REQUIRE(l_text_back);
 		CHECK(std::get<std::string>(l_text_back.value()) == l_text);
-		const auto l_garbage = decode_content(raw_bytes("not msgpack"), cam::MessageBinaryFormat::MessagePack);
+		const auto l_garbage = decode_content(raw_bytes("not msgpack"), cam::ContentEncoding::MessagePack);
 		CHECK_FALSE(l_garbage);
 	}
 }

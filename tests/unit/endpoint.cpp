@@ -45,7 +45,7 @@ namespace {
 		l_envelope.m_sender_agent = "sender";
 		l_envelope.m_target_kind = TargetKind::Id;
 		l_envelope.m_target_id = "receiver";
-		l_envelope.m_content_encoding = cam::MessageBinaryFormat::RAW;
+		l_envelope.m_content_encoding = cam::ContentEncoding::Raw;
 		l_envelope.m_content = {static_cast<std::uint8_t>(p_sequence)};
 		return l_envelope;
 	}

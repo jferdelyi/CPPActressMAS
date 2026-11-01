@@ -823,7 +823,7 @@ namespace cam {
 		transport::Result<void> enqueue_message(const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
 												const std::string& p_sender_id, const std::string& p_sender_name, std::vector<std::uint8_t> p_content,
-												MessageBinaryFormat p_content_encoding, const transport::SendOptions& p_options,
+												ContentEncoding p_content_encoding, const transport::SendOptions& p_options,
 												const std::string& p_origin_environment = {}) const;
 
 		/**

@@ -127,7 +127,7 @@ namespace cam::transport {
 				l_json["sender_name"] = p_envelope.m_sender_name;
 			}
 			// A text content is readable as is; anything else travels in base64.
-			if (p_envelope.m_content_encoding == MessageBinaryFormat::Text || p_envelope.m_content_encoding == MessageBinaryFormat::JSON) {
+			if (p_envelope.m_content_encoding == ContentEncoding::Text || p_envelope.m_content_encoding == ContentEncoding::Json) {
 				l_json["content_text"] = std::string(p_envelope.m_content.begin(), p_envelope.m_content.end());
 			} else {
 				l_json["content"] = to_base64(p_envelope.m_content);
@@ -263,7 +263,7 @@ namespace cam::transport {
 			l_envelope.m_target_name = l_reader.text(p_json, "target_name");
 			l_envelope.m_first_only = l_reader.boolean(p_json, "first_only");
 			l_envelope.m_scope = static_cast<Scope>(l_reader.enumeration(p_json, "scope", SCOPES));
-			l_envelope.m_content_encoding = static_cast<MessageBinaryFormat>(l_reader.enumeration(p_json, "content_encoding", ENCODINGS));
+			l_envelope.m_content_encoding = static_cast<ContentEncoding>(l_reader.enumeration(p_json, "content_encoding", ENCODINGS));
 			l_envelope.m_priority = static_cast<std::uint32_t>(l_reader.uint(p_json, "priority"));
 			if (p_json.contains("content_text")) {
 				const auto l_it = p_json.find("content_text");
@@ -288,7 +288,7 @@ namespace cam::transport {
 				l_transfer.m_type_name = l_reader.text(*l_object, "type_name");
 				l_transfer.m_agent_id = l_reader.text(*l_object, "agent_id");
 				l_transfer.m_agent_name = l_reader.text(*l_object, "agent_name");
-				l_transfer.m_state_encoding = static_cast<MessageBinaryFormat>(l_reader.enumeration(*l_object, "state_encoding", ENCODINGS));
+				l_transfer.m_state_encoding = static_cast<ContentEncoding>(l_reader.enumeration(*l_object, "state_encoding", ENCODINGS));
 				l_transfer.m_state = l_reader.bytes(*l_object, "state");
 				if (const auto l_queue = l_object->find("queue"); l_queue != l_object->end() && !l_queue->is_null()) {
 					if (!l_queue->is_array()) {
