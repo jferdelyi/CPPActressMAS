@@ -29,7 +29,7 @@ The presets need CMake 3.25 or later.
 
 | Command | What it does |
 |---|---|
-| `cmake --workflow --preset debug` | Configures, builds and runs every test of a preset: `debug`, `release`, `core` (no network transport), `asan` (AddressSanitizer and UBSan), `tsan` (ThreadSanitizer), `coverage`, `bench`, `msvc` (Windows) |
+| `cmake --workflow --preset debug` | Configures, builds and runs every test of a preset: `debug`, `release`, `core` (no network transport), `asan` (AddressSanitizer and UBSan), `tsan` (ThreadSanitizer), `coverage`, `bench`, `msvc` (Windows); `ios` and `android` configure and build the library only, without tests (Xcode for `ios`, the Android NDK of `ANDROID_NDK_HOME` for `android`) |
 | `cmake --workflow --preset iso` | The same for one type, on `debug`: `unit`, `integration`, `network`, `characterization`, `iso`, `examples` |
 | `ctest --preset asan-iso` | One type on a preset already built: `<preset>-<type>` for `debug`, `release`, `core`, `asan`, `tsan`, `msvc` (no `examples` for `msvc`) |
 | `tests/run.sh [preset] [type...]` | macOS and Linux: configures, builds and runs the types given (all of them by default) |
