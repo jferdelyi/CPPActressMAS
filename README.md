@@ -2,6 +2,8 @@
 
 # <p align="center">CPPActressMAS</p>
 
+<p align="center"><a href="https://github.com/jferdelyi/CPPActressMAS/actions/workflows/tests.yml"><img src="https://github.com/jferdelyi/CPPActressMAS/actions/workflows/tests.yml/badge.svg" alt="tests"></a></p>
+
 A C++20 multi-agent framework based on the actor model, a port of [ActressMAS](https://github.com/florinleon/ActressMas) v3.1 (.NET). The aim of this project is to propose an easy-to-use multi-agent system in modern C++, with the behaviour of ActressMAS, its examples, and a network that is simple to set up.
 
 **This project is currently under development and may contain bugs**.
