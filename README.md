@@ -11,8 +11,9 @@ A C++20 multi-agent framework based on the actor model, a port of [ActressMAS](h
 ## Platforms
 
 - **macOS** (Apple Silicon, Apple clang): built and tested at every change.
-- **Linux arm64** (Ubuntu 24.04 in a container, gcc 13 and clang 18): built and tested at every change, under AddressSanitizer and ThreadSanitizer too.
+- **Linux arm64** (Ubuntu 24.04 in a container, gcc 13 and clang 18): built and tested at every change, under AddressSanitizer and ThreadSanitizer too; also built and tested by the continuous integration on an arm64 runner (not tried on a Raspberry Pi itself).
 - **Linux x86-64** (gcc and clang) and **Windows** (MSVC, static library, unit and oracle tests): built and tested by the continuous integration (`.github/workflows/tests.yml`).
+- **iOS** (arm64, iOS 16.3 or later) and **Android** (arm64-v8a, API 24 or later): the library is built by the continuous integration, core only, without network transport; nothing runs on them yet (`ios` and `android` presets).
 
 ## Quick start
 
