@@ -193,3 +193,7 @@ Against ActressMAS v3.1 measured on the same machine, the C++ is faster on every
 CPPActressMAS is distributed under the Eclipse Public License 2.0 ([LICENSE](LICENSE)).
 
 It is a C++ port of [ActressMAS](https://github.com/florinleon/ActressMas) by Florin Leon, distributed under the Apache License 2.0: the framework follows its behaviour, and the ports of `tests/iso/ports/` follow the code of its examples line by line.
+
+Its licence is in [LICENSE-ActressMAS](LICENSE-ActressMAS).
+
+The lock-free queue of `CPPActressMAS/util/MPSCQueue.hpp` comes from [CppBenchmark](https://github.com/chronoxor/CppBenchmark) by Ivan Shynkarenka, where this file is in the public domain (Unlicense).

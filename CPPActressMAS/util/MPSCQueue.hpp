@@ -28,8 +28,10 @@
 namespace cam {
 
 	/**
-	 * MPSC (Multiple Producer Single Consumer) lock free queue from CPP Benchmark
+	 * MPSC (Multiple Producer Single Consumer) lock free queue from CPP Benchmark, in the public domain (Unlicense)
 	 * https://github.com/chronoxor/CppBenchmark/blob/master/examples/lockfree/mpsc-queue.hpp
+	 * It implements the non-intrusive MPSC node-based queue of Dmitry Vyukov
+	 * http://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue
 	 * The nodes come from the free blocks of each thread (FreeBlocks), so a warm queue allocates nothing.
 	 **/
 	template<typename T>
