@@ -1,5 +1,6 @@
-# Tests of CPPActressMAS on macOS, Linux and Windows (tests/README.md). Without the network transports: the runners have
-# neither a broker nor Zenoh, so the network tests skip.
+# Tests of CPPActressMAS on macOS, Linux (x86-64 and arm64) and Windows, and builds of the library for iOS and Android
+# (tests/README.md). Without the network transports: the runners have neither a broker nor Zenoh, so the network tests
+# skip.
 name: tests
 
 on:
@@ -23,11 +24,12 @@ jobs:
         run: cmake --workflow --preset core
 
   linux:
-    name: Linux, ${{ matrix.compiler }}, ${{ matrix.build_type }}
-    runs-on: ubuntu-24.04
+    name: Linux ${{ matrix.arch }}, ${{ matrix.compiler }}, ${{ matrix.build_type }}
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:
+        arch: [x86-64, arm64]
         compiler: [gcc, clang]
         build_type: [Debug, Release]
     env:
@@ -69,6 +71,28 @@ jobs:
         run: cmake --build --preset ${{ matrix.sanitizer }}
       - name: Test
         run: ctest --preset ${{ matrix.sanitizer }} -j4
+
+  ios:
+    name: iOS arm64, Apple clang, library
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      # The library only: the iOS SDK forbids the std::system of the tests (CMakePresets.json)
+      - name: Configure and build
+        run: cmake --preset ios -DCMAKE_COMPILE_WARNING_AS_ERROR=ON && cmake --build --preset ios
+
+  android:
+    name: Android arm64-v8a, NDK clang, libraries
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      # The NDK installed on the runner (ANDROID_NDK_HOME); the libraries only, nothing runs
+      - name: Configure and build
+        run: cmake --preset android -DCMAKE_COMPILE_WARNING_AS_ERROR=ON && cmake --build --preset android
 
   windows:
     name: Windows, MSVC, Debug
