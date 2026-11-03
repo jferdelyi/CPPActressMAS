@@ -51,7 +51,12 @@ namespace {
 
 	std::string run(const std::string& p_command, int& p_exit_code) {
 		std::string l_output;
+#if defined(_WIN32)
+		// cmd /c drops the first and the last quote of a line with several quoted pieces: one more pair keeps them
+		FILE* l_pipe = CAM_POPEN(("\"" + p_command + "\"").c_str(), "r");
+#else
 		FILE* l_pipe = CAM_POPEN(p_command.c_str(), "r");
+#endif
 		if (!l_pipe) {
 			p_exit_code = -1;
 			return l_output;
