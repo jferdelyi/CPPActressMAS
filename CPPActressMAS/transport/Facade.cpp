@@ -28,6 +28,9 @@
 #if CAM_TRANSPORT_ZENOH
 #include "zenoh/ZenohTransport.h"
 #endif
+#if CAM_TRANSPORT_ACTRESSMAS
+#include "actressmas/ActressMasTransport.h"
+#endif
 
 namespace cam::transport {
 
@@ -93,6 +96,9 @@ namespace cam::transport {
 #if CAM_TRANSPORT_ZENOH
 		l_schemes.emplace_back("zenoh");
 #endif
+#if CAM_TRANSPORT_ACTRESSMAS
+		l_schemes.emplace_back("actressmas");
+#endif
 		return l_schemes;
 	}
 
@@ -149,6 +155,20 @@ namespace cam::transport {
 			if (!l_path.empty()) {
 				p_config.m_namespace = l_path;
 			}
+		} else if (l_parsed.m_scheme == "actressmas") {
+			// actressmas://host:port/<container>: the server of the C# (port 5000 as in its examples) and the name of
+			// the container, the identity of the connection
+			if (l_authority.empty()) {
+				return invalid_url("actressmas URL without server: " + p_url);
+			}
+			if (l_path.empty()) {
+				return invalid_url("actressmas URL without container name: " + p_url);
+			}
+			if (l_parsed.m_port.empty()) {
+				l_parsed.m_port = "5000";
+			}
+			p_config.m_endpoint = l_parsed.m_host + ":" + l_parsed.m_port;
+			l_parsed.m_options.emplace_back("container", l_path);
 		} else {
 			return make_error(ErrorCategory::State, ErrorCode::NotSupported, "unknown transport scheme: " + l_parsed.m_scheme);
 		}
@@ -235,6 +255,18 @@ namespace cam::transport {
 			l_transport = std::make_shared<MqttTransport>(std::move(l_url.m_config), l_options, l_codec);
 #else
 			return make_error(ErrorCategory::State, ErrorCode::NotSupported, "this build has no MQTT transport (CAM_TRANSPORT_MQTT)");
+#endif
+		} else if (l_url.m_scheme == "actressmas") {
+#if CAM_TRANSPORT_ACTRESSMAS
+			ActressMasOptions l_options;
+			for (const auto& [l_key, l_value]: l_url.m_options) {
+				if (l_key == "container") {
+					l_options.m_container = l_value;
+				}
+			}
+			l_transport = std::make_shared<ActressMasTransport>(std::move(l_url.m_config), std::move(l_options), l_codec);
+#else
+			return make_error(ErrorCategory::State, ErrorCode::NotSupported, "this build has no ActressMAS transport (CAM_TRANSPORT_ACTRESSMAS)");
 #endif
 		} else {
 #if CAM_TRANSPORT_ZENOH

@@ -17,15 +17,15 @@ include_directories(CPPActressMAS)
 # The core has no network dependency by default: each network transport joins the library behind its
 # option, with its own dependencies, and Environment::connect(url) selects the schemes
 # compiled in (CAM_TRANSPORT_* definitions, no registry). A source file added later joins the next build without a new
-# configuration (CONFIGURE_DEPENDS).
+# configuration (CONFIGURE_DEPENDS). The codec of the ActressMAS frames is in the core, its transport behind its option.
 file(GLOB SOURCES CONFIGURE_DEPENDS
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.h**
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.hpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/*.cpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/*.cpp
-		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/actressmas/*.h
-		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/actressmas/*.cpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/actressmas/ActressMasCodec.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/actressmas/ActressMasCodec.cpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/codec/*.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/codec/*.cpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/loopback/*.h
@@ -44,6 +44,7 @@ option(BUILD_BENCH "Enable building benchmarks (tests/bench/, performance protoc
 option(CAM_BUILD_TESTS "Enable building tests (tests/, CTest)" ${PROJECT_IS_TOP_LEVEL})
 option(CAM_TRANSPORT_MQTT "Build the MQTT transport (libmosquitto fetched and built by the project, needs OpenSSL)" OFF)
 option(CAM_TRANSPORT_ZENOH "Build the Zenoh transport (zenoh-c and zenoh-cpp 1.7.1 from the system)" OFF)
+option(CAM_TRANSPORT_ACTRESSMAS "Build the ActressMAS transport (a client of the ContainerServer of ActressMAS v3.1, C#; no dependency)" OFF)
 
 # Warnings of the project, in every configuration, for the library, the tests, the benchmarks and the examples (GCC and
 # Clang; MSVC keeps /W4 in Release). Not for the dependencies built by the project.
@@ -118,6 +119,10 @@ endif()
 if (CAM_TRANSPORT_ZENOH)
 	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/zenoh)
 	cam_add_transport(ZENOH CAM_TRANSPORT_ZENOH)
+endif()
+if (CAM_TRANSPORT_ACTRESSMAS)
+	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/actressmas)
+	cam_add_transport(ACTRESSMAS CAM_TRANSPORT_ACTRESSMAS)
 endif()
 
 # Compatibility name of the former facade library: the facade is part of the core now.
