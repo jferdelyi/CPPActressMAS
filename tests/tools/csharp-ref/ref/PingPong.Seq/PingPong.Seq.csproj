@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Deterministic variant of E30 PingPong for the performance comparison (sequential, fixed order); the original is not modified -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>PingPongSeq</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <ProjectReference Include="../ActressMas.Ref/ActressMas.Ref.csproj" />
+  </ItemGroup>
+</Project>

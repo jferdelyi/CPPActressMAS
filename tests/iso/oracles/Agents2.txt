@@ -1,0 +1,27 @@
+#cam oracle Agents2
+#cam csharp ActressMas eb0bb73, Examples/E00 Simple Examples/Agents2/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Agents2/bin/Release/net10.0 && dotnet Agents2.dll
+#cam seed 0
+[agent2 -> agent1]: start from 2
+[agent1 -> agent2]: start from 1
+[agent1 -> agent2]: in setup for: 0
+[agent1 -> agent2]: in setup for: 1
+[agent1 -> agent2]: in setup for: 2
+[agent1 -> agent2]: in setup for: 3
+[agent1 -> agent2]: in setup for: 4
+[agent1 -> agent2]: in setup for: 5
+[agent1 -> agent2]: in setup for: 6
+[agent1 -> agent2]: in setup for: 7
+[agent1 -> agent2]: in setup for: 8
+[agent1 -> agent2]: in setup for: 9
+[agent1 -> agent2]: in act for: 0
+[agent1 -> agent2]: in act for: 1
+[agent1 -> agent2]: in act for: 2
+[agent1 -> agent2]: in act for: 3
+[agent1 -> agent2]: in act for: 4
+[agent1 -> agent2]: in act for: 5
+[agent1 -> agent2]: in act for: 6
+[agent1 -> agent2]: in act for: 7
+[agent1 -> agent2]: in act for: 8
+[agent1 -> agent2]: in act for: 9

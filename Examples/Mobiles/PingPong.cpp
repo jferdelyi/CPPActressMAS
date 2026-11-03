@@ -1,4 +1,3 @@
-
 /**************************************************************************
  *                                                                        *
  *  Description: CPPActressMas multi-agent framework                      *
@@ -8,16 +7,24 @@
  *  CPP version of ActressMAS by Florin Leon                              *
  *  https://github.com/florinleon/ActressMas                              *
  *                                                                        *
- *  This program is free software; you can redistribute it and/or modify  *
- *  it under the terms of the GNU General License as published by         *
- *  the Free Software Foundation. This program is distributed in the      *
- *  hope that it will be useful, but WITHOUT ANY WARRANTY; without even   *
- *  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR   *
- *  PURPOSE. See the GNU General License for more details.                *
+ *  This program and the accompanying materials are made available under  *
+ *  the terms of the Eclipse Public License 2.0, which is available at    *
+ *  https://www.eclipse.org/legal/epl-2.0/ and in the LICENSE file.       *
+ *                                                                        *
+ *  SPDX-License-Identifier: EPL-2.0                                      *
  *                                                                        *
  **************************************************************************/
 
+#include <iostream>
+#include <thread>
+
 #include <Environment.h>
+#include <transport/Facade.h>
+
+// Port of ActressMAS E20 RemoteMessages: a ping agent asks a pong agent of another environment for
+// information, by name over the network; the pong agent answers twice by id. Two environments of this
+// process, each its own node: MobilePingPong [url-pong [url-ping]]; by default loopback://pingpong, in
+// memory (D46). Zenoh peers on 127.0.0.1 (pong listening, ping connecting) or an MQTT URL work too.
 
 class PingAgent : public cam::Agent {
 public:
@@ -25,7 +32,10 @@ public:
 
 	void setup() override {
 		std::cout << "[" << get_name() << "] Sending request" << std::endl;
-		send_by_name("PongAgent",{{"data", "request-info"}, {"from", get_name()}});
+		// The pong agent lives in another environment: network scope, asked explicitly.
+		cam::transport::SendOptions l_options;
+		l_options.m_scope = cam::transport::Scope::Network;
+		send_by_name("PongAgent", {{"data", "request-info"}, {"from", get_name()}}, true, l_options);
 	}
 
 	void action(const cam::MessagePointer& p_message) override {
@@ -53,14 +63,28 @@ public:
 	}
 };
 
-int main() {
-	cam::Environment l_environment_b(3, cam::EnvironmentMasMode::Parallel, 10);
-	l_environment_b.initialise_remote_connection();
+int main(int argc, char** argv) {
+	// Without argument the two environments share the in-process loopback, available in every build.
+	// With a URL they go through the network, for example:
+	//   MobilePingPong "zenoh://?listen=tcp/127.0.0.1:17448&ns=pingpong" "zenoh://127.0.0.1:17448/pingpong"
+	//   MobilePingPong "mqtt://127.0.0.1:1883/pingpong"
+	const std::string l_url_pong = argc > 1 ? argv[1] : "loopback://pingpong";
+	const std::string l_url_ping = argc > 2 ? argv[2] : l_url_pong;
+
+	// A remote message reaches its agent at the turn after its reception: a few turns are needed.
+	cam::Environment l_environment_b({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_pong});
+	cam::Environment l_environment_a({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_ping});
+	// Connected before their threads start, so that each environment knows the other at its first turn
+	for (auto* const l_environment : {&l_environment_b, &l_environment_a}) {
+		if (const auto l_result = l_environment->connect(); !l_result) {
+			std::cerr << "Cannot connect to " << l_environment->transport_url() << ": " << l_result.error().m_message << std::endl;
+			return 1;
+		}
+	}
+
 	l_environment_b.add<PongAgent>("PongAgent");
 	std::thread l_environment_1_thread(&cam::Environment::start, &l_environment_b);
 
-	cam::Environment l_environment_a(3, cam::EnvironmentMasMode::Parallel, 10);
-	l_environment_a.initialise_remote_connection();
 	l_environment_a.add<PingAgent>("PingAgent");
 	std::thread l_environment_2_thread(&cam::Environment::start, &l_environment_a);
 

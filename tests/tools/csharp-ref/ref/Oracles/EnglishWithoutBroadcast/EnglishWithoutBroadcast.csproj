@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E05 Auctions/English without broadcast: original sources unchanged, see ../Oracle.props -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E05 Auctions/English without broadcast/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

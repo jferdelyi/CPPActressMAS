@@ -1,0 +1,102 @@
+/**************************************************************************
+ *                                                                        *
+ *  Description: CPPActressMas multi-agent framework                      *
+ *  Website:     https://github.com/jferdelyi/CPPActressMAS               *
+ *  Copyright:   (c) 2023-Today, Jean-François Erdelyi                    *
+ *                                                                        *
+ *  CPP version of ActressMAS by Florin Leon                              *
+ *  https://github.com/florinleon/ActressMas                              *
+ *                                                                        *
+ *  This program and the accompanying materials are made available under  *
+ *  the terms of the Eclipse Public License 2.0, which is available at    *
+ *  https://www.eclipse.org/legal/epl-2.0/ and in the LICENSE file.       *
+ *                                                                        *
+ *  SPDX-License-Identifier: EPL-2.0                                      *
+ *                                                                        *
+ **************************************************************************/
+
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
+// oracle by iso.SendingObjects.
+// Port of the C# example E00 Simple Examples/SendingObjects (ActressMAS v3.1): two agents send objects to each other
+// during their setup and print the objects they receive. Parallel, 10 turns. The C# sends the object itself
+// (ContentObj); here it travels as a JSON object, read back on arrival (as_json).
+// Arguments: none for the example; "sequential" for its sequential variant (fixed order).
+
+#include <chrono>
+#include <string>
+#include <thread>
+#include <utility>
+
+#include <DotNet.hpp>
+#include <Environment.h>
+
+class ContentInfo {
+	public:
+		int m_number;
+		std::string m_text;
+
+		explicit ContentInfo(const int p_number = 0, std::string p_text = "") :
+			m_number(p_number),
+			m_text(std::move(p_text)) {}
+};
+
+// A content info travels as a JSON object: the receiver gets it as sent, without serialization while it stays local
+void to_json(json& p_json, const ContentInfo& p_content) {
+	p_json = json{{"number", p_content.m_number}, {"text", p_content.m_text}};
+}
+
+void from_json(const json& p_json, ContentInfo& p_content) {
+	p_json.at("number").get_to(p_content.m_number);
+	p_json.at("text").get_to(p_content.m_text);
+}
+
+class Agent1 final : public cam::Agent {
+	public:
+		explicit Agent1(const std::string& p_name) : Agent(p_name) { }
+
+		void setup() override {
+			for (int i = 0; i < 10; i++) {
+				cam::dotnet::write_line("a1* sending: setup " + std::to_string(i + 1) + " from a1*");
+				send_by_name("a2", json(ContentInfo(i + 1, "setup a1*")));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+		}
+
+		void action(const cam::MessagePointer& p_message) override {
+			const auto l_content = p_message->as_json().get<ContentInfo>();
+			cam::dotnet::write_line("a1* receiving: " + l_content.m_text + " - " + std::to_string(l_content.m_number));
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+};
+
+class Agent2 final : public cam::Agent {
+	public:
+		explicit Agent2(const std::string& p_name) : Agent(p_name) { }
+
+		void setup() override {
+			for (int i = 0; i < 3; i++) {
+				cam::dotnet::write_line("a2 sending: setup: " + std::to_string(i + 1) + " from a2");
+				send_by_name("a1", json(ContentInfo(i + 1, "setup a2")));
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+		}
+
+		void action(const cam::MessagePointer& p_message) override {
+			const auto l_content = p_message->as_json().get<ContentInfo>();
+			cam::dotnet::write_line("a2 receiving: " + l_content.m_text + " - " + std::to_string(l_content.m_number));
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+};
+
+int main(int argc, char** argv) {
+	cam::Environment l_environment({.m_turns = 10,
+									.m_mode = cam::dotnet::scenario_mode(argc, argv, cam::EnvironmentMasMode::Parallel),
+									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
+									.m_random = cam::dotnet::random_engine()});
+
+	l_environment.add<Agent1>("a1");
+	l_environment.add<Agent2>("a2");
+	l_environment.start();
+
+	return 0;
+}

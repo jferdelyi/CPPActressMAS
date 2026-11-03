@@ -1,0 +1,6 @@
+# E04 Shapley Value in a sequential, fixed order: the C# keeps its agents in a Dictionary, in their order, so RandomAgent draws from the seed alone: a variant of the oracles, the original sources but its line (tests/tools/csharp-ref/ref/Oracles/ShapleySeq/).
+# Sequential, so the C# fixes every line: the whole trace in order, the senders of the messages included.
+ignore ^$
+cover all
+fact trace ^(.+)$
+same trace seq

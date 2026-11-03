@@ -1,0 +1,3 @@
+# Fixture of iso_check: the sum of a column compared between the C# and the C++
+fact total total=(\d+)
+same total aggregate sum(0) tol 0.5

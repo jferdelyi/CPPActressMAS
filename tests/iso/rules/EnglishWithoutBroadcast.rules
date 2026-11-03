@@ -1,0 +1,21 @@
+# E05 English auction without broadcast: parallel; the valuations come from the seed of the oracle, and each bidder only
+# talks to the auctioneer. Compared: the valuations and the result, the messages each bidder receives in order, and
+# all the messages as a multiset (the only fact that shows the name of a sender). When the last price gets no bid, the
+# C# sells to the first bid of the round before, whose bidder has stopped meanwhile and never prints that it won:
+# with two bidders at that price, which one wins depends on the order of arrival, in the C# as in the C++; no two
+# bidders tie at the seed of the oracle.
+ignore ^$
+cover all
+fact valuation ^\[(bidder\d+)\]: My valuation is (\d+)$
+fact finished ^\[auctioneer\]: Auction finished\. (.*)$
+fact won ^\[(bidder\d+)\]: I have won\.$
+fact to_bidder ^\t\[\w+ -> (bidder\d+)\]: (.*)$
+fact message ^\t\[(\w+) -> (\w+)\]: (.*)$
+same valuation bag
+same finished seq
+optional won
+same won seq
+same to_bidder seq by 0
+same message bag
+check valuation count == 5
+check finished count == 1

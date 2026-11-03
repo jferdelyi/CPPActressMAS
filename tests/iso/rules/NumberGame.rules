@@ -1,0 +1,21 @@
+# E12 NumberGame: sequential, fixed order, numbers drawn by a static Random seeded as the oracle and written with
+# two decimals (F2), so the C# fixes the order of every line (exact trace, level (a)). Each turn, each agent says the
+# agents whose number is within 10 of its own, then draws another.
+cover all
+fact order ^(I am|\w+ with number|My number is now|-{46}$)
+fact saw ^I am (\w+)\. My number is ([\d.]+) and I saw:$
+fact nothing ^I am (\w+)\. I did't see anything interesting\.$
+fact seen ^(\w+) with number = ([\d.]+)$
+fact now ^My number is now ([\d.]+)$
+fact separator ^-{46}$
+same order seq
+same saw seq
+same nothing seq
+same seen seq
+same now seq
+same separator count
+# three agents act in each of the 9 turns after the setup turn
+check now count == 27
+fact error (Exception|out of range)
+optional error
+check error count == 0

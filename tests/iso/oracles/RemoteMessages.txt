@@ -1,0 +1,23 @@
+#cam oracle RemoteMessages
+#cam csharp ActressMas eb0bb73, Examples/E20 Mobile Examples/RemoteMessages/ (agents and MasSetup unchanged in ref/E20/RemoteMessages.Console, the form replaced by the console)
+#cam runtime Microsoft.NETCore.App 8 (ActressMas.Wire), ref/E20/ServerConsole
+#cam capture logs/e20 (csharp-ref.sh e20 or e20mono): one process per container, its console below
+#cam container Container1
+Container connecting to server...
+Container connected to server.
+Container1 registered.
+This is Container1
+Running MAS...
+
+[ping-agent] Sending request
+	[pong-agent@Container2 -> ping-agent]: Info 1 from agent pong-agent in container Container2
+	[pong-agent@Container2 -> ping-agent]: Info 2 from agent pong-agent in container Container2
+#cam container Container2
+Container connecting to server...
+Container connected to server.
+Container2 registered.
+This is Container2
+Running MAS...
+
+[pong-agent] Waiting for requests...
+	[ping-agent@Container1 -> pong-agent]: request-info

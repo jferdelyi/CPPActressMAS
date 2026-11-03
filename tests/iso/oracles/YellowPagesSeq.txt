@@ -1,0 +1,43 @@
+#cam oracle YellowPagesSeq
+#cam csharp ActressMas eb0bb73, Examples/E06 Yellow Pages/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var env = new EnvironmentMas(100);/var env = new EnvironmentMas(100, randomOrder: false, parallel: false);/
+#cam command cd Oracles/YellowPagesSeq/bin/Release/net10.0 && dotnet YellowPagesSeq.dll
+#cam seed 0
+	[provider1 -> broker]: register Add
+	[provider2 -> broker]: register Add
+	[provider3 -> broker]: register Sub
+	[provider4 -> broker]: register Sub
+	[client1 -> broker]: search Add
+	[client2 -> broker]: search Add
+	[client3 -> broker]: search Sub
+	[client4 -> broker]: search Sub
+	[broker -> client1]: providers provider1 provider2
+	[broker -> client2]: providers provider1 provider2
+	[broker -> client3]: providers provider3 provider4
+	[broker -> client4]: providers provider3 provider4
+	[client2 -> provider1]: request 21 12
+	[client1 -> provider2]: request 82 86
+	[client3 -> provider3]: request 46 67
+	[client4 -> provider3]: request 20 68
+	[provider2 -> client1]: response 168
+[client1]: Add(82, 86) = 168
+	[provider1 -> client2]: response 33
+[client2]: Add(21, 12) = 33
+	[provider3 -> client3]: response -21
+[client3]: Sub(46, 67) = -21
+	[provider3 -> client4]: response -48
+[client4]: Sub(20, 68) = -48
+	[provider1 -> provider1]: force-unregister
+	[provider1 -> broker]: unregister Add
+	[provider5 -> broker]: register Sub
+	[client5 -> broker]: search Add
+	[client6 -> broker]: search Sub
+	[broker -> client5]: providers provider2
+	[broker -> client6]: providers provider3 provider4 provider5
+	[client5 -> provider2]: request 6 66
+	[client6 -> provider4]: request 59 72
+	[provider2 -> client5]: response 72
+[client5]: Add(6, 66) = 72
+	[provider4 -> client6]: response -13
+[client6]: Sub(59, 72) = -13

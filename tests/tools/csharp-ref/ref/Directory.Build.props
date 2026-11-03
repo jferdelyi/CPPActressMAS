@@ -1,0 +1,27 @@
+<Project>
+  <!--
+    Reference build of ActressMAS v3.1 (C#, .NET Framework 4.7.2 originally) as SDK-style projects.
+    Only the ORIGINAL sources are compiled (relative <Compile Include>), nothing is rewritten.
+    Override from the command line:
+      -p:RefTfm=net8.0                      (default net10.0; use with the sdk:8.0 image)
+      -p:ActressMasRoot=/path/to/ActressMas/ (default: ../ActressMas/ next to ref/)
+      -p:AbmRoot=/path/to/ABM_Comparison/   (default: ../ABM_Comparison/ next to ref/; models of Antelmi et al., Abm/)
+  -->
+  <PropertyGroup>
+    <RefTfm Condition="'$(RefTfm)' == ''">net10.0</RefTfm>
+    <TargetFramework>$(RefTfm)</TargetFramework>
+    <ActressMasRoot Condition="'$(ActressMasRoot)' == ''">$(MSBuildThisFileDirectory)../ActressMas/</ActressMasRoot>
+    <AmasV31>$(ActressMasRoot)ActressMAS v3.1/Source Code and Examples/</AmasV31>
+    <AmasFw>$(AmasV31)ActressMas Framework/ActressMas/</AmasFw>
+    <AmasEx>$(AmasV31)Examples/</AmasEx>
+    <AbmRoot Condition="'$(AbmRoot)' == ''">$(MSBuildThisFileDirectory)../ABM_Comparison/</AbmRoot>
+    <AbmModels>$(AbmRoot)ActressMAS/</AbmModels>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <Deterministic>true</Deterministic>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+</Project>

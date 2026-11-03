@@ -1,0 +1,634 @@
+#cam oracle ShapleySeq
+#cam csharp ActressMas eb0bb73, Examples/E04 Shapley Value/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var env = new EnvironmentMas(1000);/var env = new EnvironmentMas(1000, randomOrder: false, parallel: false);/
+#cam command cd Oracles/ShapleySeq/bin/Release/net10.0 && dotnet ShapleySeq.dll
+#cam seed 0
+Selected: worker122 worker313 worker333
+	[worker122 -> manager]: time 12 9 9
+	[worker313 -> manager]: time 4 18 6
+	[worker333 -> manager]: time 4 6 6
+	[manager -> shapley]: calculate 30 28 16 19 16 16 16
+	[shapley -> manager]: results 0 0 1
+Selected: worker323 worker211 worker212
+	[worker211 -> manager]: time 9 18 6
+	[worker212 -> manager]: time 9 18 3
+	[worker323 -> manager]: time 6 9 2
+	[manager -> shapley]: calculate 33 30 17 30 17 17 17
+	[shapley -> manager]: results 0 0 1
+Selected: worker213 worker223 worker111
+	[worker111 -> manager]: time 12 12 12
+	[worker213 -> manager]: time 6 12 4
+	[worker223 -> manager]: time 6 6 4
+	[manager -> shapley]: calculate 36 22 16 22 16 16 16
+	[shapley -> manager]: results 0 0 1
+Selected: worker221 worker112 worker111
+	[worker111 -> manager]: time 18 18 12
+	[worker112 -> manager]: time 18 18 6
+	[worker221 -> manager]: time 9 9 12
+	[manager -> shapley]: calculate 48 42 30 42 30 24 24
+	[shapley -> manager]: results 0 0.3857142857142857 0.6142857142857143
+Selected: worker322 worker221 worker121
+	[worker121 -> manager]: time 12 9 12
+	[worker221 -> manager]: time 6 9 12
+	[worker322 -> manager]: time 4 9 6
+	[manager -> shapley]: calculate 33 27 19 27 19 19 19
+	[shapley -> manager]: results 0 0 1
+Selected: worker332 worker233 worker321
+	[worker233 -> manager]: time 3 2 4
+	[worker321 -> manager]: time 2 3 12
+	[worker332 -> manager]: time 2 2 6
+	[manager -> shapley]: calculate 9 17 10 8 8 10 8
+	[shapley -> manager]: results 0.7091503267973855 0.2908496732026144 0
+Selected: worker231 worker121 worker111
+	[worker111 -> manager]: time 18 6 6
+	[worker121 -> manager]: time 18 3 6
+	[worker231 -> manager]: time 9 2 6
+	[manager -> shapley]: calculate 30 27 17 27 17 17 17
+	[shapley -> manager]: results 0 0 1
+Selected: worker221 worker331 worker322
+	[worker221 -> manager]: time 6 9 6
+	[worker322 -> manager]: time 4 9 3
+	[worker331 -> manager]: time 4 6 6
+	[manager -> shapley]: calculate 21 16 16 16 16 13 13
+	[shapley -> manager]: results 0 0.5 0.5
+Selected: worker111 worker223 worker321
+	[worker111 -> manager]: time 6 12 6
+	[worker223 -> manager]: time 3 6 2
+	[worker321 -> manager]: time 2 6 6
+	[manager -> shapley]: calculate 24 11 14 11 14 10 10
+	[shapley -> manager]: results 0 0.5974025974025974 0.40259740259740256
+Selected: worker311 worker322 worker132
+	[worker132 -> manager]: time 6 6 9
+	[worker311 -> manager]: time 2 18 18
+	[worker322 -> manager]: time 2 9 9
+	[manager -> shapley]: calculate 21 38 20 17 17 20 17
+	[shapley -> manager]: results 0.681077694235589 0.31892230576441105 0
+Selected: worker311 worker321 worker212
+	[worker212 -> manager]: time 3 18 6
+	[worker311 -> manager]: time 2 18 12
+	[worker321 -> manager]: time 2 9 12
+	[manager -> shapley]: calculate 27 32 23 26 17 23 17
+	[shapley -> manager]: results 0.44524959742351045 0 0.5547504025764896
+Selected: worker111 worker122 worker311
+	[worker111 -> manager]: time 6 18 18
+	[worker122 -> manager]: time 6 9 9
+	[worker311 -> manager]: time 2 18 18
+	[manager -> shapley]: calculate 42 24 38 24 38 20 20
+	[shapley -> manager]: results 0 0.6535087719298246 0.34649122807017546
+Selected: worker231 worker122 worker112
+	[worker112 -> manager]: time 6 6 6
+	[worker122 -> manager]: time 6 3 6
+	[worker231 -> manager]: time 3 2 12
+	[manager -> shapley]: calculate 18 15 17 15 11 11 11
+	[shapley -> manager]: results 0.4820261437908497 0 0.5179738562091504
+Selected: worker111 worker132 worker222
+	[worker111 -> manager]: time 18 12 12
+	[worker132 -> manager]: time 18 4 6
+	[worker222 -> manager]: time 9 6 6
+	[manager -> shapley]: calculate 42 28 21 28 21 19 19
+	[shapley -> manager]: results 0 0.3869047619047619 0.6130952380952381
+Selected: worker111 worker333 worker221
+	[worker111 -> manager]: time 18 18 6
+	[worker221 -> manager]: time 9 9 6
+	[worker333 -> manager]: time 6 6 2
+	[manager -> shapley]: calculate 42 24 14 24 14 14 14
+	[shapley -> manager]: results 0 0 1
+Selected: worker122 worker132 worker111
+	[worker111 -> manager]: time 18 18 12
+	[worker122 -> manager]: time 18 9 6
+	[worker132 -> manager]: time 18 6 6
+	[manager -> shapley]: calculate 48 33 30 33 30 30 30
+	[shapley -> manager]: results 0 0 1
+Selected: worker312 worker231 worker113
+	[worker113 -> manager]: time 12 18 6
+	[worker231 -> manager]: time 6 6 18
+	[worker312 -> manager]: time 4 18 9
+	[manager -> shapley]: calculate 36 30 31 18 28 19 16
+	[shapley -> manager]: results 0.269255576216527 0.44903836652563306 0.28170605725784
+Selected: worker112 worker331 worker233
+	[worker112 -> manager]: time 6 18 6
+	[worker233 -> manager]: time 3 6 4
+	[worker331 -> manager]: time 2 6 12
+	[manager -> shapley]: calculate 30 13 20 13 14 12 12
+	[shapley -> manager]: results 0 0.6615384615384615 0.3384615384615384
+Selected: worker321 worker322 worker133
+	[worker133 -> manager]: time 12 2 2
+	[worker321 -> manager]: time 4 3 6
+	[worker322 -> manager]: time 4 3 3
+	[manager -> shapley]: calculate 16 13 10 8 8 10 8
+	[shapley -> manager]: results 0.4423076923076923 0.5576923076923077 0
+Selected: worker311 worker321 worker221
+	[worker221 -> manager]: time 3 3 6
+	[worker311 -> manager]: time 2 6 6
+	[worker321 -> manager]: time 2 3 6
+	[manager -> shapley]: calculate 12 14 11 11 11 11 11
+	[shapley -> manager]: results 0 0 1
+Selected: worker123 worker321 worker231
+	[worker123 -> manager]: time 18 6 6
+	[worker231 -> manager]: time 9 4 18
+	[worker321 -> manager]: time 6 6 18
+	[manager -> shapley]: calculate 30 31 30 19 18 28 16
+	[shapley -> manager]: results 0.43422355171081833 0.26689124244302515 0.2988852058461566
+Selected: worker121 worker112 worker133
+	[worker112 -> manager]: time 18 6 3
+	[worker121 -> manager]: time 18 3 6
+	[worker133 -> manager]: time 18 2 2
+	[manager -> shapley]: calculate 27 27 22 24 22 22 22
+	[shapley -> manager]: results 0 0 1
+Selected: worker322 worker321 worker111
+	[worker111 -> manager]: time 6 18 18
+	[worker321 -> manager]: time 2 9 18
+	[worker322 -> manager]: time 2 9 9
+	[manager -> shapley]: calculate 42 29 20 29 20 20 20
+	[shapley -> manager]: results 0 0 1
+Selected: worker132 worker311 worker332
+	[worker132 -> manager]: time 6 6 9
+	[worker311 -> manager]: time 2 18 18
+	[worker332 -> manager]: time 2 6 9
+	[manager -> shapley]: calculate 21 38 17 17 17 17 17
+	[shapley -> manager]: results 0 0 1
+Selected: worker323 worker223 worker211
+	[worker211 -> manager]: time 3 6 6
+	[worker223 -> manager]: time 3 3 2
+	[worker323 -> manager]: time 2 3 2
+	[manager -> shapley]: calculate 15 8 7 8 7 7 7
+	[shapley -> manager]: results 0 0 1
+Selected: worker211 worker221 worker331
+	[worker211 -> manager]: time 6 18 12
+	[worker221 -> manager]: time 6 9 12
+	[worker331 -> manager]: time 4 6 12
+	[manager -> shapley]: calculate 36 27 22 27 22 22 22
+	[shapley -> manager]: results 0 0 1
+Selected: worker113 worker311 worker313
+	[worker113 -> manager]: time 12 6 2
+	[worker311 -> manager]: time 4 6 6
+	[worker313 -> manager]: time 4 6 2
+	[manager -> shapley]: calculate 20 16 12 12 12 12 12
+	[shapley -> manager]: results 0 0 1
+Selected: worker212 worker132 worker131
+	[worker131 -> manager]: time 18 6 18
+	[worker132 -> manager]: time 18 6 9
+	[worker212 -> manager]: time 9 18 9
+	[manager -> shapley]: calculate 42 33 36 33 24 24 24
+	[shapley -> manager]: results 0.4523809523809524 0 0.5476190476190477
+Selected: worker213 worker132 worker313
+	[worker132 -> manager]: time 18 4 6
+	[worker213 -> manager]: time 9 12 4
+	[worker313 -> manager]: time 6 12 4
+	[manager -> shapley]: calculate 28 25 22 17 14 22 14
+	[shapley -> manager]: results 0.43181818181818177 0 0.5681818181818182
+Selected: worker212 worker223 worker111
+	[worker111 -> manager]: time 6 12 6
+	[worker212 -> manager]: time 3 12 3
+	[worker223 -> manager]: time 3 6 2
+	[manager -> shapley]: calculate 24 18 11 18 11 11 11
+	[shapley -> manager]: results 0 0 1
+Selected: worker331 worker122 worker222
+	[worker122 -> manager]: time 18 6 3
+	[worker222 -> manager]: time 9 6 3
+	[worker331 -> manager]: time 6 4 6
+	[manager -> shapley]: calculate 27 18 16 18 13 13 13
+	[shapley -> manager]: results 0.33449074074074076 0 0.6655092592592593
+Selected: worker313 worker332 worker311
+	[worker311 -> manager]: time 6 18 12
+	[worker313 -> manager]: time 6 18 4
+	[worker332 -> manager]: time 6 6 6
+	[manager -> shapley]: calculate 36 28 18 28 18 16 16
+	[shapley -> manager]: results 0 0.3412698412698413 0.6587301587301587
+Selected: worker132 worker211 worker133
+	[worker132 -> manager]: time 18 2 9
+	[worker133 -> manager]: time 18 2 6
+	[worker211 -> manager]: time 9 6 18
+	[manager -> shapley]: calculate 29 26 33 26 20 17 17
+	[shapley -> manager]: results 0 0.5693473193473194 0.43065268065268064
+Selected: worker232 worker212 worker113
+	[worker113 -> manager]: time 12 12 4
+	[worker212 -> manager]: time 6 12 6
+	[worker232 -> manager]: time 6 4 6
+	[manager -> shapley]: calculate 28 24 16 22 14 16 14
+	[shapley -> manager]: results 0.3125 0 0.6875
+Selected: worker331 worker132 worker323
+	[worker132 -> manager]: time 18 6 6
+	[worker323 -> manager]: time 6 9 4
+	[worker331 -> manager]: time 6 6 12
+	[manager -> shapley]: calculate 30 19 24 16 18 16 16
+	[shapley -> manager]: results 0.3456140350877193 0.6543859649122807 0
+Selected: worker211 worker221 worker111
+	[worker111 -> manager]: time 12 18 6
+	[worker211 -> manager]: time 6 18 6
+	[worker221 -> manager]: time 6 9 6
+	[manager -> shapley]: calculate 36 30 21 30 21 21 21
+	[shapley -> manager]: results 0 0 1
+Selected: worker211 worker312 worker133
+	[worker133 -> manager]: time 18 4 2
+	[worker211 -> manager]: time 9 12 6
+	[worker312 -> manager]: time 6 12 3
+	[manager -> shapley]: calculate 24 27 21 15 12 21 12
+	[shapley -> manager]: results 0.4642857142857143 0 0.5357142857142857
+Selected: worker223 worker123 worker332
+	[worker123 -> manager]: time 6 6 6
+	[worker223 -> manager]: time 3 6 6
+	[worker332 -> manager]: time 2 4 9
+	[manager -> shapley]: calculate 18 15 15 15 12 12 12
+	[shapley -> manager]: results 0.4333333333333333 0 0.5666666666666667
+Selected: worker323 worker332 worker223
+	[worker223 -> manager]: time 3 9 2
+	[worker323 -> manager]: time 2 9 2
+	[worker332 -> manager]: time 2 6 3
+	[manager -> shapley]: calculate 14 13 11 13 10 10 10
+	[shapley -> manager]: results 0.40259740259740256 0 0.5974025974025974
+Selected: worker112 worker312 worker321
+	[worker112 -> manager]: time 18 6 9
+	[worker312 -> manager]: time 6 6 9
+	[worker321 -> manager]: time 6 3 18
+	[manager -> shapley]: calculate 33 21 27 21 18 18 18
+	[shapley -> manager]: results 0.4393939393939394 0 0.5606060606060606
+Selected: worker132 worker323 worker321
+	[worker132 -> manager]: time 6 2 6
+	[worker321 -> manager]: time 2 3 12
+	[worker323 -> manager]: time 2 3 4
+	[manager -> shapley]: calculate 14 17 9 10 8 9 8
+	[shapley -> manager]: results 0.3412698412698413 0 0.6587301587301587
+Selected: worker212 worker232 worker322
+	[worker212 -> manager]: time 3 18 9
+	[worker232 -> manager]: time 3 6 9
+	[worker322 -> manager]: time 2 9 9
+	[manager -> shapley]: calculate 30 18 20 18 20 17 17
+	[shapley -> manager]: results 0 0.5472222222222222 0.45277777777777783
+Selected: worker222 worker312 worker123
+	[worker123 -> manager]: time 18 3 2
+	[worker222 -> manager]: time 9 3 3
+	[worker312 -> manager]: time 6 6 3
+	[manager -> shapley]: calculate 23 15 15 14 11 12 11
+	[shapley -> manager]: results 0.372463768115942 0 0.6275362318840579
+Selected: worker231 worker322 worker312
+	[worker231 -> manager]: time 9 2 6
+	[worker312 -> manager]: time 6 6 3
+	[worker322 -> manager]: time 6 3 3
+	[manager -> shapley]: calculate 17 15 12 11 11 12 11
+	[shapley -> manager]: results 0.4568627450980392 0.5431372549019607 0
+Selected: worker121 worker111 worker122
+	[worker111 -> manager]: time 12 12 18
+	[worker121 -> manager]: time 12 6 18
+	[worker122 -> manager]: time 12 6 9
+	[manager -> shapley]: calculate 42 36 27 36 27 27 27
+	[shapley -> manager]: results 0 0 1
+Selected: worker212 worker222 worker111
+	[worker111 -> manager]: time 12 18 18
+	[worker212 -> manager]: time 6 18 9
+	[worker222 -> manager]: time 6 9 9
+	[manager -> shapley]: calculate 48 33 24 33 24 24 24
+	[shapley -> manager]: results 0 0 1
+Selected: worker332 worker111 worker113
+	[worker111 -> manager]: time 12 18 6
+	[worker113 -> manager]: time 12 18 2
+	[worker332 -> manager]: time 4 6 3
+	[manager -> shapley]: calculate 36 32 13 32 13 12 12
+	[shapley -> manager]: results 0 0.22596153846153846 0.7740384615384617
+Selected: worker111 worker223 worker222
+	[worker111 -> manager]: time 12 18 6
+	[worker222 -> manager]: time 6 9 3
+	[worker223 -> manager]: time 6 9 2
+	[manager -> shapley]: calculate 36 18 17 18 17 17 17
+	[shapley -> manager]: results 0 0 1
+Selected: worker122 worker221 worker231
+	[worker122 -> manager]: time 6 9 3
+	[worker221 -> manager]: time 3 9 6
+	[worker231 -> manager]: time 3 6 6
+	[manager -> shapley]: calculate 18 18 15 15 12 15 12
+	[shapley -> manager]: results 0.4333333333333333 0 0.5666666666666667
+Selected: worker111 worker331 worker212
+	[worker111 -> manager]: time 12 6 6
+	[worker212 -> manager]: time 6 6 3
+	[worker331 -> manager]: time 4 2 6
+	[manager -> shapley]: calculate 24 15 12 15 12 9 9
+	[shapley -> manager]: results 0 0.425 0.575
+Selected: worker323 worker132 worker211
+	[worker132 -> manager]: time 6 2 3
+	[worker211 -> manager]: time 3 6 6
+	[worker323 -> manager]: time 2 3 2
+	[manager -> shapley]: calculate 11 15 7 8 6 7 6
+	[shapley -> manager]: results 0.34415584415584416 0 0.6558441558441558
+Selected: worker331 worker121 worker133
+	[worker121 -> manager]: time 18 6 18
+	[worker133 -> manager]: time 18 4 6
+	[worker331 -> manager]: time 6 4 18
+	[manager -> shapley]: calculate 42 28 28 28 28 16 16
+	[shapley -> manager]: results 0 0.5 0.5
+Selected: worker121 worker233 worker313
+	[worker121 -> manager]: time 12 3 18
+	[worker233 -> manager]: time 6 2 6
+	[worker313 -> manager]: time 4 6 6
+	[manager -> shapley]: calculate 33 14 16 14 13 12 12
+	[shapley -> manager]: results 0 0.5535714285714286 0.44642857142857145
+Selected: worker112 worker332 worker321
+	[worker112 -> manager]: time 6 6 9
+	[worker321 -> manager]: time 2 3 18
+	[worker332 -> manager]: time 2 2 9
+	[manager -> shapley]: calculate 21 23 13 14 13 13 13
+	[shapley -> manager]: results 0 0 1
+Selected: worker323 worker322 worker333
+	[worker322 -> manager]: time 4 9 3
+	[worker323 -> manager]: time 4 9 2
+	[worker333 -> manager]: time 4 6 2
+	[manager -> shapley]: calculate 16 15 12 15 12 12 12
+	[shapley -> manager]: results 0 0 1
+Selected: worker311 worker212 worker123
+	[worker123 -> manager]: time 12 6 2
+	[worker212 -> manager]: time 6 12 3
+	[worker311 -> manager]: time 4 12 6
+	[manager -> shapley]: calculate 20 21 22 14 12 19 12
+	[shapley -> manager]: results 0.5272727272727273 0 0.4727272727272727
+Selected: worker321 worker221 worker223
+	[worker221 -> manager]: time 6 9 12
+	[worker223 -> manager]: time 6 9 4
+	[worker321 -> manager]: time 4 9 12
+	[manager -> shapley]: calculate 27 19 25 19 25 17 17
+	[shapley -> manager]: results 0 0.6073684210526316 0.39263157894736844
+Selected: worker123 worker311 worker312
+	[worker123 -> manager]: time 6 9 2
+	[worker311 -> manager]: time 2 18 6
+	[worker312 -> manager]: time 2 18 3
+	[manager -> shapley]: calculate 17 26 23 13 13 23 13
+	[shapley -> manager]: results 0.6323529411764706 0.36764705882352944 0
+Selected: worker131 worker133 worker132
+	[worker131 -> manager]: time 12 6 12
+	[worker132 -> manager]: time 12 6 6
+	[worker133 -> manager]: time 12 6 4
+	[manager -> shapley]: calculate 30 24 22 24 22 22 22
+	[shapley -> manager]: results 0 0 1
+Selected: worker123 worker121 worker132
+	[worker121 -> manager]: time 6 6 18
+	[worker123 -> manager]: time 6 6 6
+	[worker132 -> manager]: time 6 4 9
+	[manager -> shapley]: calculate 30 18 19 18 19 16 16
+	[shapley -> manager]: results 0 0.5233918128654971 0.4766081871345029
+Selected: worker221 worker331 worker313
+	[worker221 -> manager]: time 9 3 12
+	[worker313 -> manager]: time 6 6 4
+	[worker331 -> manager]: time 6 2 12
+	[manager -> shapley]: calculate 24 16 20 13 20 12 12
+	[shapley -> manager]: results 0 0.575 0.425
+Selected: worker223 worker212 worker133
+	[worker133 -> manager]: time 18 4 6
+	[worker212 -> manager]: time 9 12 9
+	[worker223 -> manager]: time 9 6 6
+	[manager -> shapley]: calculate 28 30 21 19 19 21 19
+	[shapley -> manager]: results 0.5226190476190476 0.4773809523809524 0
+Selected: worker333 worker331 worker132
+	[worker132 -> manager]: time 12 6 6
+	[worker331 -> manager]: time 4 6 12
+	[worker333 -> manager]: time 4 6 4
+	[manager -> shapley]: calculate 24 22 14 16 14 14 14
+	[shapley -> manager]: results 0 0 1
+Selected: worker332 worker133 worker331
+	[worker133 -> manager]: time 12 2 2
+	[worker331 -> manager]: time 4 2 6
+	[worker332 -> manager]: time 4 2 3
+	[manager -> shapley]: calculate 16 12 9 8 8 9 8
+	[shapley -> manager]: results 0.4166666666666667 0.5833333333333333 0
+Selected: worker122 worker211 worker123
+	[worker122 -> manager]: time 18 6 6
+	[worker123 -> manager]: time 18 6 4
+	[worker211 -> manager]: time 9 12 12
+	[manager -> shapley]: calculate 30 28 33 28 21 19 19
+	[shapley -> manager]: results 0 0.5514069264069263 0.4485930735930736
+Selected: worker321 worker232 worker231
+	[worker231 -> manager]: time 9 6 12
+	[worker232 -> manager]: time 9 6 6
+	[worker321 -> manager]: time 6 9 12
+	[manager -> shapley]: calculate 27 21 27 21 24 18 18
+	[shapley -> manager]: results 0 0.5952380952380952 0.40476190476190477
+Selected: worker112 worker212 worker133
+	[worker112 -> manager]: time 6 12 9
+	[worker133 -> manager]: time 6 4 6
+	[worker212 -> manager]: time 3 12 9
+	[manager -> shapley]: calculate 27 16 24 16 24 13 13
+	[shapley -> manager]: results 0 0.6354166666666667 0.3645833333333333
+Selected: worker213 worker211 worker113
+	[worker113 -> manager]: time 6 18 2
+	[worker211 -> manager]: time 3 18 6
+	[worker213 -> manager]: time 3 18 2
+	[manager -> shapley]: calculate 26 27 23 23 23 23 23
+	[shapley -> manager]: results 0 0 1
+Selected: worker313 worker123 worker332
+	[worker123 -> manager]: time 6 3 2
+	[worker313 -> manager]: time 2 6 2
+	[worker332 -> manager]: time 2 2 3
+	[manager -> shapley]: calculate 11 10 7 7 6 6 6
+	[shapley -> manager]: results 0.34415584415584416 0 0.6558441558441558
+Selected: worker111 worker332 worker213
+	[worker111 -> manager]: time 6 6 12
+	[worker213 -> manager]: time 3 6 4
+	[worker332 -> manager]: time 2 2 6
+	[manager -> shapley]: calculate 24 13 10 13 10 8 8
+	[shapley -> manager]: results 0 0.4076923076923077 0.5923076923076923
+Selected: worker232 worker323 worker221
+	[worker221 -> manager]: time 6 6 18
+	[worker232 -> manager]: time 6 4 9
+	[worker323 -> manager]: time 4 6 6
+	[manager -> shapley]: calculate 30 19 16 19 16 14 14
+	[shapley -> manager]: results 0 0.4309210526315789 0.5690789473684211
+Selected: worker333 worker112 worker213
+	[worker112 -> manager]: time 12 12 6
+	[worker213 -> manager]: time 6 12 4
+	[worker333 -> manager]: time 4 4 4
+	[manager -> shapley]: calculate 30 22 12 22 12 12 12
+	[shapley -> manager]: results 0 0 1
+Selected: worker133 worker113 worker132
+	[worker113 -> manager]: time 6 12 6
+	[worker132 -> manager]: time 6 4 9
+	[worker133 -> manager]: time 6 4 6
+	[manager -> shapley]: calculate 24 19 16 16 16 16 16
+	[shapley -> manager]: results 0 0 1
+Selected: worker332 worker123 worker231
+	[worker123 -> manager]: time 18 6 6
+	[worker231 -> manager]: time 9 4 18
+	[worker332 -> manager]: time 6 4 9
+	[manager -> shapley]: calculate 30 31 19 19 16 19 16
+	[shapley -> manager]: results 0.3456140350877193 0 0.6543859649122807
+Selected: worker123 worker212 worker222
+	[worker123 -> manager]: time 12 9 6
+	[worker212 -> manager]: time 6 18 9
+	[worker222 -> manager]: time 6 9 9
+	[manager -> shapley]: calculate 27 33 24 21 21 24 21
+	[shapley -> manager]: results 0.5707070707070707 0.42929292929292934 0
+Selected: worker211 worker111 worker232
+	[worker111 -> manager]: time 18 12 12
+	[worker211 -> manager]: time 9 12 12
+	[worker232 -> manager]: time 9 4 6
+	[manager -> shapley]: calculate 42 33 19 33 19 19 19
+	[shapley -> manager]: results 0 0 1
+Selected: worker312 worker311 worker113
+	[worker113 -> manager]: time 12 18 6
+	[worker311 -> manager]: time 4 18 18
+	[worker312 -> manager]: time 4 18 9
+	[manager -> shapley]: calculate 36 40 31 28 28 31 28
+	[shapley -> manager]: results 0.5388888888888889 0.46111111111111114 0
+Selected: worker332 worker122 worker221
+	[worker122 -> manager]: time 6 6 3
+	[worker221 -> manager]: time 3 6 6
+	[worker332 -> manager]: time 2 4 3
+	[manager -> shapley]: calculate 15 15 9 12 9 9 9
+	[shapley -> manager]: results 0 0 1
+Selected: worker332 worker213 worker221
+	[worker213 -> manager]: time 6 6 2
+	[worker221 -> manager]: time 6 3 6
+	[worker332 -> manager]: time 4 2 3
+	[manager -> shapley]: calculate 14 15 9 11 8 9 8
+	[shapley -> manager]: results 0.3412698412698413 0 0.6587301587301587
+Selected: worker311 worker121 worker111
+	[worker111 -> manager]: time 12 18 18
+	[worker121 -> manager]: time 12 9 18
+	[worker311 -> manager]: time 4 18 18
+	[manager -> shapley]: calculate 48 39 40 39 40 31 31
+	[shapley -> manager]: results 0 0.5099358974358974 0.4900641025641026
+Selected: worker331 worker212 worker222
+	[worker212 -> manager]: time 3 12 9
+	[worker222 -> manager]: time 3 6 9
+	[worker331 -> manager]: time 2 4 18
+	[manager -> shapley]: calculate 24 18 24 18 15 15 15
+	[shapley -> manager]: results 0.5 0 0.5
+Selected: worker313 worker111 worker321
+	[worker111 -> manager]: time 12 12 12
+	[worker313 -> manager]: time 4 12 4
+	[worker321 -> manager]: time 4 6 12
+	[manager -> shapley]: calculate 36 20 22 20 22 14 14
+	[shapley -> manager]: results 0 0.5318181818181819 0.46818181818181814
+Selected: worker221 worker131 worker312
+	[worker131 -> manager]: time 12 6 6
+	[worker221 -> manager]: time 6 9 6
+	[worker312 -> manager]: time 4 18 3
+	[manager -> shapley]: calculate 24 21 25 18 13 16 13
+	[shapley -> manager]: results 0.5108333333333334 0 0.4891666666666667
+Selected: worker123 worker131 worker113
+	[worker113 -> manager]: time 18 18 2
+	[worker123 -> manager]: time 18 9 2
+	[worker131 -> manager]: time 18 6 6
+	[manager -> shapley]: calculate 38 29 30 29 26 26 26
+	[shapley -> manager]: results 0.4087719298245614 0 0.5912280701754387
+Selected: worker213 worker131 worker121
+	[worker121 -> manager]: time 6 6 12
+	[worker131 -> manager]: time 6 4 12
+	[worker213 -> manager]: time 3 12 4
+	[manager -> shapley]: calculate 24 22 19 22 13 11 11
+	[shapley -> manager]: results 0 0.46052631578947373 0.5394736842105263
+Selected: worker321 worker131 worker332
+	[worker131 -> manager]: time 6 6 18
+	[worker321 -> manager]: time 2 9 18
+	[worker332 -> manager]: time 2 6 9
+	[manager -> shapley]: calculate 30 29 17 26 17 17 17
+	[shapley -> manager]: results 0 0 1
+Selected: worker331 worker221 worker131
+	[worker131 -> manager]: time 12 6 6
+	[worker221 -> manager]: time 6 9 6
+	[worker331 -> manager]: time 4 6 6
+	[manager -> shapley]: calculate 24 21 16 18 16 16 16
+	[shapley -> manager]: results 0 0 1
+Selected: worker321 worker223 worker333
+	[worker223 -> manager]: time 3 6 4
+	[worker321 -> manager]: time 2 6 12
+	[worker333 -> manager]: time 2 4 4
+	[manager -> shapley]: calculate 13 20 10 12 10 10 10
+	[shapley -> manager]: results 0 0 1
+Selected: worker132 worker222 worker113
+	[worker113 -> manager]: time 6 18 6
+	[worker132 -> manager]: time 6 6 9
+	[worker222 -> manager]: time 3 9 9
+	[manager -> shapley]: calculate 30 21 21 18 18 18 15
+	[shapley -> manager]: results 0.2619047619047619 0.36904761904761907 0.36904761904761907
+Selected: worker311 worker131 worker112
+	[worker112 -> manager]: time 18 6 3
+	[worker131 -> manager]: time 18 2 6
+	[worker311 -> manager]: time 6 6 6
+	[manager -> shapley]: calculate 27 26 18 23 15 14 11
+	[shapley -> manager]: results 0.23679873534946003 0.270823969374694 0.49237729527584595
+Selected: worker323 worker112 worker222
+	[worker112 -> manager]: time 6 12 6
+	[worker222 -> manager]: time 3 6 6
+	[worker323 -> manager]: time 2 6 4
+	[manager -> shapley]: calculate 24 15 12 15 12 12 12
+	[shapley -> manager]: results 0 0 1
+Selected: worker211 worker313 worker332
+	[worker211 -> manager]: time 9 12 12
+	[worker313 -> manager]: time 6 12 4
+	[worker332 -> manager]: time 6 4 6
+	[manager -> shapley]: calculate 33 22 16 22 16 14 14
+	[shapley -> manager]: results 0 0.3806818181818182 0.6193181818181818
+Selected: worker323 worker332 worker223
+	[worker223 -> manager]: time 6 6 2
+	[worker323 -> manager]: time 4 6 2
+	[worker332 -> manager]: time 4 4 3
+	[manager -> shapley]: calculate 14 12 11 12 10 10 10
+	[shapley -> manager]: results 0.40259740259740256 0 0.5974025974025974
+Selected: worker221 worker121 worker323
+	[worker121 -> manager]: time 12 9 18
+	[worker221 -> manager]: time 6 9 18
+	[worker323 -> manager]: time 4 9 6
+	[manager -> shapley]: calculate 39 33 19 33 19 19 19
+	[shapley -> manager]: results 0 0 1
+Selected: worker322 worker131 worker222
+	[worker131 -> manager]: time 6 2 12
+	[worker222 -> manager]: time 3 3 6
+	[worker322 -> manager]: time 2 3 6
+	[manager -> shapley]: calculate 20 12 11 11 10 11 10
+	[shapley -> manager]: results 0.29545454545454547 0 0.7045454545454546
+Selected: worker133 worker313 worker213
+	[worker133 -> manager]: time 12 6 4
+	[worker213 -> manager]: time 6 18 4
+	[worker313 -> manager]: time 4 18 4
+	[manager -> shapley]: calculate 22 28 26 16 14 26 14
+	[shapley -> manager]: results 0.548951048951049 0 0.45104895104895104
+Selected: worker131 worker123 worker213
+	[worker123 -> manager]: time 18 3 2
+	[worker131 -> manager]: time 18 2 6
+	[worker213 -> manager]: time 9 6 2
+	[manager -> shapley]: calculate 23 26 17 22 14 13 13
+	[shapley -> manager]: results 0 0.36764705882352944 0.6323529411764706
+Selected: worker122 worker313 worker131
+	[worker122 -> manager]: time 12 6 6
+	[worker131 -> manager]: time 12 4 12
+	[worker313 -> manager]: time 4 12 4
+	[manager -> shapley]: calculate 24 28 20 22 14 12 12
+	[shapley -> manager]: results 0 0.41428571428571426 0.5857142857142857
+Selected: worker121 worker223 worker111
+	[worker111 -> manager]: time 6 18 12
+	[worker121 -> manager]: time 6 9 12
+	[worker223 -> manager]: time 3 9 4
+	[manager -> shapley]: calculate 36 27 16 27 16 16 16
+	[shapley -> manager]: results 0 0 1
+Selected: worker131 worker232 worker331
+	[worker131 -> manager]: time 18 6 12
+	[worker232 -> manager]: time 9 6 6
+	[worker331 -> manager]: time 6 6 12
+	[manager -> shapley]: calculate 36 21 24 21 24 18 18
+	[shapley -> manager]: results 0 0.5535714285714286 0.44642857142857145
+Manager has finished
+Agent worker111 has 380.289
+Agent worker112 has 64.172
+Agent worker113 has 136.469
+Agent worker121 has 125.503
+Agent worker122 has 82.447
+Agent worker123 has 147.254
+Agent worker131 has 108.598
+Agent worker132 has 204.009
+Agent worker133 has 141.554
+Agent worker211 has 93.591
+Agent worker212 has 166.595
+Agent worker213 has 106.266
+Agent worker221 has 167.610
+Agent worker222 has 177.291
+Agent worker223 has 107.358
+Agent worker231 has 129.014
+Agent worker232 has 131.376
+Agent worker233 has 39.094
+Agent worker311 has 146.891
+Agent worker312 has 56.401
+Agent worker313 has 116.333
+Agent worker321 has 119.298
+Agent worker322 has 87.181
+Agent worker323 has 96.449
+Agent worker331 has 182.775
+Agent worker332 has 220.182
+Agent worker333 has 114.000

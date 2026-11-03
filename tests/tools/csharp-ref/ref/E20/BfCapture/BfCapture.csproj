@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Prints the bytes of every ContainerServer command as the ORIGINAL code builds them (reflection on internals). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+    <NoWarn>$(NoWarn);SYSLIB0011</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <ProjectReference Include="../ActressMas.Wire/ActressMas.Wire.csproj" />
+  </ItemGroup>
+</Project>

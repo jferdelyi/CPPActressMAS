@@ -1,0 +1,28 @@
+<Project>
+  <!--
+    Common part of the benchmark projects of the ActressMAS models of Antelmi et al., "Experimenting with Agent-Based
+    Model Simulation Tools", Applied Sciences 13(1), 13, 2023 (https://github.com/isislab-unisa/ABM_Comparison,
+    Apache-2.0): the ORIGINAL sources of one model ($(AbmSources), set by the project before importing this file),
+    written for ActressMAS v3.0 and .NET Framework 4.7.2, compiled against ActressMas.Ref (v3.1), except their Program.cs,
+    replaced by the Bench.cs of the project: v3.1 has no public RunTurn, and the size comes from the command line.
+    Declared by a project when its model needs it:
+    - GlobalUsings.cs and Stubs/*.cs: what the published sources need to compile (namespaces, types of Windows only);
+    - <File>.cs.sed: csharp-ref.sh writes Patched/<File>.cs, the original file with one line rewritten, compiled
+      instead of the original.
+    Every change is listed in the README.md next to this file.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(AbmSources)*.cs" Exclude="$(AbmSources)Program.cs" />
+    <Compile Include="$(MSBuildProjectDirectory)/*.cs" />
+    <Compile Include="$(MSBuildProjectDirectory)/Stubs/*.cs" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../ActressMas.Ref/ActressMas.Ref.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AbmPatched Include="$(MSBuildProjectDirectory)/Patched/*.cs" />
+    <Compile Remove="@(AbmPatched->'$(AbmSources)%(Filename)%(Extension)')" />
+    <Compile Include="@(AbmPatched)" />
+  </ItemGroup>
+</Project>

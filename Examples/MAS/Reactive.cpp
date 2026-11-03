@@ -8,15 +8,15 @@
  *  CPP version of ActressMAS by Florin Leon                              *
  *  https://github.com/florinleon/ActressMas                              *
  *                                                                        *
- *  This program is free software; you can redistribute it and/or modify  *
- *  it under the terms of the GNU General License as published by         *
- *  the Free Software Foundation. This program is distributed in the      *
- *  hope that it will be useful, but WITHOUT ANY WARRANTY; without even   *
- *  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR   *
- *  PURPOSE. See the GNU General License for more details.                *
+ *  This program and the accompanying materials are made available under  *
+ *  the terms of the Eclipse Public License 2.0, which is available at    *
+ *  https://www.eclipse.org/legal/epl-2.0/ and in the LICENSE file.       *
+ *                                                                        *
+ *  SPDX-License-Identifier: EPL-2.0                                      *
  *                                                                        *
  **************************************************************************/
 
+#include <iostream>
 #include <random>
 #include <utility>
 
@@ -77,33 +77,39 @@ public:
 		m_x(p_x),
 		m_y(p_y){}
 
-	explicit Position(std::stringstream& p_stream) :
-		Position() {
-		cereal::PortableBinaryInputArchive l_input_archive(p_stream);
-		l_input_archive(*this);
+	bool operator==(const Position& p_other) const {
+		return m_x == p_other.m_x && m_y == p_other.m_y;
 	}
 
-	[[nodiscard]] std::stringstream serialize_to_stream() const {
-		std::stringstream l_stream;
-		cereal::PortableBinaryOutputArchive l_output_archive(l_stream);
-		l_output_archive(*this);
-		return l_stream;
-	}
+	Position(const Position& p_other) = default;
 
-	template<class Archive>
-	void serialize(Archive& p_archive) {
-		p_archive(m_x, m_y);
-	}
-
-	bool operator==(const Position& m_other) const {
-		return m_x == m_other.m_x && m_y == m_other.m_y;
-	}
-
-	Position& operator=(const Position& m_other) = default;
+	Position& operator=(const Position& p_other) = default;
 };
 std::ostream& operator<<(std::ostream& p_stream, const Position& p_position) {
 	return p_stream << "[" << p_position.m_x << "; " << p_position.m_y << "]";
 }
+
+// Positions and messages travel as JSON objects: the receiver gets them as sent, without serialization while they stay local
+void to_json(json& p_json, const Position& p_position) {
+	p_json = json{{"x", p_position.m_x}, {"y", p_position.m_y}};
+}
+
+void from_json(const json& p_json, Position& p_position) {
+	p_json.at("x").get_to(p_position.m_x);
+	p_json.at("y").get_to(p_position.m_y);
+}
+
+NLOHMANN_JSON_SERIALIZE_ENUM(MessageAction, {
+	{MessageAction::None, "None"},
+	{MessageAction::Position, "Position"},
+	{MessageAction::Change, "Change"},
+	{MessageAction::PickUp, "PickUp"},
+	{MessageAction::Carry, "Carry"},
+	{MessageAction::Unload, "Unload"},
+	{MessageAction::Move, "Move"},
+	{MessageAction::Rock, "Rock"},
+	{MessageAction::Block, "Block"},
+})
 
 class Message {
 public:
@@ -121,31 +127,25 @@ public:
 		m_position(p_position),
 		m_resource_id(p_resource_id) {}
 
-	explicit Message(std::stringstream& p_stream) :
-		Message() {
-		cereal::PortableBinaryInputArchive l_input_archive(p_stream);
-		l_input_archive(*this);
-	}
-
-	[[nodiscard]] std::stringstream serialize_to_stream() const {
-		std::stringstream l_stream;
-		cereal::PortableBinaryOutputArchive l_output_archive(l_stream);
-		l_output_archive(*this);
-		return l_stream;
-	}
-
-	template<class Archive>
-	void serialize(Archive& p_archive) {
-		p_archive(m_action, m_position, m_resource_id);
-	}
-
 	bool operator==(const Message& p_other) const {
 		return m_action == p_other.m_action && m_position == p_other.m_position && m_resource_id == p_other.m_resource_id;
 	}
 
-	Message& operator=(const Message& m_other) = default;
+	Message(const Message& p_other) = default;
+
+	Message& operator=(const Message& p_other) = default;
 
 };
+void to_json(json& p_json, const Message& p_message) {
+	p_json = json{{"action", p_message.m_action}, {"position", p_message.m_position}, {"resource", p_message.m_resource_id}};
+}
+
+void from_json(const json& p_json, Message& p_message) {
+	p_json.at("action").get_to(p_message.m_action);
+	p_json.at("position").get_to(p_message.m_position);
+	p_json.at("resource").get_to(p_message.m_resource_id);
+}
+
 std::ostream& operator<<(std::ostream& p_stream, const Message& p_message) {
 	p_stream << "Action = " << p_message.m_action;
 	if (p_message.m_position.m_x != -1 && p_message.m_position.m_y != -1) {
@@ -159,7 +159,7 @@ std::ostream& operator<<(std::ostream& p_stream, const Message& p_message) {
 
 class PlanetAgent : public cam::Agent {
 private:
-	std::map<std::string, Position> m_explorer_positions;
+	std::map<cam::AgentId, Position> m_explorer_positions;
 	std::map<int, Position> m_resource_positions;
 
 public:
@@ -192,9 +192,7 @@ public:
 	}
 
 	void action(const cam::MessagePointer& p_message) override {
-		const std::string& l_content = p_message->content();
-		std::stringstream l_stream(l_content);
-		const auto& l_message = Message(l_stream);
+		const auto l_message = p_message->as_json().get<Message>();
 		std::cout << "[" << get_name() << "] " << l_message << std::endl;
 
 		switch (l_message.m_action) {
@@ -224,12 +222,12 @@ public:
 	}
 
 private:
-	void handle_position(const std::string& p_sender, const Position& p_position) {
+	void handle_position(const cam::AgentId& p_sender, const Position& p_position) {
 		m_explorer_positions.insert(std::make_pair(p_sender, p_position));
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		send(p_sender, json(Message(MessageAction::Move)));
 	}
 
-	void handle_change(const std::string& p_sender, const Position& p_position) {
+	void handle_change(const cam::AgentId& p_sender, const Position& p_position) {
 		m_explorer_positions[p_sender] = p_position;
 
 		for (const auto& l_key_value: m_explorer_positions) {
@@ -237,35 +235,35 @@ private:
 				continue;
 			}
 			if (l_key_value.second == p_position) {
-				send(p_sender, Message(MessageAction::Block).serialize_to_stream().str());
+				send(p_sender, json(Message(MessageAction::Block)));
 				return;
 			}
 		}
 
 		for (const auto& l_key_value: m_resource_positions) {
 			if (l_key_value.second == p_position) {
-				send(p_sender, Message(MessageAction::Rock, l_key_value.second, l_key_value.first).serialize_to_stream().str());
+				send(p_sender, json(Message(MessageAction::Rock, l_key_value.second, l_key_value.first)));
 				return;
 			}
 		}
 
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		send(p_sender, json(Message(MessageAction::Move)));
 	}
 
-	void handle_pick_up(const std::string& p_sender, const int p_resource_id) {
+	void handle_pick_up(const cam::AgentId& p_sender, const int p_resource_id) {
 		m_resource_positions[p_resource_id] = m_explorer_positions[p_sender];
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		send(p_sender, json(Message(MessageAction::Move)));
 	}
 
-	void handle_carry(const std::string& p_sender, const int p_resource_id, const Position& p_position) {
+	void handle_carry(const cam::AgentId& p_sender, const int p_resource_id, const Position& p_position) {
 		m_explorer_positions[p_sender] = p_position;
 		m_resource_positions[p_resource_id] = m_explorer_positions[p_sender];
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		send(p_sender, json(Message(MessageAction::Move)));
 	}
 
-	void handle_unload(const std::string& p_sender, const int p_resource_id) {
+	void handle_unload(const cam::AgentId& p_sender, const int p_resource_id) {
 		m_resource_positions.erase(p_resource_id);
-		send(p_sender, Message(MessageAction::Move).serialize_to_stream().str());
+		send(p_sender, json(Message(MessageAction::Move)));
 	}
 };
 
@@ -296,7 +294,7 @@ public:
 			m_position = Position(Random::next(m_size), Random::next(m_size));
 		}
 
-		send_by_name("planet", Message(MessageAction::Position, m_position).serialize_to_stream().str());
+		send_by_name("planet", json(Message(MessageAction::Position, m_position)));
 	}
 
 	bool is_at_base() const {
@@ -304,32 +302,30 @@ public:
 	}
 
 	void action(const cam::MessagePointer& p_message) override {
-		const std::string& l_content = p_message->content();
-		std::stringstream l_stream(l_content);
-		const auto& l_message = Message(l_stream);
+		const auto l_message = p_message->as_json().get<Message>();
 		std::cout << "[" << get_name() << "] " << l_message << std::endl;
 
 		if (l_message.m_action == MessageAction::Move && m_state == State::Carrying && is_at_base()) {
 			// R2. If carrying samples and at the base, then unload samples
 			m_state = State::Free;
-			send_by_name("planet", Message(MessageAction::Unload, m_position, m_resource_carried).serialize_to_stream().str());
+			send_by_name("planet", json(Message(MessageAction::Unload, m_position, m_resource_carried)));
 
 		} else if (l_message.m_action == MessageAction::Move && m_state == State::Carrying && !is_at_base()) {
 			// R3. If carrying samples and not at the base, then travel up gradient
 			move_to_base();
-			send_by_name("planet", Message(MessageAction::Carry, m_position, m_resource_carried).serialize_to_stream().str());
+			send_by_name("planet", json(Message(MessageAction::Carry, m_position, m_resource_carried)));
 
 		} else if (l_message.m_action == MessageAction::Rock) {
 			// R4. If you detect a sample, then pick sample up
 			m_state = State::Carrying;
 			m_resource_carried = l_message.m_resource_id;
-			send_by_name("planet", Message(MessageAction::PickUp, m_position, m_resource_carried).serialize_to_stream().str());
+			send_by_name("planet", json(Message(MessageAction::PickUp, m_position, m_resource_carried)));
 
 		} else if (l_message.m_action == MessageAction::Block || l_message.m_action == MessageAction::Move) {
 			// R1. If you detect an obstacle, then change direction
 			// R5. If (true), then move randomly
 			move_randomly();
-			send_by_name("planet", Message(MessageAction::Change, m_position).serialize_to_stream().str());
+			send_by_name("planet", json(Message(MessageAction::Change, m_position)));
 
 		}
 	}

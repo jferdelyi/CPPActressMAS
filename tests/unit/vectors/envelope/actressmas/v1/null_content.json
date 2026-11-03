@@ -1,0 +1,11 @@
+{
+  "class": "ActressMas.ContainerMessage",
+  "assembly": "ActressMas, Version=3.1.0.0, Culture=neutral, PublicKeyToken=null",
+  "fields": {
+    "Content": null,
+    "Info": "Send Remote Message",
+    "Receiver": "Container2",
+    "Sender": "Container1"
+  },
+  "layer": "frame"
+}

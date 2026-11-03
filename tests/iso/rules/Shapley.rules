@@ -1,0 +1,22 @@
+# E04 Shapley Value: parallel. RandomAgent of the C# takes the agent in the order of a ConcurrentDictionary, whose
+# string hash changes from one run to the next in .NET Core: two runs of the C# already pick other workers (the C++
+# picks in insertion order, from the same draws). The manager also matches the time estimates with the workers in their
+# order of arrival. Compared: the counts of every kind of line, every worker reporting once, and the total of the
+# rewards (the total of the prices of the tasks drawn from the seed), the C# against the C++ within the rounding of
+# 27 F3 values.
+cover all
+fact selected ^Selected: (worker\d{3}) (worker\d{3}) (worker\d{3})$
+fact time ^\t\[(worker\d{3}) -> manager\]: time (\d+) (\d+) (\d+)$
+fact results ^\t\[shapley -> manager\]: results (.*)$
+fact calculate ^\t\[manager -> shapley\]: calculate (.*)$
+fact finished ^Manager has finished$
+fact report ^Agent (worker\d{3}) has (-?\d+\.\d{3})$
+same selected count
+same time count
+same results count
+same calculate count
+same finished count
+same report count
+check report count == 27
+check report distinct(0) == 27
+same report aggregate sum(1) tol 0.02

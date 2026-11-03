@@ -1,0 +1,6 @@
+# E08 Contract Net in a sequential, fixed order: no race on the shared CNPMessage, its overwritings happen in the order of the agents: a variant of the oracles, the original sources but its line (tests/tools/csharp-ref/ref/Oracles/ContractNetSeq/).
+# Sequential, so the C# fixes every line: the whole trace in order, the senders of the messages included.
+ignore ^$
+cover all
+fact trace ^(.+)$
+same trace seq

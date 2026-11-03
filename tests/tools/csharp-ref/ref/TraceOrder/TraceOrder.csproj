@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Reference execution-order traces of the ORIGINAL v3.1 EnvironmentMas (sequential modes) -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>TraceOrder</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <ProjectReference Include="../ActressMas.Ref/ActressMas.Ref.csproj" />
+  </ItemGroup>
+</Project>

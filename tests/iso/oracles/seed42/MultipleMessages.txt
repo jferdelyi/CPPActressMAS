@@ -1,0 +1,30 @@
+#cam oracle MultipleMessages
+#cam csharp ActressMas eb0bb73, Examples/E00 Simple Examples/MultipleMessages/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/MultipleMessages/bin/Release/net10.0 && dotnet MultipleMessages.dll
+#cam seed 42
+[Manager -> Worker2]: start
+[Manager -> Worker1]: start
+[Manager -> Worker0]: start
+[Manager -> Worker3]: start
+[Manager -> Worker4]: start
+[Worker0 -> Worker3]: request
+[Worker1 -> Worker2]: request
+[Worker4 -> Worker0]: request
+[Worker3 -> Worker0]: reply
+[Worker2 -> Worker0]: request
+[Worker0 -> Worker2]: reply
+[Worker3 -> Worker1]: request
+[Worker2 -> Worker1]: reply
+[Worker1 -> Worker3]: reply
+[Worker0 -> Worker4]: reply
+[Worker2 -> Manager]: report
+	[Manager]: Worker2 reporting
+[Worker1 -> Manager]: report
+	[Manager]: Worker1 reporting
+[Worker0 -> Manager]: report
+	[Manager]: Worker0 reporting
+[Worker3 -> Manager]: report
+	[Manager]: Worker3 reporting
+[Worker4 -> Manager]: report
+	[Manager]: Worker4 reporting

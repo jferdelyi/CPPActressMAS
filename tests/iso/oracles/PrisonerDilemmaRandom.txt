@@ -1,0 +1,60 @@
+#cam oracle PrisonerDilemmaRandom
+#cam csharp ActressMas eb0bb73, Examples/E10 Iterated Prisoner Dilemma/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var prisonerAgent2 = new TitForTatPrisonerAgent();/var prisonerAgent2 = new RandomPrisonerAgent();/
+#cam command cd Oracles/PrisonerDilemmaRandom/bin/Release/net10.0 && dotnet PrisonerDilemmaRandom.dll
+#cam seed 0
+Round 1
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-RandomPrisonerAgent -> police]: play confess
+	[police -> p1-TitForTatPrisonerAgent]: outcome -5
+	[police -> p2-RandomPrisonerAgent]: outcome 0
+Round 2
+	[p1-TitForTatPrisonerAgent -> police]: play confess
+	[p2-RandomPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome 0
+	[police -> p2-RandomPrisonerAgent]: outcome -5
+Round 3
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-RandomPrisonerAgent -> police]: play confess
+	[police -> p1-TitForTatPrisonerAgent]: outcome -5
+	[police -> p2-RandomPrisonerAgent]: outcome 0
+Round 4
+	[p1-TitForTatPrisonerAgent -> police]: play confess
+	[p2-RandomPrisonerAgent -> police]: play confess
+	[police -> p1-TitForTatPrisonerAgent]: outcome -3
+	[police -> p2-RandomPrisonerAgent]: outcome -3
+Round 5
+	[p1-TitForTatPrisonerAgent -> police]: play confess
+	[p2-RandomPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome 0
+	[police -> p2-RandomPrisonerAgent]: outcome -5
+Round 6
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-RandomPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome -1
+	[police -> p2-RandomPrisonerAgent]: outcome -1
+Round 7
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-RandomPrisonerAgent -> police]: play confess
+	[police -> p1-TitForTatPrisonerAgent]: outcome -5
+	[police -> p2-RandomPrisonerAgent]: outcome 0
+Round 8
+	[p1-TitForTatPrisonerAgent -> police]: play confess
+	[p2-RandomPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome 0
+	[police -> p2-RandomPrisonerAgent]: outcome -5
+Round 9
+	[p1-TitForTatPrisonerAgent -> police]: play deny
+	[p2-RandomPrisonerAgent -> police]: play confess
+	[police -> p1-TitForTatPrisonerAgent]: outcome -5
+	[police -> p2-RandomPrisonerAgent]: outcome 0
+Round 10
+	[p1-TitForTatPrisonerAgent -> police]: play confess
+	[p2-RandomPrisonerAgent -> police]: play deny
+	[police -> p1-TitForTatPrisonerAgent]: outcome 0
+	[env -> p1-TitForTatPrisonerAgent]: end
+[p1-TitForTatPrisonerAgent]: I have -24 points
+	[police -> p2-RandomPrisonerAgent]: outcome -5
+	[env -> p2-RandomPrisonerAgent]: end
+[p2-RandomPrisonerAgent]: I have -24 points

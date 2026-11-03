@@ -1,0 +1,107 @@
+// Vectors of the .NET number formatting and parsing used by the C# examples, with the invariant culture of the
+// harness (InvariantGlobalization). One line per case:
+//   D|<IEEE-754 bits>|<F2>|<F3>|<F4>|<ToString()>
+//   I|<UTF-16 code units of the input, hex>|<Convert.ToInt32 result, or the exception name>
+//   X|<IEEE-754 bits>|<F0>|<F1>|<F5>|<F6>
+//   R|<UTF-16 code units of the input, hex>|<IEEE-754 bits of the Convert.ToDouble result, or the exception name>
+//   S|<UTF-16 code units of the input, hex>|<number of words of String.Split()>|<code units of each word, ';' between>
+//   T|<UTF-16 code units of the input, hex>|<code units of String.Trim()>
+//   C|<IEEE-754 bits>|<ToString("F2)")>, the custom format of a line of E16 Replicator Dynamics
+//   L|<size>|<keys>|<tags after List<T>.Sort()>, an unstable sort: equal keys keep the order .NET leaves them in
+using System;
+using System.Globalization;
+using System.Linq;
+using System.Runtime.InteropServices;
+
+internal static class Program
+{
+    private static readonly double[] Doubles =
+    {
+        0.0, -0.0, 0.125, 0.375, 0.5, 1.5, 2.5, -2.5, -7.5, 1.005, 2.675, 12.345, 49.995, 0.0049999, 0.005, -0.005,
+        -0.001, 1.0 / 3, 2.0 / 3, -2.0 / 3, 0.1 + 0.2, 100.0, 123456.789, 123456789012345.0, 1234567890123456.0, 1e15,
+        1e21, 1e-4, 1e-5, 1e-7, 0.97959183673469385, 1.7976931348623157e308, 5e-324, 2.2250738585072014e-308,
+        double.NaN, double.PositiveInfinity, double.NegativeInfinity, 0.045, 0.0045, 1e16, 9.5, 10.5, -0.5,
+        1e17, 1.2345678901234567e17, 99999999999999999.0, 0.00012345, 9.999e-5, -1e-5, -1e21, 123.0e-6, 1e100
+    };
+
+    private static readonly string[] Ints =
+    {
+        "42", " 42 ", "-7", "+7", "2147483647", "-2147483648", "2147483648", "-2147483649", "", "abc", "4 2", "\t13\n",
+        "007", "1.0", "0x10", "−5", " 12", "- 3", "+-3", "  "
+    };
+
+    private static readonly string[] Reals =
+    {
+        "0.1", "4.9", "1", " 2.5 ", "-0.5", "+3.25", "1e3", "1E-3", "1.5e+2", "4.4999999999999991", "0.30000000000000004",
+        "1.7976931348623157E+308", "1e309", "-1e309", "1e-400", "5E-324", "NaN", "Infinity", "-Infinity", "\u221E",
+        "1,5", "1,000.5", "1.5.2", "", "  ", "abc", "0x10", ".5", "5.", "-0", "\t7\n", "1 000", "--1", "1e", "e5"
+    };
+
+    private static readonly string[] Splits =
+    {
+        "a b", "a  b", "", " ", " a ", "\ta\nb", "a\u00A0b", "x\u2003y", "3 1 4 0 2", "a\u200Bb", "a\u0085b", "a\u3000b"
+    };
+
+    private sealed class Item : IComparable<Item>
+    {
+        public int Key;
+        public int Tag;
+        public int CompareTo(Item other) => Key.CompareTo(other.Key);
+    }
+
+    private static string Units(string s) => string.Join(" ", s.Select(c => ((int)c).ToString("X4")));
+
+    private static void Main()
+    {
+        Console.WriteLine("# runtime: " + RuntimeInformation.FrameworkDescription + ", " + RuntimeInformation.OSDescription);
+        foreach (double d in Doubles)
+        {
+            Console.WriteLine($"D|0x{BitConverter.DoubleToInt64Bits(d):X16}|{d.ToString("F2")}|{d.ToString("F3")}|{d.ToString("F4")}|{d}");
+        }
+        foreach (double d in Doubles)
+        {
+            Console.WriteLine($"X|0x{BitConverter.DoubleToInt64Bits(d):X16}|{d.ToString("F0")}|{d.ToString("F1")}|{d.ToString("F5")}|{d.ToString("F6")}");
+        }
+        foreach (double d in Doubles)
+        {
+            Console.WriteLine($"C|0x{BitConverter.DoubleToInt64Bits(d):X16}|{d.ToString("F2)")}");
+        }
+        foreach (string s in Reals)
+        {
+            string units = string.Join(" ", s.Select(c => ((int)c).ToString("X4")));
+            string result;
+            try { result = $"0x{BitConverter.DoubleToInt64Bits(Convert.ToDouble(s)):X16}"; }
+            catch (Exception e) { result = e.GetType().Name; }
+            Console.WriteLine($"R|{units}|{result}");
+        }
+        foreach (string s in Splits)
+        {
+            string[] words = s.Split();
+            Console.WriteLine($"S|{Units(s)}|{words.Length}|{string.Join(";", words.Select(Units))}");
+        }
+        foreach (string s in Splits)
+        {
+            Console.WriteLine($"T|{Units(s)}|{Units(s.Trim())}");
+        }
+        foreach (int size in new[] { 2, 3, 4, 8, 16, 17, 20, 25, 33, 64, 100 })
+        {
+            foreach (int mod in new[] { 2, 3, 7, 1000 })
+            {
+                var items = new System.Collections.Generic.List<Item>();
+                for (int i = 0; i < size; i++)
+                    items.Add(new Item { Key = (int)(((uint)i * 2654435761u + (uint)(size * 13 + mod)) % (uint)mod), Tag = i });
+                string keys = string.Join(" ", items.Select(x => x.Key));
+                items.Sort();
+                Console.WriteLine($"L|{size}|{keys}|{string.Join(" ", items.Select(x => x.Tag))}");
+            }
+        }
+        foreach (string s in Ints)
+        {
+            string units = string.Join(" ", s.Select(c => ((int)c).ToString("X4")));
+            string result;
+            try { result = Convert.ToInt32(s).ToString(CultureInfo.InvariantCulture); }
+            catch (Exception e) { result = e.GetType().Name; }
+            Console.WriteLine($"I|{units}|{result}");
+        }
+    }
+}

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E04 Shapley Value: original sources unchanged, see ../Oracle.props -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E04 Shapley Value/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

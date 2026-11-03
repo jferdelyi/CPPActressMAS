@@ -1,0 +1,47 @@
+#cam oracle MechanismDesign
+#cam csharp ActressMas eb0bb73, Examples/E09 Mechanism Design/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/MechanismDesign/bin/Release/net10.0 && dotnet MechanismDesign.dll
+#cam seed 0
+[a]: My net benefits are (0 20 10 35)
+[b]: My net benefits are (0 40 40 20)
+[c]: My net benefits are (0 80 120 100)
+	[dm -> a]: report
+	[dm -> b]: report
+	[dm -> c]: report
+	[a -> dm]: benefits 0 20 10 35
+	[b -> dm]: benefits 0 40 40 20
+	[c -> dm]: benefits 0 80 120 100
+[dm]: We will install 2 lights
+[dm]: a is not pivotal and its tax is 0
+[dm]: b is pivotal - from 3 - and its tax is 5
+[dm]: c is pivotal - from 1 - and its tax is 10
+	[dm -> a]: result 2 0
+[a]: My net benefit after tax is 10
+	[dm -> b]: result 2 5
+[b]: My net benefit after tax is 35
+	[dm -> c]: result 2 10
+[c]: My net benefit after tax is 110
+
+--------------------------------------------
+
+[a]: My net benefits are (0 20 10 35)
+[b]: My net benefits are (0 40 40 20)
+[c]: My net benefits are (0 80 120 100)
+	[dm -> a]: report
+[a]: My *reported* net benefits are (0 20 10 70)
+	[dm -> b]: report
+	[dm -> c]: report
+	[a -> dm]: benefits 0 20 10 70
+	[b -> dm]: benefits 0 40 40 20
+	[c -> dm]: benefits 0 80 120 100
+[dm]: We will install 3 lights
+[dm]: a is pivotal - from 2 - and its tax is 40
+[dm]: b is not pivotal and its tax is 0
+[dm]: c is not pivotal and its tax is 0
+	[dm -> a]: result 3 40
+[a]: My net benefit after tax is -5
+	[dm -> b]: result 3 0
+[b]: My net benefit after tax is 20
+	[dm -> c]: result 3 0
+[c]: My net benefit after tax is 100

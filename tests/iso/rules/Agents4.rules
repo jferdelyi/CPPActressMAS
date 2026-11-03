@@ -1,0 +1,17 @@
+# E00 Agents4: parallel; each agent writes 3 messages in each of turns 1 to 3, then stops in turn 4 and, in the C#,
+# still sends 3 messages (kept by the port), which the writer prints only if they reach it before its last
+# activation: 45 to 60 lines. Compared: the 45 messages of turns 1 to 3 (each agent in order), and the bounds of the late
+# ones (none in fixed).
+cover all
+fact message ^\[(a\d) -> writer\]: Agent (a\d) turn (\d) index (\d)$
+fact early ^\[(a\d) -> writer\]: Agent a\d turn ([1-3]) index (\d)$
+fact late ^\[(a\d) -> writer\]: Agent a\d turn (4) index (\d)$
+optional late
+same early bag
+same early seq by 0
+check early count == 45
+check late count in [0,15]
+check message count in [45,60]
+fact error (Exception|out of range)
+optional error
+check error count == 0

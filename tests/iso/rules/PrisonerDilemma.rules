@@ -1,0 +1,17 @@
+# E10 Iterated Prisoner Dilemma: sequential, fixed order, so the C# guarantees the order of every line (exact trace,
+# level (a)): "line" checks the whole trace, the other facts each kind: rounds, plays, outcomes and the end in
+# sequence, final points of each prisoner.
+ignore ^$
+cover all
+fact line ^(.+)$
+fact round ^Round (\d+)$
+fact message ^\t\[([\w-]+) -> ([\w-]+)\]: (.*)$
+fact points ^\[([\w-]+)\]: I have (-?\d+) points$
+same line seq
+same round seq
+same message seq
+same points seq
+check round count == 10
+# per sender: each prisoner plays 10 times, the police answers 20 times, the environment ends the game twice
+check message count == 42
+check message distinct(0) == 4

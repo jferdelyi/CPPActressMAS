@@ -1,0 +1,362 @@
+#cam oracle ReplicatorDynamics
+#cam csharp ActressMas eb0bb73, Examples/E16 Replicator Dynamics/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/ReplicatorDynamics/bin/Release/net10.0 && dotnet ReplicatorDynamics.dll
+#cam seed 0
+S0 (strategy 0) initial proportion = 0.5000
+S1 (strategy 1) initial proportion = 0.5000
+Replicator dynamics with 2 strategies for 50 rounds.
+
+--- Round 1 ---
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 2 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 3 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 4 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 5 ---
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 6 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 7 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 8 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 9 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 10 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 11 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 12 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 13 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 14 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 15 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 16 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 17 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 18 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 19 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 20 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 21 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 22 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 23 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 24 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 25 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 26 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 27 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 28 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 29 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 30 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 31 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 32 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 33 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 34 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 35 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 36 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 37 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 38 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 39 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 40 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 41 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 42 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 43 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 44 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 45 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 46 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 47 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 48 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 49 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+--- Round 50 ---
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+x = [0.50, 0.50]
+u = [1.50, 1.50]
+ubar = 1.50
+
+Simulation finished.
+S0: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+Final proportion for S0: 0.50
+S1: ui = 1.50, ubar = 1.50, x(old) = 0.5000, x(new) = 0.50
+Final proportion for S1: 0.50

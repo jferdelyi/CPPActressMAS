@@ -1,0 +1,107 @@
+#cam oracle Voting
+#cam csharp ActressMas eb0bb73, Examples/E14 Voting/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Voting/bin/Release/net10.0 && dotnet Voting.dll
+#cam seed 42
+0 4 3 1 2
+4 0 3 2 1
+4 3 1 2
+0
+1 2
+0 4
+0 3 2 1 4
+4 0 2
+3 2 0 4 1
+1 2
+2 3 4 0
+2 1 0
+1
+0
+0 3 4 1 2
+3 1 4 0 2
+2 1 3
+1 2 4 3 0
+4 1 3
+2 0 4 3 1
+2 4 3 1 0
+1 3 4 2 0
+4 2 0 1 3
+3 4 2 1
+4 3 1 0 2
+4 1 2
+2 1 4 0
+4 0 2 3
+0 4 3 1 2
+4 3
+2 1 4 0 3
+4 3 1 2 0
+1 3 0 2 4
+0 4 3 1 2
+3
+2 4 3 1
+0 2 3 1
+2 0 4 3
+2 1
+3 2 0 4 1
+0
+1 4 3
+2
+0 2 1 4 3
+2 4 0 1 3
+2 0 3 1 4
+0 4 1 3 2
+1 3
+2 1 3 0 4
+4 2 3 0 1
+0
+4 0 2 1 3
+2 4 3 0 1
+4 1 3 2 0
+3 1 2 0 4
+0 4 3 1 2
+4 1 2 3 0
+3 4 1 0 2
+2 4
+2 1 0 4 3
+0 1 4 3 2
+0 1 3 2 4
+0 2 4 1 3
+0 3 2 4 1
+3 4 1 0 2
+4 1 3 0 2
+0 2 1 3 4
+1
+1 0 2 3 4
+0 3 4 1 2
+4 0 1 2 3
+2 4 0
+2 1 4 3 0
+1 3 0 4 2
+1 3
+4 3 1
+3 1 2 0 4
+1 0 2 3 4
+4 0 2 3 1
+2 0 3 1 4
+4 0 3 2 1
+0 4 3 1
+3 4 2 1 0
+1 3 0
+4 1 0 2 3
+3 0 4 2 1
+4
+2 4 3 1 0
+4
+4 2 3 1 0
+3 1
+0 4 2 3 1
+3 2 1 4 0
+3 0 1
+2 1 0 4
+0 2 1 3
+3 0 1 2 4
+1 0
+1 2 0 4 3
+There is no Condorcet winner
+Using Copeland's method, candidate 0 is the winner
+Using Borda count, candidate 4 is the winner

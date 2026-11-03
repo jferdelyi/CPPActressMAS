@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E08 Contract Net Protocol: original sources unchanged, those of TSP/ (the solver of the
+       tours) included, see ../Oracle.props -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E08 Contract Net Protocol/</OracleSources>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(OracleSources)TSP/*.cs" />
+  </ItemGroup>
+  <Import Project="../Oracle.props" />
+</Project>

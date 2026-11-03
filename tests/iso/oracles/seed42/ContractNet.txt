@@ -1,0 +1,40 @@
+#cam oracle ContractNet
+#cam csharp ActressMas eb0bb73, Examples/E08 Contract Net Protocol/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/ContractNet/bin/Release/net10.0 && dotnet ContractNet.dll
+#cam seed 42
+
+postman2
+Tour: 1.L02 2.L15 3.L08 4.L07 5.L19 6.L10 -> 19.01 km
+Payoff: 10.99 (10.99 + 0.00)
+
+postman1
+Tour: 1.L03 2.L16 3.L11 4.L06 5.L20 6.L04 7.L13 8.L18 -> 18.205 km
+Payoff: 21.80 (21.80 + 0.00)
+
+postman3
+Tour: 1.L01 2.L05 3.L14 4.L09 5.L17 6.L12 -> 9.946 km
+Payoff: 20.05 (20.05 + 0.00)
+
+postman2 -> postman1: CallForProposals L10 4.93 0.00 0.00
+
+postman2 -> postman3: CallForProposals L10 4.93 0.00 0.00
+postman1 receives cfp L10 with 4.93/1.86/1.54
+
+postman1 -> postman2: Propose L10 4.93 1.86 1.54
+postman2 receives proposal L10 with 4.93/1.86/1.54
+
+postman2 -> postman1: AcceptProposal L10 4.93 1.86 1.54
+postman1 is given L10 with 4.93/1.86/1.54
+
+postman2
+Tour: 1.L02 2.L15 3.L08 4.L07 5.L19 -> 9.077 km
+Payoff: 14.39 (15.92 + -1.54)
+
+postman3
+Tour: 1.L01 2.L05 3.L14 4.L09 5.L17 6.L12 -> 9.946 km
+Payoff: 20.05 (20.05 + 0.00)
+
+postman1
+Tour: 1.L03 2.L16 3.L11 4.L06 5.L20 6.L04 7.L13 8.L18 9.L10 -> 21.344 km
+Payoff: 25.19 (23.66 + 1.54)

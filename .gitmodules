@@ -1,0 +1,12 @@
+[submodule "ThirdParty/json"]
+	path = ThirdParty/json
+	url = https://github.com/nlohmann/json.git
+	shallow = true
+[submodule "ThirdParty/ordered-map"]
+	path = ThirdParty/ordered-map
+	url = https://github.com/Tessil/ordered-map.git
+	shallow = true
+[submodule "ThirdParty/doctest"]
+	path = ThirdParty/doctest
+	url = https://github.com/doctest/doctest.git
+	shallow = true

@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of a variant of the C# example E10 Iterated Prisoner Dilemma, see ../Oracle.props: the second prisoner of the variant commented in its Program.cs: tit for tat against a random prisoner (Program.cs.sed). -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E10 Iterated Prisoner Dilemma/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

@@ -1,0 +1,19 @@
+# E02 BDI Architecture with two fires side by side (oracle BDIAdjacent: the first fire starts on cells 3 and 4), in
+# behaviour of the C#: the patrol puts out the fire on 4, still sees the one on 3 with an empty plan, and both the C# and
+# the port stop for good on reading that plan. Exact trace as BDI.rules; the text of the exception is the runtime's, so
+# it is counted, not compared ("out of range" is in both).
+cover all
+fact order (^Starting|^\t\[[\w-]+ -> [\w-]+\]|^Adopting|^GUI|out of range)
+fact start ^Starting (\w+)$
+fact message ^\t\[([\w-]+) -> ([\w-]+)\]: (.*)$
+fact intention ^Adopting new intention: (.*)$
+fact gui ^GUI pos=(\d+) ([.FWw]+)$
+fact error out of range
+same order seq
+same start seq
+same message seq
+same intention seq
+same gui seq
+# one exception, then nothing: the patrol and the terrain wait for good
+check error count == 1
+check message count == 34

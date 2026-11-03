@@ -5,72 +5,114 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Fonction pour appliquer les options de compilation
 function(apply_compile_options target)
+    # Floating point as the C#: no fused multiply-add contraction, in every build type (R4, D82); GCC and Clang only
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(${target} PRIVATE -ffp-contract=off)
+    endif()
+    # Until the examples are rewritten without them (D98): the .NET helpers of the harness (tests/iso/DotNet.hpp)
+    target_include_directories(${target} PRIVATE ${CMAKE_SOURCE_DIR}/tests/iso)
+    # The warnings of the project, in every configuration (CAM_WARNING_OPTIONS, root CMakeLists.txt)
+    target_compile_options(${target} PRIVATE ${CAM_WARNING_OPTIONS})
     if (CMAKE_BUILD_TYPE STREQUAL "Release")
         if (WIN32)
             target_compile_options(${target} PRIVATE /O2 /W4 /LTCG /arch:AVX2)
         else()
-            target_compile_options(${target} PRIVATE -march=native -O3 -flto -Wall -Wextra -Wpedantic)
-            target_link_options(${target} PRIVATE LINKER:-no_warn_duplicate_libraries)
+            target_compile_options(${target} PRIVATE -march=native -O3 ${CAM_LTO_OPTION})
+            # Objects compiled with -flto are LLVM bitcode under clang: GNU ld needs -flto at link time too (B18).
+            target_link_options(${target} PRIVATE ${CAM_LTO_OPTION})
+            # ld64 (Apple) option, rejected by GNU ld (B2).
+            if (APPLE)
+                target_link_options(${target} PRIVATE LINKER:-no_warn_duplicate_libraries)
+            endif()
         endif()
     endif()
 endfunction()
 
 add_executable(Exemple1 ${CMAKE_CURRENT_LIST_DIR}/Simples/Exemple1.cpp)
-target_link_libraries(Exemple1 CPPActressMAS)
+target_link_libraries(Exemple1 ${CAM_CORE_TARGET})
 apply_compile_options(Exemple1)
 
 add_executable(Exemple2 ${CMAKE_CURRENT_LIST_DIR}/Simples/Exemple2.cpp)
-target_link_libraries(Exemple2 CPPActressMAS)
+target_link_libraries(Exemple2 ${CAM_CORE_TARGET})
 apply_compile_options(Exemple2)
 
 add_executable(Exemple3 ${CMAKE_CURRENT_LIST_DIR}/Simples/Exemple3.cpp)
-target_link_libraries(Exemple3 CPPActressMAS)
+target_link_libraries(Exemple3 ${CAM_CORE_TARGET})
 apply_compile_options(Exemple3)
 
 add_executable(Exemple4 ${CMAKE_CURRENT_LIST_DIR}/Simples/Exemple4.cpp)
-target_link_libraries(Exemple4 CPPActressMAS)
+target_link_libraries(Exemple4 ${CAM_CORE_TARGET})
 apply_compile_options(Exemple4)
 
 add_executable(Exemple5 ${CMAKE_CURRENT_LIST_DIR}/Simples/Exemple5.cpp)
-target_link_libraries(Exemple5 CPPActressMAS)
+target_link_libraries(Exemple5 ${CAM_CORE_TARGET})
 apply_compile_options(Exemple5)
 
 add_executable(MultipleMessages ${CMAKE_CURRENT_LIST_DIR}/Simples/MultipleMessages.cpp)
-target_link_libraries(MultipleMessages CPPActressMAS)
+target_link_libraries(MultipleMessages ${CAM_CORE_TARGET})
 apply_compile_options(MultipleMessages)
 
 add_executable(SendingObjects ${CMAKE_CURRENT_LIST_DIR}/Simples/SendingObjects.cpp)
-target_link_libraries(SendingObjects CPPActressMAS)
+target_link_libraries(SendingObjects ${CAM_CORE_TARGET})
 apply_compile_options(SendingObjects)
 
 add_executable(PingPong ${CMAKE_CURRENT_LIST_DIR}/Benchmarks/PingPong.cpp)
-target_link_libraries(PingPong CPPActressMAS)
+target_link_libraries(PingPong ${CAM_CORE_TARGET})
 apply_compile_options(PingPong)
 
 add_executable(Skynet ${CMAKE_CURRENT_LIST_DIR}/Benchmarks/Skynet.cpp)
-target_link_libraries(Skynet CPPActressMAS)
+target_link_libraries(Skynet ${CAM_CORE_TARGET})
 apply_compile_options(Skynet)
 
 add_executable(NumberGame ${CMAKE_CURRENT_LIST_DIR}/Observables/NumberGame.cpp)
-target_link_libraries(NumberGame CPPActressMAS)
+target_link_libraries(NumberGame ${CAM_CORE_TARGET})
 apply_compile_options(NumberGame)
 
 add_executable(ColorGame ${CMAKE_CURRENT_LIST_DIR}/Observables/ColorGame.cpp)
-target_link_libraries(ColorGame CPPActressMAS)
+target_link_libraries(ColorGame ${CAM_CORE_TARGET})
 apply_compile_options(ColorGame)
 
 add_executable(Serialization ${CMAKE_CURRENT_LIST_DIR}/Serialization/Serialization.cpp)
-target_link_libraries(Serialization CPPActressMAS)
+target_link_libraries(Serialization ${CAM_CORE_TARGET})
 apply_compile_options(Serialization)
 
+# The network examples connect their environments from a URL (Environment::connect): loopback without
+# argument, a network transport compiled in with a URL in argument.
 add_executable(Mobile ${CMAKE_CURRENT_LIST_DIR}/Mobiles/Mobile.cpp)
-target_link_libraries(Mobile CPPActressMAS)
+target_link_libraries(Mobile ${CAM_CORE_TARGET})
 apply_compile_options(Mobile)
 
 add_executable(MobilePingPong ${CMAKE_CURRENT_LIST_DIR}/Mobiles/PingPong.cpp)
-target_link_libraries(MobilePingPong CPPActressMAS)
+target_link_libraries(MobilePingPong ${CAM_CORE_TARGET})
 apply_compile_options(MobilePingPong)
 
 add_executable(Reactive ${CMAKE_CURRENT_LIST_DIR}/MAS/Reactive.cpp)
-target_link_libraries(Reactive CPPActressMAS)
+target_link_libraries(Reactive ${CAM_CORE_TARGET})
 apply_compile_options(Reactive)
+
+add_executable(MechanismDesign ${CMAKE_CURRENT_LIST_DIR}/MechanismDesign/MechanismDesign.cpp)
+target_link_libraries(MechanismDesign ${CAM_CORE_TARGET})
+apply_compile_options(MechanismDesign)
+
+add_executable(PrisonerDilemma ${CMAKE_CURRENT_LIST_DIR}/PrisonerDilemma/PrisonerDilemma.cpp)
+target_link_libraries(PrisonerDilemma ${CAM_CORE_TARGET})
+apply_compile_options(PrisonerDilemma)
+
+add_executable(BDI ${CMAKE_CURRENT_LIST_DIR}/BDI/BDI.cpp)
+target_link_libraries(BDI ${CAM_CORE_TARGET})
+apply_compile_options(BDI)
+
+add_executable(GameOfLife ${CMAKE_CURRENT_LIST_DIR}/GameOfLife/GameOfLife.cpp)
+target_link_libraries(GameOfLife ${CAM_CORE_TARGET})
+apply_compile_options(GameOfLife)
+# The initial pattern is read from the working directory, as the C#: copied next to the executable
+add_custom_command(TARGET GameOfLife POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_LIST_DIR}/GameOfLife/patterns.txt $<TARGET_FILE_DIR:GameOfLife>)
+
+add_executable(TransportRoundTrip ${CMAKE_CURRENT_LIST_DIR}/Features/TransportRoundTrip.cpp)
+target_link_libraries(TransportRoundTrip ${CAM_CORE_TARGET})
+apply_compile_options(TransportRoundTrip)
+
+add_executable(SharedText ${CMAKE_CURRENT_LIST_DIR}/Features/SharedText.cpp)
+target_link_libraries(SharedText ${CAM_CORE_TARGET})
+apply_compile_options(SharedText)

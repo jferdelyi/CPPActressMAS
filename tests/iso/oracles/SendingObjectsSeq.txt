@@ -1,0 +1,32 @@
+#cam oracle SendingObjectsSeq
+#cam csharp ActressMas eb0bb73, Examples/E00 Simple Examples/SendingObjects/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var env = new EnvironmentMas(10);/var env = new EnvironmentMas(10, randomOrder: false, parallel: false);/
+#cam command cd Oracles/SendingObjectsSeq/bin/Release/net10.0 && dotnet SendingObjectsSeq.dll
+#cam seed 0
+a1* sending: setup 1 from a1*
+a1* sending: setup 2 from a1*
+a1* sending: setup 3 from a1*
+a1* sending: setup 4 from a1*
+a1* sending: setup 5 from a1*
+a1* sending: setup 6 from a1*
+a1* sending: setup 7 from a1*
+a1* sending: setup 8 from a1*
+a1* sending: setup 9 from a1*
+a1* sending: setup 10 from a1*
+a2 sending: setup: 1 from a2
+a2 sending: setup: 2 from a2
+a2 sending: setup: 3 from a2
+a1* receiving: setup a2 - 1
+a1* receiving: setup a2 - 2
+a1* receiving: setup a2 - 3
+a2 receiving: setup a1* - 1
+a2 receiving: setup a1* - 2
+a2 receiving: setup a1* - 3
+a2 receiving: setup a1* - 4
+a2 receiving: setup a1* - 5
+a2 receiving: setup a1* - 6
+a2 receiving: setup a1* - 7
+a2 receiving: setup a1* - 8
+a2 receiving: setup a1* - 9
+a2 receiving: setup a1* - 10

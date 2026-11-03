@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E00 Simple Examples/Agents2: original sources unchanged, see ../Oracle.props -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E00 Simple Examples/Agents2/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

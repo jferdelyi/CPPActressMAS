@@ -1,0 +1,8 @@
+#cam oracle SkynetSeqRandom
+#cam csharp ActressMas eb0bb73, Examples/E30 Benchmarks/Skynet/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var env = new EnvironmentMas();/var env = new EnvironmentMas(parallel: false);/
+#cam command cd Oracles/SkynetSeqRandom/bin/Release/net10.0 && dotnet SkynetSeqRandom.dll
+#cam seed 0
+Sum = 49995000
+34.000 ms

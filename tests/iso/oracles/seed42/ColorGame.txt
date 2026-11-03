@@ -1,0 +1,113 @@
+#cam oracle ColorGame
+#cam csharp ActressMas eb0bb73, Examples/E12 Simple Observables/ColorGame/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/ColorGame/bin/Release/net10.0 && dotnet ColorGame.dll
+#cam seed 42
+I am Agent1. I am looking around...
+I saw: Agent2 (green) 
+My color is now green
+-------------------------------------------
+I am Agent2. I am looking around...
+I saw: Agent3 (blue) 
+My color is now red
+-------------------------------------------
+I am Agent3. I am looking around...
+I saw: Agent2 (red) 
+My color is now blue
+-------------------------------------------
+I am Agent1. I am looking around...
+I did't see anything interesting
+My color is now blue
+-------------------------------------------
+I am Agent2. I am looking around...
+I saw: Agent1 (blue) Agent3 (blue) 
+My color is now red
+-------------------------------------------
+I am Agent3. I am looking around...
+I saw: Agent2 (red) 
+My color is now blue
+-------------------------------------------
+I am Agent1. I am looking around...
+I did't see anything interesting
+My color is now blue
+-------------------------------------------
+I am Agent2. I am looking around...
+I saw: Agent1 (blue) Agent3 (blue) 
+My color is now blue
+-------------------------------------------
+I am Agent3. I am looking around...
+I did't see anything interesting
+My color is now green
+-------------------------------------------
+I am Agent1. I am looking around...
+I saw: Agent3 (green) 
+My color is now green
+-------------------------------------------
+I am Agent2. I am looking around...
+I did't see anything interesting
+My color is now green
+-------------------------------------------
+I am Agent3. I am looking around...
+I did't see anything interesting
+My color is now green
+-------------------------------------------
+I am Agent1. I am looking around...
+I saw: Agent2 (green) Agent3 (green) 
+My color is now green
+-------------------------------------------
+I am Agent2. I am looking around...
+I did't see anything interesting
+My color is now blue
+-------------------------------------------
+I am Agent3. I am looking around...
+I did't see anything interesting
+My color is now green
+-------------------------------------------
+I am Agent1. I am looking around...
+I saw: Agent3 (green) 
+My color is now blue
+-------------------------------------------
+I am Agent2. I am looking around...
+I saw: Agent1 (blue) 
+My color is now red
+-------------------------------------------
+I am Agent3. I am looking around...
+I saw: Agent2 (red) 
+My color is now red
+-------------------------------------------
+I am Agent1. I am looking around...
+I did't see anything interesting
+My color is now red
+-------------------------------------------
+I am Agent2. I am looking around...
+I did't see anything interesting
+My color is now red
+-------------------------------------------
+I am Agent3. I am looking around...
+I saw: Agent1 (red) Agent2 (red) 
+My color is now red
+-------------------------------------------
+I am Agent1. I am looking around...
+I did't see anything interesting
+My color is now green
+-------------------------------------------
+I am Agent2. I am looking around...
+I did't see anything interesting
+My color is now blue
+-------------------------------------------
+I am Agent3. I am looking around...
+I did't see anything interesting
+My color is now green
+-------------------------------------------
+I am Agent1. I am looking around...
+I saw: Agent3 (green) 
+My color is now blue
+-------------------------------------------
+I am Agent2. I am looking around...
+I saw: Agent1 (blue) 
+My color is now red
+-------------------------------------------
+I am Agent3. I am looking around...
+I saw: Agent2 (red) 
+My color is now red
+-------------------------------------------

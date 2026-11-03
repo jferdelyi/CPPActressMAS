@@ -1,0 +1,33 @@
+#cam oracle Agents5
+#cam csharp ActressMas eb0bb73, Examples/E00 Simple Examples/Agents5/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Agents5/bin/Release/net10.0 && dotnet Agents5.dll
+#cam seed 7
+Setup: 1 from a2
+Setup: 1 from a1*
+Setup: 2 from a1*
+Setup: 2 from a2
+Setup: 3 from a2
+Setup: 3 from a1*
+Setup: 4 from a1*
+Setup: 5 from a1*
+Setup: 6 from a1*
+Setup: 7 from a1*
+Setup: 8 from a1*
+Setup: 9 from a1*
+Setup: 10 from a1*
+Act: 1 from a2
+Act: 1 from a1*
+Act: 2 from a1*
+Act: 2 from a2
+Act: 3 from a1*
+Act: 3 from a2
+Act: 4 from a2
+Act: 5 from a2
+Act: 6 from a2
+Act: 7 from a2
+Act: 8 from a2
+Act: 9 from a2
+Act: 10 from a2
+a2: No messages
+a1: No messages

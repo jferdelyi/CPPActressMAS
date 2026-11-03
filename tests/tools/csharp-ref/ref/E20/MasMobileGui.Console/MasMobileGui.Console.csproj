@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- E20 MasMobileGui without WinForms: the original agents and setup (MobileAgent.cs, StaticAgent.cs, MasSetup.cs),
+       compiled unchanged; Program.cs replaces the form and its text box. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+    <NoWarn>$(NoWarn);SYSLIB0011</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="$(AmasEx)E20 Mobile Examples/MasMobileGui/MobileAgent.cs" />
+    <Compile Include="$(AmasEx)E20 Mobile Examples/MasMobileGui/StaticAgent.cs" />
+    <Compile Include="$(AmasEx)E20 Mobile Examples/MasMobileGui/MasSetup.cs" />
+    <ProjectReference Include="../ActressMas.Wire/ActressMas.Wire.csproj" />
+  </ItemGroup>
+</Project>

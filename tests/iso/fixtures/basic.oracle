@@ -1,0 +1,9 @@
+#cam oracle Fixture
+[a -> b]: hello
+[c -> b]: hi
+[a -> b]: bye
+[c -> b]: ho
+total=10
+
+----
+total=20

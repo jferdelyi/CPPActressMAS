@@ -1,0 +1,47 @@
+#cam oracle Agents1
+#cam csharp ActressMas eb0bb73, Examples/E00 Simple Examples/Agents1/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Agents1/bin/Release/net10.0 && dotnet Agents1.dll
+#cam seed 0
+agent1 starting
+agent2 starting
+agent2 sending 1
+agent1 sending 1
+agent2 sending 2
+agent1 sending 2
+agent2 sending 3
+agent1 sending 3
+agent2 sending 4
+agent1 sending 4
+agent2 sending 5
+agent2 sending 6
+agent2 sending 7
+agent2 sending 8
+agent1 sending 5
+agent1 sending 6
+agent1 sending 7
+agent2 sending 9
+agent1 sending 8
+agent2 sending 10
+agent1 sending 9
+agent1 sending 10
+monitor has received [agent2 -> monitor]: 1
+monitor has received [agent1 -> monitor]: 1
+monitor has received [agent2 -> monitor]: 2
+monitor has received [agent1 -> monitor]: 2
+monitor has received [agent2 -> monitor]: 3
+monitor has received [agent1 -> monitor]: 3
+monitor has received [agent2 -> monitor]: 4
+monitor has received [agent1 -> monitor]: 4
+monitor has received [agent2 -> monitor]: 5
+monitor has received [agent2 -> monitor]: 6
+monitor has received [agent2 -> monitor]: 7
+monitor has received [agent2 -> monitor]: 8
+monitor has received [agent1 -> monitor]: 5
+monitor has received [agent1 -> monitor]: 6
+monitor has received [agent1 -> monitor]: 7
+monitor has received [agent2 -> monitor]: 9
+monitor has received [agent1 -> monitor]: 8
+monitor has received [agent2 -> monitor]: 10
+monitor has received [agent1 -> monitor]: 9
+monitor has received [agent1 -> monitor]: 10

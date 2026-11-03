@@ -1,0 +1,63 @@
+#cam oracle BDIAdjacent
+#cam csharp ActressMas eb0bb73, Examples/E02 BDI Architecture/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam stub TerrainForm.cs (form replaced, prints its state)
+#cam patch Program.cs: s/noTurns: 0,/noTurns: 120,/
+#cam patch TerrainAgent.cs: s/if (_turns == 4) States\[4\] = TerrainState.Fire;/if (_turns == 4) States[3] = States[4] = TerrainState.Fire;/
+#cam command cd Oracles/BDIAdjacent/bin/Release/net10.0 && dotnet BDIAdjacent.dll
+#cam seed 0
+Starting terrain
+Starting patrol
+	[patrol -> terrain]: move right
+GUI pos=1 W..............
+	[terrain -> patrol]: percepts 1 2 0 0
+Adopting new intention: patrol-right
+	[patrol -> terrain]: move right
+GUI pos=2 W..............
+	[terrain -> patrol]: percepts 2 0 0 0
+	[patrol -> terrain]: move right
+GUI pos=3 W..............
+	[terrain -> patrol]: percepts 3 0 0 0
+	[patrol -> terrain]: move right
+GUI pos=4 W..............
+	[terrain -> patrol]: percepts 4 0 0 0
+	[patrol -> terrain]: move right
+GUI pos=5 W..FF..........
+	[terrain -> patrol]: percepts 5 1 0 0
+Adopting new intention: extinguish-fire
+	[patrol -> terrain]: move left
+GUI pos=4 W..FF..........
+	[terrain -> patrol]: percepts 4 1 1 0
+	[patrol -> terrain]: move left
+GUI pos=3 W..FF..........
+	[terrain -> patrol]: percepts 3 0 1 1
+	[patrol -> terrain]: move left
+GUI pos=2 W..FF..........
+	[terrain -> patrol]: percepts 2 0 0 1
+	[patrol -> terrain]: move left
+GUI pos=1 W..FF..........
+	[terrain -> patrol]: percepts 1 2 0 0
+	[patrol -> terrain]: move left
+GUI pos=0 W..FF..........
+	[terrain -> patrol]: percepts 0 4 2 0
+	[patrol -> terrain]: get-water
+GUI pos=0 w..FF..........
+	[terrain -> patrol]: got-water
+	[terrain -> patrol]: percepts 0 4 3 0
+	[patrol -> terrain]: move right
+GUI pos=1 W..FF..........
+	[terrain -> patrol]: percepts 1 2 0 0
+	[patrol -> terrain]: move right
+GUI pos=2 W..FF..........
+	[terrain -> patrol]: percepts 2 0 0 1
+	[patrol -> terrain]: move right
+GUI pos=3 W..FF..........
+	[terrain -> patrol]: percepts 3 0 1 1
+	[patrol -> terrain]: move right
+GUI pos=4 W..FF..........
+	[terrain -> patrol]: percepts 4 1 1 0
+	[patrol -> terrain]: drop-water
+GUI pos=4 W..F...........
+	[terrain -> patrol]: fire-out
+	[terrain -> patrol]: percepts 4 1 0 0
+Index was out of range. Must be non-negative and less than the size of the collection. (Parameter 'index')

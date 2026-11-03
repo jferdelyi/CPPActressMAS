@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Test vectors of the seeded System.Random (legacy Knuth subtractive generator, Net5CompatSeedImpl on .NET 6+) -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>RngVectors</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+</Project>

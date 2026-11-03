@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of a variant of the C# example E00 Simple Examples/SendingObjects, see ../Oracle.props: sequential, fixed order, so that the C# fixes every line (Program.cs.sed). -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E00 Simple Examples/SendingObjects/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

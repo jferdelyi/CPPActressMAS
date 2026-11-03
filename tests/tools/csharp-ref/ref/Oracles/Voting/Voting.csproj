@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E14 Voting: original sources unchanged, see ../Oracle.props -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E14 Voting/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

@@ -1,0 +1,11 @@
+# Fixture of iso_check: messages compared in order per sender, totals as a bag, invariants, every line covered
+fact msg \[(\w+) -> (\w+)\]: (.*)
+fact total total=(\d+)
+section ^----
+ignore ^$
+cover all
+same msg seq by 1
+same total bag
+check msg count by 1 == 2
+check total sum(1) == 30
+check msg distinct(1) in [2,2]

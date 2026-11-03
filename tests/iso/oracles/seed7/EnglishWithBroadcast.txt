@@ -1,0 +1,95 @@
+#cam oracle EnglishWithBroadcast
+#cam csharp ActressMas eb0bb73, Examples/E05 Auctions/English with broadcast/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/EnglishWithBroadcast/bin/Release/net10.0 && dotnet EnglishWithBroadcast.dll
+#cam seed 7
+[bidder01]: My valuation is 266
+[bidder02]: My valuation is 295
+[bidder03]: My valuation is 168
+[bidder04]: My valuation is 351
+[bidder05]: My valuation is 66
+
+	[auctioneer -> bidder01]: start
+
+	[auctioneer -> bidder02]: start
+.
+	[auctioneer -> bidder03]: start
+...
+	[auctioneer -> bidder04]: start
+......
+	[auctioneer -> bidder05]: start
+..........	[bidder01 -> auctioneer]: bid 100
+	[bidder02 -> auctioneer]: bid 100
+	[bidder02 -> auctioneer]: bid 110
+	[bidder03 -> auctioneer]: bid 100
+	[bidder03 -> auctioneer]: bid 110
+	[bidder03 -> auctioneer]: bid 120
+	[bidder04 -> auctioneer]: bid 100
+	[bidder04 -> auctioneer]: bid 110
+	[bidder04 -> auctioneer]: bid 120
+	[bidder04 -> auctioneer]: bid 130
+............................................	[bidder01 -> auctioneer]: bid 110
+	[bidder01 -> auctioneer]: bid 120
+	[bidder01 -> auctioneer]: bid 130
+	[bidder01 -> auctioneer]: bid 140
+	[bidder02 -> auctioneer]: bid 120
+	[bidder02 -> auctioneer]: bid 130
+	[bidder02 -> auctioneer]: bid 140
+	[bidder02 -> auctioneer]: bid 150
+	[bidder03 -> auctioneer]: bid 130
+	[bidder03 -> auctioneer]: bid 140
+	[bidder03 -> auctioneer]: bid 150
+	[bidder03 -> auctioneer]: bid 160
+	[bidder04 -> auctioneer]: bid 140
+	[bidder04 -> auctioneer]: bid 150
+	[bidder04 -> auctioneer]: bid 160
+	[bidder04 -> auctioneer]: bid 170
+............................................	[bidder01 -> auctioneer]: bid 150
+	[bidder01 -> auctioneer]: bid 160
+	[bidder01 -> auctioneer]: bid 170
+	[bidder01 -> auctioneer]: bid 180
+	[bidder02 -> auctioneer]: bid 160
+	[bidder02 -> auctioneer]: bid 170
+	[bidder02 -> auctioneer]: bid 180
+	[bidder02 -> auctioneer]: bid 190
+	[bidder04 -> auctioneer]: bid 180
+	[bidder04 -> auctioneer]: bid 190
+	[bidder04 -> auctioneer]: bid 200
+............................	[bidder01 -> auctioneer]: bid 190
+	[bidder01 -> auctioneer]: bid 200
+	[bidder01 -> auctioneer]: bid 210
+	[bidder02 -> auctioneer]: bid 200
+	[bidder02 -> auctioneer]: bid 210
+	[bidder02 -> auctioneer]: bid 220
+	[bidder04 -> auctioneer]: bid 210
+	[bidder04 -> auctioneer]: bid 220
+	[bidder04 -> auctioneer]: bid 230
+...........................	[bidder01 -> auctioneer]: bid 220
+	[bidder01 -> auctioneer]: bid 230
+	[bidder01 -> auctioneer]: bid 240
+	[bidder02 -> auctioneer]: bid 230
+	[bidder02 -> auctioneer]: bid 240
+	[bidder02 -> auctioneer]: bid 250
+	[bidder04 -> auctioneer]: bid 240
+	[bidder04 -> auctioneer]: bid 250
+	[bidder04 -> auctioneer]: bid 260
+......................	[bidder01 -> auctioneer]: bid 250
+	[bidder01 -> auctioneer]: bid 260
+	[bidder02 -> auctioneer]: bid 260
+	[bidder02 -> auctioneer]: bid 270
+	[bidder04 -> auctioneer]: bid 270
+	[bidder04 -> auctioneer]: bid 280
+............	[bidder02 -> auctioneer]: bid 280
+	[bidder02 -> auctioneer]: bid 290
+	[bidder04 -> auctioneer]: bid 290
+	[bidder04 -> auctioneer]: bid 300
+........[auctioneer]: Auction finished
+
+	[auctioneer -> bidder01]: winner bidder04
+
+	[auctioneer -> bidder02]: winner bidder04
+
+	[auctioneer -> bidder03]: winner bidder04
+
+	[auctioneer -> bidder04]: winner bidder04
+[bidder04]: I have won with 300

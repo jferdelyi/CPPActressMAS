@@ -1,0 +1,328 @@
+/**************************************************************************
+ *                                                                        *
+ *  Description: CPPActressMas multi-agent framework                      *
+ *  Website:     https://github.com/jferdelyi/CPPActressMAS               *
+ *  Copyright:   (c) 2023-Today, Jean-François Erdelyi                    *
+ *                                                                        *
+ *  CPP version of ActressMAS by Florin Leon                              *
+ *  https://github.com/florinleon/ActressMas                              *
+ *                                                                        *
+ *  This program and the accompanying materials are made available under  *
+ *  the terms of the Eclipse Public License 2.0, which is available at    *
+ *  https://www.eclipse.org/legal/epl-2.0/ and in the LICENSE file.       *
+ *                                                                        *
+ *  SPDX-License-Identifier: EPL-2.0                                      *
+ *                                                                        *
+ **************************************************************************/
+
+#include "EnvelopeCodec.h"
+
+#include "CompactCodec.h"
+#include "JsonCodec.h"
+#include "ProtobufCodec.h"
+
+namespace cam::transport {
+
+	namespace {
+
+		Error invalid(std::string p_message) {
+			return make_error(ErrorCategory::Validation, ErrorCode::InvalidEnvelope, std::move(p_message));
+		}
+
+	} // namespace
+
+	// ---------------------------------------------------------------- codecs
+
+	std::shared_ptr<const EnvelopeCodec> make_codec(const std::string_view p_name) {
+		if (p_name == "protobuf") {
+			return std::make_shared<ProtobufCodec>();
+		}
+		if (p_name == "compact") {
+			return std::make_shared<CompactCodec>();
+		}
+		if (p_name == "json") {
+			return std::make_shared<JsonCodec>();
+		}
+		return nullptr;
+	}
+
+	std::vector<std::string> codec_names() {
+		return {"protobuf", "compact", "json"};
+	}
+
+	// ---------------------------------------------------------------- header and validation (EnvelopeCodec.h)
+
+	Result<EnvelopeHeader> EnvelopeCodec::read_header(const std::span<const std::uint8_t> p_bytes) {
+		if (p_bytes.size() < ENVELOPE_HEADER_SIZE) {
+			return invalid("envelope shorter than its header");
+		}
+		if (p_bytes[0] != ENVELOPE_MAGIC) {
+			return invalid("bad envelope magic");
+		}
+		return EnvelopeHeader{p_bytes[1], p_bytes[2]};
+	}
+
+	void EnvelopeCodec::write_header(std::vector<std::uint8_t>& p_out, const std::uint8_t p_codec_id, const std::uint8_t p_version_major) {
+		p_out.push_back(ENVELOPE_MAGIC);
+		p_out.push_back(p_codec_id);
+		p_out.push_back(p_version_major);
+		p_out.push_back(0);
+	}
+
+	Result<void> validate_envelope(const Envelope& p_envelope, const std::size_t p_max_content_bytes) {
+		if (p_envelope.m_version_major != 1) {
+			return make_error(ErrorCategory::Validation, ErrorCode::UnsupportedVersion, "unsupported envelope version");
+		}
+		if (static_cast<std::uint8_t>(p_envelope.m_kind) > static_cast<std::uint8_t>(EnvelopeKind::Reply)) {
+			return invalid("unknown envelope kind");
+		}
+		if (static_cast<std::uint8_t>(p_envelope.m_stream_kind) > static_cast<std::uint8_t>(StreamKind::All)) {
+			return invalid("unknown stream kind");
+		}
+		if (static_cast<std::uint8_t>(p_envelope.m_target_kind) > static_cast<std::uint8_t>(TargetKind::Environment)) {
+			return invalid("unknown target kind");
+		}
+		if (static_cast<std::uint8_t>(p_envelope.m_scope) > static_cast<std::uint8_t>(Scope::Network)) {
+			return invalid("unknown scope");
+		}
+		if (static_cast<std::uint8_t>(p_envelope.m_content_encoding) > static_cast<std::uint8_t>(ContentEncoding::Json)) {
+			return invalid("unknown content encoding");
+		}
+		if (!is_valid_identifier(p_envelope.m_sender_environment)) {
+			return invalid("invalid sender environment");
+		}
+		if (!p_envelope.m_origin_environment.empty() && !is_valid_identifier(p_envelope.m_origin_environment)) {
+			return invalid("invalid origin environment");
+		}
+		if (p_envelope.m_stream_kind == StreamKind::All) {
+			if (!p_envelope.m_stream_target.empty()) {
+				return invalid("stream target must be empty on the all stream");
+			}
+		} else if (!is_valid_identifier(p_envelope.m_stream_target)) {
+			return invalid("invalid stream target");
+		}
+		if (p_envelope.m_content.size() > p_max_content_bytes) {
+			return make_error(ErrorCategory::Validation, ErrorCode::TooLarge, "content larger than the configured maximum");
+		}
+		if (p_envelope.m_kind == EnvelopeKind::Message) {
+			if (!is_valid_identifier(p_envelope.m_sender_agent)) {
+				return invalid("invalid sender agent");
+			}
+			switch (p_envelope.m_target_kind) {
+				case TargetKind::Id:
+					if (!is_valid_identifier(p_envelope.m_target_id)) {
+						return invalid("invalid target id");
+					}
+					break;
+				case TargetKind::Name:
+				case TargetKind::Fragment:
+					if (p_envelope.m_target_name.empty() || p_envelope.m_target_name.size() > ENVELOPE_MAX_STRING_BYTES) {
+						return invalid("invalid target name");
+					}
+					break;
+				case TargetKind::Environment:
+					if (!is_valid_identifier(p_envelope.m_target_id)) {
+						return invalid("invalid target environment");
+					}
+					break;
+				case TargetKind::Broadcast:
+				default:
+					break;
+			}
+			if (!std::holds_alternative<std::monostate>(p_envelope.m_payload)) {
+				return invalid("a message carries no typed payload");
+			}
+		} else if (p_envelope.m_kind == EnvelopeKind::AgentOffer) {
+			const auto* l_transfer = std::get_if<AgentTransfer>(&p_envelope.m_payload);
+			if (!l_transfer) {
+				return invalid("agent offer without transfer payload");
+			}
+			if (!is_valid_identifier(l_transfer->m_transfer_id) || !is_valid_identifier(l_transfer->m_agent_id) ||
+				l_transfer->m_type_name.empty() || l_transfer->m_type_name.size() > ENVELOPE_MAX_STRING_BYTES) {
+				return invalid("invalid agent transfer");
+			}
+			if (l_transfer->m_state.size() > p_max_content_bytes || l_transfer->m_observables.size() > p_max_content_bytes) {
+				return make_error(ErrorCategory::Validation, ErrorCode::TooLarge, "agent state larger than the configured maximum");
+			}
+		} else if (p_envelope.m_kind == EnvelopeKind::AgentAccept || p_envelope.m_kind == EnvelopeKind::AgentReject ||
+				   p_envelope.m_kind == EnvelopeKind::AgentCommit || p_envelope.m_kind == EnvelopeKind::AgentAbort) {
+			const auto* l_control = std::get_if<AgentControl>(&p_envelope.m_payload);
+			if (!l_control) {
+				return invalid("agent control without control payload");
+			}
+			if (!is_valid_identifier(l_control->m_transfer_id) || !is_valid_identifier(l_control->m_agent_id)) {
+				return invalid("invalid agent control");
+			}
+		} else if (p_envelope.m_kind == EnvelopeKind::Presence) {
+			const auto* l_presence = std::get_if<Presence>(&p_envelope.m_payload);
+			if (!l_presence) {
+				return invalid("presence without presence payload");
+			}
+			if (!is_valid_identifier(l_presence->m_node_id) || !is_valid_identifier(l_presence->m_environment_id) ||
+				!is_valid_namespace(l_presence->m_namespace)) {
+				return invalid("invalid presence");
+			}
+			for (const auto& [l_id, l_name]: l_presence->m_agents) {
+				if (!is_valid_identifier(l_id)) {
+					return invalid("invalid agent id in presence");
+				}
+			}
+		} else if (p_envelope.m_kind == EnvelopeKind::Directory) {
+			const auto* l_event = std::get_if<DirectoryEvent>(&p_envelope.m_payload);
+			if (!l_event) {
+				return invalid("directory event without payload");
+			}
+			if (static_cast<std::uint8_t>(l_event->m_event) > static_cast<std::uint8_t>(DirectoryEventKind::AgentMoved) ||
+				!is_valid_identifier(l_event->m_agent_id) || !is_valid_identifier(l_event->m_environment_id)) {
+				return invalid("invalid directory event");
+			}
+		}
+		return {};
+	}
+
+	// ---------------------------------------------------------------- identifiers (Types.h)
+
+	bool is_valid_namespace(const std::string_view p_namespace) {
+		if (p_namespace.empty() || p_namespace.size() > 32) {
+			return false;
+		}
+		for (const char l_char: p_namespace) {
+			const bool l_ok = (l_char >= 'a' && l_char <= 'z') || (l_char >= '0' && l_char <= '9') || l_char == '-';
+			if (!l_ok) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool is_valid_identifier(const std::string_view p_identifier) {
+		if (p_identifier.empty() || p_identifier.size() > 128) {
+			return false;
+		}
+		for (const char l_char: p_identifier) {
+			if (l_char <= 0x20 || l_char >= 0x7f || l_char == '/' || l_char == '+' || l_char == '#' || l_char == '*') {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool is_canonical_uuid(const std::string_view p_text) {
+		if (p_text.size() != 36) {
+			return false;
+		}
+		for (std::size_t i = 0; i < 36; i++) {
+			const char l_char = p_text[i];
+			if (i == 8 || i == 13 || i == 18 || i == 23) {
+				if (l_char != '-') {
+					return false;
+				}
+			} else {
+				const bool l_hex = (l_char >= '0' && l_char <= '9') || (l_char >= 'a' && l_char <= 'f') || (l_char >= 'A' && l_char <= 'F');
+				if (!l_hex) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	const char* to_string(const TransportEvent p_event) {
+		switch (p_event) {
+			case TransportEvent::Connected: return "connected";
+			case TransportEvent::Disconnected: return "disconnected";
+			case TransportEvent::Reconnected: return "reconnected";
+			case TransportEvent::Error:
+			default: return "error";
+		}
+	}
+
+	const char* to_string(const ErrorCode p_code) {
+		switch (p_code) {
+			case ErrorCode::None: return "none";
+			case ErrorCode::NotConnected: return "not connected";
+			case ErrorCode::AlreadyConnected: return "already connected";
+			case ErrorCode::NotAttached: return "not attached";
+			case ErrorCode::UnknownDestination: return "unknown destination";
+			case ErrorCode::TooLarge: return "too large";
+			case ErrorCode::OutboxFull: return "outbox full";
+			case ErrorCode::InboxFull: return "inbox full";
+			case ErrorCode::InvalidTarget: return "invalid target";
+			case ErrorCode::InvalidEnvelope: return "invalid envelope";
+			case ErrorCode::UnsupportedCodec: return "unsupported codec";
+			case ErrorCode::UnsupportedVersion: return "unsupported version";
+			case ErrorCode::Timeout: return "timeout";
+			case ErrorCode::TransportFailure: return "transport failure";
+			case ErrorCode::UnknownAgentType: return "unknown agent type";
+			case ErrorCode::InvalidConfiguration: return "invalid configuration";
+			case ErrorCode::NotSupported: return "not supported";
+			case ErrorCode::InTransit: return "agent in transit";
+			default: return "unknown";
+		}
+	}
+
+	// ---------------------------------------------------------------- addresses (Types.h)
+
+	std::string Address::to_key() const {
+		std::string l_key = "cam/v1/" + m_namespace;
+		switch (m_kind) {
+			case AddressKind::EnvIn: return l_key + "/env/" + m_target + "/in";
+			case AddressKind::EnvAgent: return l_key + "/env/" + m_target + "/agent";
+			case AddressKind::EnvQuery: return l_key + "/env/" + m_target + "/query";
+			case AddressKind::EnvPresence: return l_key + "/env/" + m_target + "/presence";
+			case AddressKind::NodePresence: return l_key + "/node/" + m_target + "/presence";
+			case AddressKind::AllIn:
+			default: return l_key + "/all/in";
+		}
+	}
+
+	std::optional<Address> Address::parse(const std::string_view p_key) {
+		std::vector<std::string_view> l_levels;
+		std::size_t l_start = 0;
+		while (l_start <= p_key.size()) {
+			const std::size_t l_slash = p_key.find('/', l_start);
+			const std::size_t l_end = l_slash == std::string_view::npos ? p_key.size() : l_slash;
+			l_levels.push_back(p_key.substr(l_start, l_end - l_start));
+			if (l_slash == std::string_view::npos) {
+				break;
+			}
+			l_start = l_slash + 1;
+		}
+		if (l_levels.size() < 5 || l_levels[0] != "cam" || l_levels[1] != "v1" || !is_valid_namespace(l_levels[2])) {
+			return std::nullopt;
+		}
+		Address l_address;
+		l_address.m_namespace = std::string(l_levels[2]);
+		if (l_levels[3] == "all" && l_levels.size() == 5 && l_levels[4] == "in") {
+			l_address.m_kind = AddressKind::AllIn;
+			return l_address;
+		}
+		if (l_levels.size() != 6 || !is_valid_identifier(l_levels[4])) {
+			return std::nullopt;
+		}
+		l_address.m_target = std::string(l_levels[4]);
+		if (l_levels[3] == "node") {
+			if (l_levels[5] != "presence") {
+				return std::nullopt;
+			}
+			l_address.m_kind = AddressKind::NodePresence;
+			return l_address;
+		}
+		if (l_levels[3] != "env") {
+			return std::nullopt;
+		}
+		if (l_levels[5] == "in") {
+			l_address.m_kind = AddressKind::EnvIn;
+		} else if (l_levels[5] == "agent") {
+			l_address.m_kind = AddressKind::EnvAgent;
+		} else if (l_levels[5] == "query") {
+			l_address.m_kind = AddressKind::EnvQuery;
+		} else if (l_levels[5] == "presence") {
+			l_address.m_kind = AddressKind::EnvPresence;
+		} else {
+			return std::nullopt;
+		}
+		return l_address;
+	}
+
+} // namespace cam::transport

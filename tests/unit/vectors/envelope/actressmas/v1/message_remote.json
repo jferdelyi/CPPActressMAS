@@ -1,0 +1,12 @@
+{
+  "class": "ActressMas.Message",
+  "assembly": "ActressMas, Version=3.1.0.0, Culture=neutral, PublicKeyToken=null",
+  "fields": {
+    "Content": "request-info",
+    "ContentObj": null,
+    "ConversationId": "",
+    "Receiver": "pong-agent@Container2",
+    "Sender": "ping-agent@Container1"
+  },
+  "layer": "nrbf"
+}

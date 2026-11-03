@@ -1,0 +1,27 @@
+#cam oracle Vickrey
+#cam csharp ActressMas eb0bb73, Examples/E05 Auctions/Vickrey/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Vickrey/bin/Release/net10.0 && dotnet Vickrey.dll
+#cam seed 7
+[bidder03]: My valuation is 295
+[bidder02]: My valuation is 373
+[bidder05]: My valuation is 147
+[bidder01]: My valuation is 112
+[bidder04]: My valuation is 222
+	[auctioneer -> bidder01]: start
+	[auctioneer -> bidder04]: start
+	[auctioneer -> bidder02]: start
+	[auctioneer -> bidder05]: start
+	[auctioneer -> bidder03]: start
+	[bidder02 -> auctioneer]: bid 373
+	[bidder01 -> auctioneer]: bid 112
+	[bidder04 -> auctioneer]: bid 222
+	[bidder03 -> auctioneer]: bid 295
+	[bidder05 -> auctioneer]: bid 147
+[auctioneer]: Auction finished. Sold to bidder02 for price 295.
+	[auctioneer -> bidder03]: winner bidder02
+	[auctioneer -> bidder02]: winner bidder02
+[bidder02]: I have won.
+	[auctioneer -> bidder05]: winner bidder02
+	[auctioneer -> bidder04]: winner bidder02
+	[auctioneer -> bidder01]: winner bidder02

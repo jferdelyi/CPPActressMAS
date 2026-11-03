@@ -1,0 +1,27 @@
+#cam oracle PingPongSeqRandom
+#cam csharp ActressMas eb0bb73, Examples/E30 Benchmarks/PingPong/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var env = new EnvironmentMas(noTurns: 10000, parallel: true);/var env = new EnvironmentMas(noTurns: 100000, parallel: false);/
+#cam command cd Oracles/PingPongSeqRandom/bin/Release/net10.0 && dotnet PingPongSeqRandom.dll
+#cam seed 0
+Trial 1
+10000000 msg
+854 ms
+
+Trial 2
+10000000 msg
+617 ms
+
+Trial 3
+10000000 msg
+621 ms
+
+Trial 4
+10000000 msg
+614 ms
+
+Trial 5
+10000000 msg
+621 ms
+
+15281.964 msg/ms

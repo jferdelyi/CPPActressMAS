@@ -1,0 +1,119 @@
+#cam oracle NumberGame
+#cam csharp ActressMas eb0bb73, Examples/E12 Simple Observables/NumberGame/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/NumberGame/bin/Release/net10.0 && dotnet NumberGame.dll
+#cam seed 0
+I am Agent1. My number is 16.95 and I saw:
+Agent2 with number = 11.54
+Agent3 with number = 13.88
+My number is now 18.71
+----------------------------------------------
+I am Agent2. My number is 11.54 and I saw:
+Agent1 with number = 18.71
+Agent3 with number = 13.88
+My number is now 21.74
+----------------------------------------------
+I am Agent3. My number is 13.88 and I saw:
+Agent1 with number = 18.71
+Agent2 with number = 21.74
+My number is now 26.14
+----------------------------------------------
+I am Agent1. My number is 18.71 and I saw:
+Agent2 with number = 21.74
+Agent3 with number = 26.14
+My number is now 23.75
+----------------------------------------------
+I am Agent2. My number is 21.74 and I saw:
+Agent1 with number = 23.75
+Agent3 with number = 26.14
+My number is now 16.45
+----------------------------------------------
+I am Agent3. My number is 26.14 and I saw:
+Agent1 with number = 23.75
+Agent2 with number = 16.45
+My number is now 24.78
+----------------------------------------------
+I am Agent1. My number is 23.75 and I saw:
+Agent2 with number = 16.45
+Agent3 with number = 24.78
+My number is now 27.80
+----------------------------------------------
+I am Agent2. My number is 16.45 and I saw:
+Agent3 with number = 24.78
+My number is now 20.62
+----------------------------------------------
+I am Agent3. My number is 24.78 and I saw:
+Agent1 with number = 27.80
+Agent2 with number = 20.62
+My number is now 26.19
+----------------------------------------------
+I am Agent1. My number is 27.80 and I saw:
+Agent2 with number = 20.62
+Agent3 with number = 26.19
+My number is now 8.05
+----------------------------------------------
+I am Agent2. My number is 20.62 and I saw:
+Agent3 with number = 26.19
+My number is now 23.51
+----------------------------------------------
+I am Agent3. My number is 26.19 and I saw:
+Agent2 with number = 23.51
+My number is now 22.12
+----------------------------------------------
+I am Agent1. I did't see anything interesting.
+My number is now 4.91
+----------------------------------------------
+I am Agent2. My number is 23.51 and I saw:
+Agent3 with number = 22.12
+My number is now 11.21
+----------------------------------------------
+I am Agent3. I did't see anything interesting.
+My number is now 25.43
+----------------------------------------------
+I am Agent1. My number is 4.91 and I saw:
+Agent2 with number = 11.21
+My number is now 5.89
+----------------------------------------------
+I am Agent2. My number is 11.21 and I saw:
+Agent1 with number = 5.89
+My number is now 19.83
+----------------------------------------------
+I am Agent3. My number is 25.43 and I saw:
+Agent2 with number = 19.83
+My number is now 18.75
+----------------------------------------------
+I am Agent1. I did't see anything interesting.
+My number is now 5.42
+----------------------------------------------
+I am Agent2. My number is 19.83 and I saw:
+Agent3 with number = 18.75
+My number is now 12.18
+----------------------------------------------
+I am Agent3. My number is 18.75 and I saw:
+Agent2 with number = 12.18
+My number is now 24.02
+----------------------------------------------
+I am Agent1. My number is 5.42 and I saw:
+Agent2 with number = 12.18
+My number is now 26.67
+----------------------------------------------
+I am Agent2. I did't see anything interesting.
+My number is now 25.59
+----------------------------------------------
+I am Agent3. My number is 24.02 and I saw:
+Agent1 with number = 26.67
+Agent2 with number = 25.59
+My number is now 11.46
+----------------------------------------------
+I am Agent1. My number is 26.67 and I saw:
+Agent2 with number = 25.59
+My number is now 1.77
+----------------------------------------------
+I am Agent2. I did't see anything interesting.
+My number is now 2.53
+----------------------------------------------
+I am Agent3. My number is 11.46 and I saw:
+Agent1 with number = 1.77
+Agent2 with number = 2.53
+My number is now 13.28
+----------------------------------------------

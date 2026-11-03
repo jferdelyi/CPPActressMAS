@@ -1,0 +1,18 @@
+# E16 Replicator Dynamics: parallel; the game agent prints the state of each round, and the two strategy agents print
+# their updates in any order between them, in the turn the payoffs arrive or the next: where a strategy's line falls
+# between the round lines of the game agent depends on the interleaving. Compared: the lines of the game agent in order
+# (round lines included), the lines of each strategy agent in order, and the initial proportions by count (their value
+# shows in the first state, x = [0.50, 0.50]).
+ignore ^$
+cover all
+fact game ^(Replicator dynamics with .*|--- Round \d+ ---|x = \[.*\]|u = \[.*\]|ubar = .*|Simulation finished\.|State normalized: .*|Population proportions .*)$
+fact initial ^(S\d) \(strategy \d\) initial proportion = (.*)$
+fact strategy ^(S\d)(: ui = .*|: average payoff .*|: payoff message malformed.*| error: .*)$
+fact final ^Final proportion for (S\d): (.*)$
+same game seq
+same strategy seq by 0
+same initial count
+same final seq by 0
+check initial count == 2
+check final count == 2
+check strategy count == 100

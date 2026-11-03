@@ -1,0 +1,20 @@
+# E05 English auction with broadcast: sequential, fixed order; the valuations come from the seed of the oracle, so the
+# C# fixes every line (exact trace), the dots of the bids the bidders hear included: a dot has no line break, so the next
+# line of the auctioneer follows the dots on the same line. "line" checks the whole trace, the other facts each kind.
+cover all
+fact line ^(.*)$
+fact valuation ^\[(bidder\d+)\]: My valuation is (\d+)$
+fact start ^\t\[auctioneer -> (bidder\d+)\]: start$
+fact bid ^\.*\t\[(bidder\d+) -> auctioneer\]: bid (\d+)$
+fact finished ^\.*\[auctioneer\]: Auction finished$
+fact winner ^\t\[auctioneer -> (bidder\d+)\]: winner (\w+)$
+fact won ^\[(bidder\d+)\]: I have won with (\d+)$
+same line seq
+same valuation seq
+same start seq
+same bid seq
+same winner seq
+same won seq
+check valuation count == 5
+check finished count == 1
+check won count == 1

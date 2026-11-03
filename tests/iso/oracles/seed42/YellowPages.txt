@@ -1,0 +1,30 @@
+#cam oracle YellowPages
+#cam csharp ActressMas eb0bb73, Examples/E06 Yellow Pages/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/YellowPages/bin/Release/net10.0 && dotnet YellowPages.dll
+#cam seed 42
+	[client3 -> broker]: search Sub
+	[client2 -> broker]: search Add
+	[provider4 -> broker]: register Sub
+	[client1 -> broker]: search Add
+	[client4 -> broker]: search Sub
+	[provider2 -> broker]: register Add
+	[provider1 -> broker]: register Add
+	[provider3 -> broker]: register Sub
+	[broker -> client4]: providers provider4
+	[client4 -> provider4]: request 53 33
+	[provider4 -> client4]: response 20
+[client4]: Sub(53, 33) = 20
+	[provider1 -> provider1]: force-unregister
+	[provider5 -> broker]: register Sub
+	[provider1 -> broker]: unregister Add
+	[client6 -> broker]: search Sub
+	[client5 -> broker]: search Add
+	[broker -> client6]: providers provider4 provider3 provider5
+	[broker -> client5]: providers provider2
+	[client6 -> provider3]: request 41 99
+	[client5 -> provider2]: request 46 32
+	[provider3 -> client6]: response -58
+[client6]: Sub(41, 99) = -58
+	[provider2 -> client5]: response 78
+[client5]: Add(46, 32) = 78

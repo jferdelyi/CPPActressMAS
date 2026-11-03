@@ -1,0 +1,39 @@
+<Project>
+  <!--
+    Common part of the oracle projects: the ORIGINAL sources of one example ($(OracleSources), set by the project
+    before importing this file) compiled unchanged, together with the ORIGINAL framework sources and the seed shim, in
+    one assembly, so that the alias of Shim/GlobalUsings.cs also seeds the Random of EnvironmentMas.
+    The framework is compiled with the "full" profile of ActressMas.Ref (Container and ClientServer are needed to build).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Same NoWarn as ActressMas.Ref: original csproj (1591, 1572) and BinaryFormatter (SYSLIB0011, never called here) -->
+    <NoWarn>$(NoWarn);1591;1572;SYSLIB0011</NoWarn>
+  </PropertyGroup>
+  <!--
+    Declared by a project when its example needs it:
+    - OracleExcludes: original files not compiled (a WinForms form), replaced by the stubs of OracleStubs (the
+      project's Stubs/ by default);
+    - OracleData: data files copied next to the program, which runs from its output folder;
+    - <File>.cs.sed: csharp-ref.sh writes Patched/<File>.cs, the original file with one line rewritten (noTurns of an
+      example that never stops, a scenario that reaches a bug), compiled instead of the original.
+  -->
+  <PropertyGroup>
+    <OracleStubs Condition="'$(OracleStubs)' == ''">$(MSBuildProjectDirectory)/Stubs/</OracleStubs>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(OracleSources)*.cs" Exclude="$(OracleExcludes)" />
+    <Compile Include="$(OracleStubs)*.cs" />
+    <Compile Include="$(AmasFw)Agents/*.cs" />
+    <Compile Include="$(AmasFw)Info.cs" />
+    <Compile Include="$(AmasFw)ContainerServer/*.cs" />
+    <Compile Include="$(AmasFw)ClientServer/**/*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Shim/*.cs" />
+    <None Include="$(OracleData)" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <OraclePatched Include="$(MSBuildProjectDirectory)/Patched/*.cs" />
+    <Compile Remove="@(OraclePatched->'$(OracleSources)%(Filename)%(Extension)')" />
+    <Compile Include="@(OraclePatched)" />
+  </ItemGroup>
+</Project>

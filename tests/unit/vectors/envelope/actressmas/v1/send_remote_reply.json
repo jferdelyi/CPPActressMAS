@@ -1,0 +1,22 @@
+{
+  "class": "ActressMas.ContainerMessage",
+  "assembly": "ActressMas, Version=3.1.0.0, Culture=neutral, PublicKeyToken=null",
+  "fields": {
+    "Content": "AAEAAAD/////AQAAAAAAAAAMAgAAAEFBY3RyZXNzTWFzLCBWZXJzaW9uPTMuMS4wLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49bnVsbAUBAAAAEkFjdHJlc3NNYXMuTWVzc2FnZQUAAAAYPENvbnRlbnQ+a19fQmFja2luZ0ZpZWxkGzxDb250ZW50T2JqPmtfX0JhY2tpbmdGaWVsZB88Q29udmVyc2F0aW9uSWQ+a19fQmFja2luZ0ZpZWxkGTxSZWNlaXZlcj5rX19CYWNraW5nRmllbGQXPFNlbmRlcj5rX19CYWNraW5nRmllbGQBAgEBAQIAAAAGAwAAADRJbmZvIDEgZnJvbSBhZ2VudCBwb25nLWFnZW50IGluIGNvbnRhaW5lciBDb250YWluZXIyCgYEAAAAAAYFAAAAFXBpbmctYWdlbnRAQ29udGFpbmVyMQYGAAAAFXBvbmctYWdlbnRAQ29udGFpbmVyMgs=",
+    "Info": "Send Remote Message",
+    "Receiver": "Container1",
+    "Sender": "Container2"
+  },
+  "layer": "frame",
+  "content_message": {
+    "class": "ActressMas.Message",
+    "assembly": "ActressMas, Version=3.1.0.0, Culture=neutral, PublicKeyToken=null",
+    "fields": {
+      "Content": "Info 1 from agent pong-agent in container Container2",
+      "ContentObj": null,
+      "ConversationId": "",
+      "Receiver": "ping-agent@Container1",
+      "Sender": "pong-agent@Container2"
+    }
+  }
+}

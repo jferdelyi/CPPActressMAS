@@ -1,0 +1,36 @@
+# E09 Mechanism Design: two sequential runs in a fixed order (honest, then a lying), so the C# guarantees the order of
+# every kind of line; each run is a section, every line is a fact (exact trace, level (a)).
+section ^-{10,}$
+ignore ^$
+cover all
+fact benefits ^\[(\w+)\]: My net benefits are \(([-\d ]+)\)$
+fact reported ^\[(\w+)\]: My \*reported\* net benefits are \(([-\d ]+)\)$
+fact message ^\t\[(\w+) -> (\w+)\]: (.*)$
+fact lights ^\[dm\]: We will install (\d+) lights$
+fact pivotal ^\[dm\]: (\w) is pivotal - from (\d+) - and its tax is (-?\d+)$
+fact not_pivotal ^\[dm\]: (\w) is not pivotal and its tax is 0$
+fact after_tax ^\[(\w+)\]: My net benefit after tax is (-?\d+)$
+same benefits seq
+same reported seq
+same message seq
+same lights seq
+same pivotal seq
+same not_pivotal seq
+same after_tax seq
+check after_tax count by 0 == 3
+# The published values of the example (Clarke taxes): the honest run, then the run where a reports 70 for 3 lights
+expect lights 0|2
+expect not_pivotal 0|a
+expect pivotal 0|b|3|5
+expect pivotal 0|c|1|10
+expect after_tax 0|a|10
+expect after_tax 0|b|35
+expect after_tax 0|c|110
+expect lights 1|3
+expect pivotal 1|a|2|40
+expect after_tax 1|a|-5
+expect after_tax 1|b|20
+expect after_tax 1|c|100
+# Every line in order: the kinds of lines compared above, and their order between them
+fact line ^(.+)$
+same line seq

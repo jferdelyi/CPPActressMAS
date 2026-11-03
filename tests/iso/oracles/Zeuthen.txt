@@ -1,0 +1,148 @@
+#cam oracle Zeuthen
+#cam csharp ActressMas eb0bb73, Examples/E07 Zeuthen Strategy/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/Zeuthen/bin/Release/net10.0 && dotnet Zeuthen.dll
+#cam seed 0
+	[agent1 -> agent2]: propose 0.1
+[agent2]: My risk is 0.9796 and the other's risk is 0.9796
+[agent2]: I will concede with new proposal 4.8
+	[agent2 -> agent1]: propose 4.800000000000001
+[agent1]: My risk is 0.9592 and the other's risk is 0.9792
+[agent1]: I will concede with new proposal 0.2
+	[agent1 -> agent2]: propose 0.2
+[agent2]: My risk is 0.9583 and the other's risk is 0.9583
+[agent2]: I will concede with new proposal 4.7
+	[agent2 -> agent1]: propose 4.700000000000001
+[agent1]: My risk is 0.9375 and the other's risk is 0.9574
+[agent1]: I will concede with new proposal 0.3
+	[agent1 -> agent2]: propose 0.30000000000000004
+[agent2]: My risk is 0.9362 and the other's risk is 0.9362
+[agent2]: I will concede with new proposal 4.6
+	[agent2 -> agent1]: propose 4.600000000000001
+[agent1]: My risk is 0.9149 and the other's risk is 0.9348
+[agent1]: I will concede with new proposal 0.4
+	[agent1 -> agent2]: propose 0.4
+[agent2]: My risk is 0.9130 and the other's risk is 0.9130
+[agent2]: I will concede with new proposal 4.5
+	[agent2 -> agent1]: propose 4.500000000000002
+[agent1]: My risk is 0.8913 and the other's risk is 0.9111
+[agent1]: I will concede with new proposal 0.5
+	[agent1 -> agent2]: propose 0.5
+[agent2]: My risk is 0.8889 and the other's risk is 0.8889
+[agent2]: I will concede with new proposal 4.4
+	[agent2 -> agent1]: propose 4.400000000000002
+[agent1]: My risk is 0.8667 and the other's risk is 0.8864
+[agent1]: I will concede with new proposal 0.6
+	[agent1 -> agent2]: propose 0.6
+[agent2]: My risk is 0.8636 and the other's risk is 0.8636
+[agent2]: I will concede with new proposal 4.3
+	[agent2 -> agent1]: propose 4.3000000000000025
+[agent1]: My risk is 0.8409 and the other's risk is 0.8605
+[agent1]: I will concede with new proposal 0.7
+	[agent1 -> agent2]: propose 0.7
+[agent2]: My risk is 0.8372 and the other's risk is 0.8372
+[agent2]: I will concede with new proposal 4.2
+	[agent2 -> agent1]: propose 4.200000000000003
+[agent1]: My risk is 0.8140 and the other's risk is 0.8333
+[agent1]: I will concede with new proposal 0.8
+	[agent1 -> agent2]: propose 0.7999999999999999
+[agent2]: My risk is 0.8095 and the other's risk is 0.8095
+[agent2]: I will concede with new proposal 4.1
+	[agent2 -> agent1]: propose 4.100000000000003
+[agent1]: My risk is 0.7857 and the other's risk is 0.8049
+[agent1]: I will concede with new proposal 0.9
+	[agent1 -> agent2]: propose 0.8999999999999999
+[agent2]: My risk is 0.7805 and the other's risk is 0.7805
+[agent2]: I will concede with new proposal 4.0
+	[agent2 -> agent1]: propose 4.0000000000000036
+[agent1]: My risk is 0.7561 and the other's risk is 0.7750
+[agent1]: I will concede with new proposal 1.0
+	[agent1 -> agent2]: propose 0.9999999999999999
+[agent2]: My risk is 0.7500 and the other's risk is 0.7500
+[agent2]: I will concede with new proposal 3.9
+	[agent2 -> agent1]: propose 3.9000000000000035
+[agent1]: My risk is 0.7250 and the other's risk is 0.7436
+[agent1]: I will concede with new proposal 1.1
+	[agent1 -> agent2]: propose 1.0999999999999999
+[agent2]: My risk is 0.7179 and the other's risk is 0.7179
+[agent2]: I will concede with new proposal 3.8
+	[agent2 -> agent1]: propose 3.8000000000000034
+[agent1]: My risk is 0.6923 and the other's risk is 0.7105
+[agent1]: I will concede with new proposal 1.2
+	[agent1 -> agent2]: propose 1.2
+[agent2]: My risk is 0.6842 and the other's risk is 0.6842
+[agent2]: I will concede with new proposal 3.7
+	[agent2 -> agent1]: propose 3.7000000000000033
+[agent1]: My risk is 0.6579 and the other's risk is 0.6757
+[agent1]: I will concede with new proposal 1.3
+	[agent1 -> agent2]: propose 1.3
+[agent2]: My risk is 0.6486 and the other's risk is 0.6486
+[agent2]: I will concede with new proposal 3.6
+	[agent2 -> agent1]: propose 3.600000000000003
+[agent1]: My risk is 0.6216 and the other's risk is 0.6389
+[agent1]: I will concede with new proposal 1.4
+	[agent1 -> agent2]: propose 1.4000000000000001
+[agent2]: My risk is 0.6111 and the other's risk is 0.6111
+[agent2]: I will concede with new proposal 3.5
+	[agent2 -> agent1]: propose 3.500000000000003
+[agent1]: My risk is 0.5833 and the other's risk is 0.6000
+[agent1]: I will concede with new proposal 1.5
+	[agent1 -> agent2]: propose 1.5000000000000002
+[agent2]: My risk is 0.5714 and the other's risk is 0.5714
+[agent2]: I will concede with new proposal 3.4
+	[agent2 -> agent1]: propose 3.400000000000003
+[agent1]: My risk is 0.5429 and the other's risk is 0.5588
+[agent1]: I will concede with new proposal 1.6
+	[agent1 -> agent2]: propose 1.6000000000000003
+[agent2]: My risk is 0.5294 and the other's risk is 0.5294
+[agent2]: I will concede with new proposal 3.3
+	[agent2 -> agent1]: propose 3.300000000000003
+[agent1]: My risk is 0.5000 and the other's risk is 0.5152
+[agent1]: I will concede with new proposal 1.7
+	[agent1 -> agent2]: propose 1.7000000000000004
+[agent2]: My risk is 0.4848 and the other's risk is 0.4848
+[agent2]: I will concede with new proposal 3.2
+	[agent2 -> agent1]: propose 3.200000000000003
+[agent1]: My risk is 0.4545 and the other's risk is 0.4688
+[agent1]: I will concede with new proposal 1.8
+	[agent1 -> agent2]: propose 1.8000000000000005
+[agent2]: My risk is 0.4375 and the other's risk is 0.4375
+[agent2]: I will concede with new proposal 3.1
+	[agent2 -> agent1]: propose 3.1000000000000028
+[agent1]: My risk is 0.4063 and the other's risk is 0.4194
+[agent1]: I will concede with new proposal 1.9
+	[agent1 -> agent2]: propose 1.9000000000000006
+[agent2]: My risk is 0.3871 and the other's risk is 0.3871
+[agent2]: I will concede with new proposal 3.0
+	[agent2 -> agent1]: propose 3.0000000000000027
+[agent1]: My risk is 0.3548 and the other's risk is 0.3667
+[agent1]: I will concede with new proposal 2.0
+	[agent1 -> agent2]: propose 2.0000000000000004
+[agent2]: My risk is 0.3333 and the other's risk is 0.3333
+[agent2]: I will concede with new proposal 2.9
+	[agent2 -> agent1]: propose 2.9000000000000026
+[agent1]: My risk is 0.3000 and the other's risk is 0.3103
+[agent1]: I will concede with new proposal 2.1
+	[agent1 -> agent2]: propose 2.1000000000000005
+[agent2]: My risk is 0.2759 and the other's risk is 0.2759
+[agent2]: I will concede with new proposal 2.8
+	[agent2 -> agent1]: propose 2.8000000000000025
+[agent1]: My risk is 0.2414 and the other's risk is 0.2500
+[agent1]: I will concede with new proposal 2.2
+	[agent1 -> agent2]: propose 2.2000000000000006
+[agent2]: My risk is 0.2143 and the other's risk is 0.2143
+[agent2]: I will concede with new proposal 2.7
+	[agent2 -> agent1]: propose 2.7000000000000024
+[agent1]: My risk is 0.1786 and the other's risk is 0.1852
+[agent1]: I will concede with new proposal 2.4
+	[agent1 -> agent2]: propose 2.400000000000001
+[agent2]: My risk is 0.1111 and the other's risk is 0.1154
+[agent2]: I will concede with new proposal 2.5
+	[agent2 -> agent1]: propose 2.500000000000002
+[agent1]: My risk is 0.0385 and the other's risk is 0.0400
+[agent1]: I will concede with new proposal 2.5
+	[agent1 -> agent2]: propose 2.500000000000002
+	[agent2 -> agent1]: accept
+[agent1]: I accept 2.5
+	[agent1 -> agent2]: accept
+[agent2]: I accept 2.5

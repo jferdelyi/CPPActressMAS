@@ -1,0 +1,668 @@
+#cam oracle FictitiousPlay
+#cam csharp ActressMas eb0bb73, Examples/E15 Fictitious Play/ (sources unchanged, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam command cd Oracles/FictitiousPlay/bin/Release/net10.0 && dotnet FictitiousPlay.dll
+#cam seed 7
+Starting fictitious play for 50 rounds between player1 and player2.
+
+--- Round 1 ---
+	[game -> player1]: play 1
+	[game -> player2]: play 1
+player1 (round 1) plays D
+player2 (round 1) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 2 ---
+	[game -> player2]: result D 1
+	[game -> player1]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 2
+player2 (round 2) plays D
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 2
+player1 (round 2) plays D
+	[player2 -> game]: action D
+	[player1 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 3 ---
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 3
+player2 (round 3) plays D
+	[player2 -> game]: action D
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 3
+player1 (round 3) plays D
+	[player1 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 4 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 4
+player1 (round 4) plays D
+	[game -> player2]: result D 1
+	[player1 -> game]: action D
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 4
+player2 (round 4) plays D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 5 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 5
+player1 (round 5) plays D
+	[game -> player2]: result D 1
+	[player1 -> game]: action D
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 5
+player2 (round 5) plays D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 6 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 6
+player1 (round 6) plays D
+	[player1 -> game]: action D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 6
+player2 (round 6) plays D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 7 ---
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 7
+player2 (round 7) plays D
+	[player2 -> game]: action D
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 7
+player1 (round 7) plays D
+	[player1 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 8 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 8
+player1 (round 8) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 8
+player2 (round 8) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 9 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 9
+player1 (round 9) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 9
+player2 (round 9) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 10 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 10
+player1 (round 10) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 10
+player2 (round 10) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 11 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 11
+player1 (round 11) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 11
+player2 (round 11) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 12 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 12
+player1 (round 12) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 12
+player2 (round 12) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 13 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 13
+player1 (round 13) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 13
+player2 (round 13) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 14 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 14
+player1 (round 14) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 14
+player2 (round 14) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 15 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 15
+player1 (round 15) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 15
+player2 (round 15) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 16 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 16
+player1 (round 16) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 16
+player2 (round 16) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 17 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 17
+player1 (round 17) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 17
+player2 (round 17) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 18 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 18
+player1 (round 18) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 18
+player2 (round 18) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 19 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 19
+player1 (round 19) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 19
+player2 (round 19) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 20 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 20
+player1 (round 20) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 20
+player2 (round 20) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 21 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 21
+player1 (round 21) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 21
+player2 (round 21) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 22 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 22
+player1 (round 22) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 22
+player2 (round 22) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 23 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 23
+player1 (round 23) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 23
+player2 (round 23) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 24 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 24
+player1 (round 24) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 24
+player2 (round 24) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 25 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 25
+player1 (round 25) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 25
+player2 (round 25) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 26 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 26
+player1 (round 26) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 26
+player2 (round 26) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 27 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 27
+player1 (round 27) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 27
+player2 (round 27) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 28 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 28
+player1 (round 28) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 28
+player2 (round 28) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 29 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 29
+player1 (round 29) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 29
+player2 (round 29) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 30 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 30
+player1 (round 30) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 30
+player2 (round 30) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 31 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 31
+player1 (round 31) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 31
+player2 (round 31) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 32 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 32
+player1 (round 32) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 32
+player2 (round 32) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 33 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 33
+player1 (round 33) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 33
+player2 (round 33) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 34 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 34
+player1 (round 34) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 34
+player2 (round 34) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 35 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 35
+player1 (round 35) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 35
+player2 (round 35) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 36 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 36
+player1 (round 36) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 36
+player2 (round 36) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 37 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 37
+player1 (round 37) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 37
+player2 (round 37) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 38 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 38
+player1 (round 38) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 38
+player2 (round 38) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 39 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 39
+player1 (round 39) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 39
+player2 (round 39) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 40 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 40
+player1 (round 40) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 40
+player2 (round 40) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 41 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 41
+player1 (round 41) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 41
+player2 (round 41) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 42 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 42
+player1 (round 42) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 42
+player2 (round 42) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 43 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 43
+player1 (round 43) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 43
+player2 (round 43) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 44 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 44
+player1 (round 44) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 44
+player2 (round 44) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 45 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 45
+player1 (round 45) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 45
+player2 (round 45) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 46 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 46
+player1 (round 46) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 46
+player2 (round 46) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 47 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 47
+player1 (round 47) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 47
+player2 (round 47) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 48 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 48
+player1 (round 48) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 48
+player2 (round 48) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 49 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 49
+player1 (round 49) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 49
+player2 (round 49) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+--- Round 50 ---
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: play 50
+player1 (round 50) plays D
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: play 50
+player2 (round 50) plays D
+	[player1 -> game]: action D
+	[player2 -> game]: action D
+Joint action: player1=D, player2=D | payoffs: 1.00, 1.00
+
+Game finished.
+Total payoff for player1: 50.00
+Total payoff for player2: 50.00
+	[game -> player1]: result D 1
+player1 observes opponent played D, payoff = 1.00
+	[game -> player1]: stop
+player1: stopping.
+player1: belief about player2: P(A)=0.02, P(B)=0.98 [counts A=1, B=51]
+player1: empirical strategy: P(A)=0.00, P(B)=1.00 [counts A=0, B=50, rounds=50]
+	[game -> player2]: result D 1
+player2 observes opponent played D, payoff = 1.00
+	[game -> player2]: stop
+player2: stopping.
+player2: belief about player1: P(A)=0.02, P(B)=0.98 [counts A=1, B=51]
+player2: empirical strategy: P(A)=0.00, P(B)=1.00 [counts A=0, B=50, rounds=50]

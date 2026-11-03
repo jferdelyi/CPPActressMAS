@@ -1,0 +1,4 @@
+[a -> b]: hello
+[c -> b]: hi
+[a -> b]: changed
+total=10

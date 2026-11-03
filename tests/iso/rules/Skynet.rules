@@ -1,0 +1,8 @@
+# E30 Skynet: parallel benchmark, duration ignored. Compared: the sum of 0 to 9 999 the root prints, and one duration
+# printed with three decimals.
+cover all
+fact sum ^Sum = (\d+)$
+fact duration ^\d+\.000 ms$
+same sum seq
+same duration count
+check sum count == 1

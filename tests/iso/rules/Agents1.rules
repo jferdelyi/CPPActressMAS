@@ -1,0 +1,21 @@
+# E00 Agents1: parallel, with random pauses, so the two agents interleave differently at each run; only what does not
+# depend on the interleaving is compared: the lines of each agent in order, the receptions of each sender in order (the
+# mailbox keeps the order of arrival), the counts, and the turn barrier (every line of the setup turn, "s", before the
+# receptions of the next turn, "h").
+cover all
+fact start ^(agent\d) starting$
+fact sending ^(agent\d) sending (\d+)$
+fact agent ^(agent\d) (starting|sending \d+)$
+fact received ^monitor has received \[(agent\d) -> monitor\]: (\d+)$
+fact phase ^\w+ ([sh])
+same start bag
+same sending seq by 0
+same agent seq by 0
+same received seq by 0
+same phase seq
+check start count == 2
+check sending count == 20
+check received count == 20
+fact error (Exception|out of range)
+optional error
+check error count == 0

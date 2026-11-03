@@ -1,0 +1,18 @@
+# E20 RemoteMessages: one process per container in the C#, two environments on the loopback transport in the C++; the
+# console of each container is compared in its own section. The lines of the C# Container class (connection to the
+# server, registration, "Running MAS...") are not compared: the server and the containers are not ported, the
+# transport plays their part. A message from another container names its sender "name@container" in the C#, by its
+# name alone in the C++ (the environment is not part of the name): the name is compared, the container is not.
+section ^This is Container\d$
+ignore ^$
+ignore ^Container connecting to server\.\.\.$
+ignore ^Container connected to server\.$
+ignore ^Container\d registered\.$
+ignore ^Running MAS\.\.\.$
+cover all
+fact setup ^\[(ping-agent|pong-agent)\] (.+)$
+fact received ^\t\[([^@\s\]]+)(?:@\S+)? -> (ping-agent|pong-agent)\]: (.+)$
+same setup seq by 0
+same received seq by 1
+check setup count == 2
+check received count == 3

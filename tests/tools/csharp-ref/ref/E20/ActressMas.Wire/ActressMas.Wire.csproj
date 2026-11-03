@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The ActressMAS v3.1 framework compiled from the ORIGINAL sources under the ORIGINAL assembly identity
+    "ActressMas, Version=3.1.0.0, Culture=neutral, PublicKeyToken=null" (Properties/AssemblyInfo.cs:35, unsigned).
+    BinaryFormatter writes this identity in every ContainerMessage it serializes (BinaryLibrary record), so the
+    E20 harness (server, containers, captures) must use it to produce the bytes the original binaries produce.
+    ActressMas.Ref keeps the name ActressMas.Ref for the local harness (benchmarks, traces), unchanged.
+    Build with the sdk:8.0 image and -p:RefTfm=net8.0: BinaryFormatter throws on net9.0+.
+  -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>ActressMas</AssemblyName>
+    <RootNamespace>ActressMas</RootNamespace>
+    <AssemblyVersion>3.1.0.0</AssemblyVersion>
+    <FileVersion>3.1.0.0</FileVersion>
+    <NoWarn>$(NoWarn);1591;1572;SYSLIB0011</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(AmasFw)Agents/*.cs" />
+    <Compile Include="$(AmasFw)Info.cs" />
+    <Compile Include="$(AmasFw)ContainerServer/*.cs" />
+    <Compile Include="$(AmasFw)ClientServer/**/*.cs" />
+  </ItemGroup>
+</Project>

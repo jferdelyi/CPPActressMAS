@@ -7,122 +7,118 @@
  *  CPP version of ActressMAS by Florin Leon                              *
  *  https://github.com/florinleon/ActressMas                              *
  *                                                                        *
- *  This program is free software; you can redistribute it and/or modify  *
- *  it under the terms of the GNU General License as published by         *
- *  the Free Software Foundation. This program is distributed in the      *
- *  hope that it will be useful, but WITHOUT ANY WARRANTY; without even   *
- *  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR   *
- *  PURPOSE. See the GNU General License for more details.                *
+ *  This program and the accompanying materials are made available under  *
+ *  the terms of the Eclipse Public License 2.0, which is available at    *
+ *  https://www.eclipse.org/legal/epl-2.0/ and in the LICENSE file.       *
+ *                                                                        *
+ *  SPDX-License-Identifier: EPL-2.0                                      *
  *                                                                        *
  **************************************************************************/
 
-#include <iostream>
-#include <random>
+// Port of the C# example E12 Simple Observables/ColorGame (ActressMAS v3.1): three agents publish a color; each sees
+// the agents whose color is the one it looks for (its perception filter), says what it saw, then draws a new color.
+// Sequential, fixed order, 10 turns; the colors are drawn as the C# draws them (the seed of its oracle, D96).
 
+#include <cstdint>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include <DotNet.hpp>
 #include <Environment.h>
+#include <util/DotnetRandom.h>
 
 class Colors {
 	public:
 		static std::string GenerateColor() {
-		 	static std::default_random_engine s_seeder(std::time(nullptr));
-			static std::mt19937 s_generator(s_seeder());
-			static std::vector<std::string> l_colors {"red", "green", "blue"};
-
-			std::uniform_int_distribution<size_t> l_dist(0, 2);
-			return l_colors.at(l_dist(s_generator));
+			static const std::vector<std::string> s_colors{"red", "green", "blue"};
+			static cam::DotnetRandom s_rand(cam::dotnet::next_site_seed("Program.cs:119"));
+			return s_colors[s_rand.next(static_cast<std::int32_t>(s_colors.size()))];
 		}
 };
 
 class MyAgent : public cam::Agent {
-	protected:
+	private:
 		std::vector<cam::ObservablesPointer> m_observable_agents;
-		std::string m_see_color;
+
+	protected:
+		explicit MyAgent(const std::string& p_name) : Agent(p_name, true) {}
 
 	public:
-		explicit MyAgent(const std::string& p_name) :
-			Agent(p_name, true) {
-		}
-
 		void see(const std::vector<cam::ObservablesPointer>& p_observable_agents) override {
 			std::cout << "I am " << get_name() << ". I am looking around..." << std::endl;
-			m_observable_agents.clear();
-			for (const auto& l_observable_agent : p_observable_agents) {
-				m_observable_agents.push_back(l_observable_agent);
-			}
+			m_observable_agents = p_observable_agents;
 		}
 
 		void default_action() override {
-			std::cout << "I can see only the color " << m_see_color << std::endl;
 			if (m_observable_agents.empty()) {
-		        std::cout << "I didn't see anything interesting." << std::endl;
-		    } else {
-		        std::cout << "I saw: ";
-		        for (const auto& l_observable : m_observable_agents) {
-                    std::cout << l_observable->at("Name") << " (" << l_observable->at("Color") << ")" << std::endl;
-		        }
-		    }
-			m_observables->erase("Color");
-			m_observables->emplace(std::make_pair("Color", Colors::GenerateColor()));
-		    std::cout << "My color is now " << m_observables->at("Color") << std::endl;
-		    std::cout << "----------------------------------------------" << std::endl;
+				std::cout << "I did't see anything interesting";
+			} else {
+				std::cout << "I saw: ";
+				for (const auto& l_observed: m_observable_agents) {
+					std::cout << l_observed->at("Name").get<std::string>() << " (" << l_observed->at("Color").get<std::string>() << ") ";
+				}
+			}
+
+			(*m_observables)["Color"] = Colors::GenerateColor();
+
+			std::cout << "\r\nMy color is now " << m_observables->at("Color").get<std::string>() << std::endl;
+			std::cout << "-------------------------------------------" << std::endl;
 		}
 };
 
-class MyAgent1 final : public MyAgent {
-public:
-	explicit MyAgent1(const std::string& p_name) : MyAgent(p_name) {}
+class Agent1 final : public MyAgent {
+	public:
+		explicit Agent1(const std::string& p_name) : MyAgent(p_name) {}
 
-protected:
-	void setup() override {
-		m_observables->emplace(std::make_pair("Name", get_name()));
-		m_observables->emplace(std::make_pair("Color", "red"));
-		m_see_color = "green";
-	}
+		void setup() override {
+			(*m_observables)["Name"] = get_name();
+			(*m_observables)["Color"] = "red";
+		}
 
-	bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
-		return p_observed->at("Color") == m_see_color;
-	}
+		[[nodiscard]] bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
+			return p_observed->at("Color") == "green";
+		}
 };
 
-class MyAgent2 final : public MyAgent {
-public:
-	explicit MyAgent2(const std::string& p_name) : MyAgent(p_name) {}
+class Agent2 final : public MyAgent {
+	public:
+		explicit Agent2(const std::string& p_name) : MyAgent(p_name) {}
 
-protected:
-	void setup() override {
-		m_observables->emplace(std::make_pair("Name", get_name()));
-		m_observables->emplace(std::make_pair("Color", "green"));
-		m_see_color = "blue";
-	}
+		void setup() override {
+			(*m_observables)["Name"] = get_name();
+			(*m_observables)["Color"] = "green";
+		}
 
-	bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
-		return p_observed->at("Color") == m_see_color;
-	}
+		[[nodiscard]] bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
+			return p_observed->at("Color") == "blue";
+		}
 };
 
-class MyAgent3 final : public MyAgent {
-public:
+class Agent3 final : public MyAgent {
+	public:
+		explicit Agent3(const std::string& p_name) : MyAgent(p_name) {}
 
-	explicit MyAgent3(const std::string& p_name) : MyAgent(p_name) {}
+		void setup() override {
+			(*m_observables)["Name"] = get_name();
+			(*m_observables)["Color"] = "blue";
+		}
 
-protected:
-	void setup() override {
-		m_observables->emplace(std::make_pair("Name", get_name()));
-		m_observables->emplace(std::make_pair("Color", "blue"));
-		m_see_color = "red";
-	}
-
-	bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
-		return p_observed->at("Color") == m_see_color;
-	}
+		[[nodiscard]] bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
+			return p_observed->at("Color") == "red";
+		}
 };
 
 int main() {
-    cam::Environment l_environment(10, cam::EnvironmentMasMode::Sequential);
+	cam::Environment l_environment({.m_turns = 10,
+									.m_mode = cam::EnvironmentMasMode::Sequential,
+									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
+									.m_random = cam::RandomEngine::DotNet});
 
-    l_environment.add<MyAgent1>("Agent1");
-    l_environment.add<MyAgent2>("Agent2");
-    l_environment.add<MyAgent3>("Agent3");
+	l_environment.add<Agent1>("Agent1");
+	l_environment.add<Agent2>("Agent2");
+	l_environment.add<Agent3>("Agent3");
 
-    l_environment.start();
+	l_environment.start();
+	return 0;
 }

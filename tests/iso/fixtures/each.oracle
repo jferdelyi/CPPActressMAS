@@ -1,0 +1,7 @@
+#cam oracle Fixture
+pos a 1
+pos a 2
+pos b 5
+pos a 3
+pos b 4
+sum 2 3 5

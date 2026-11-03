@@ -1,0 +1,6 @@
+pos a 1
+pos b 5
+pos a 2
+pos b 4
+pos a 3
+sum 2 3 5

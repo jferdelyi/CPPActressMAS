@@ -1,0 +1,72 @@
+/**************************************************************************
+ *                                                                        *
+ *  Description: CPPActressMas multi-agent framework                      *
+ *  Website:     https://github.com/jferdelyi/CPPActressMAS               *
+ *  Copyright:   (c) 2023-Today, Jean-François Erdelyi                    *
+ *                                                                        *
+ *  CPP version of ActressMAS by Florin Leon                              *
+ *  https://github.com/florinleon/ActressMas                              *
+ *                                                                        *
+ *  This program and the accompanying materials are made available under  *
+ *  the terms of the Eclipse Public License 2.0, which is available at    *
+ *  https://www.eclipse.org/legal/epl-2.0/ and in the LICENSE file.       *
+ *                                                                        *
+ *  SPDX-License-Identifier: EPL-2.0                                      *
+ *                                                                        *
+ **************************************************************************/
+
+// Harness program of the oracle tests (tests/iso): the C# original as it is, its bugs included, compared with its
+// oracle by iso.Agents4.
+// Port of the C# example E00 Simple Examples/Agents4 (ActressMAS v3.1): five agents write three messages per turn to a
+// writer, then stop. Parallel, 5 turns, one second after each turn.
+// As the C#, an agent stops at its fourth action and still sends three messages afterwards; the writer prints the
+// late messages it gets in the last turn: 45 to 60 lines.
+
+#include <string>
+
+#include <DotNet.hpp>
+#include <Environment.h>
+
+class MyAgent final : public cam::Agent {
+	private:
+		int m_turn = 1;
+
+	public:
+		explicit MyAgent(const std::string& p_name) : Agent(p_name) {}
+
+		void default_action() override {
+			if (m_turn > 3) {
+				stop();  // as the C#, the three messages below are still sent after the stop
+			}
+			for (int i = 1; i <= 3; i++) {
+				send_by_name("writer", "Agent " + get_name() + " turn " + std::to_string(m_turn) + " index " + std::to_string(i));
+			}
+			m_turn++;
+		}
+};
+
+class WriterAgent final : public cam::Agent {
+	public:
+		explicit WriterAgent(const std::string& p_name) : Agent(p_name) {}
+
+		void action(const cam::MessagePointer& p_message) override {
+			cam::dotnet::write_line(format(p_message));
+		}
+};
+
+int main() {
+	constexpr int l_no_agents = 5;
+	cam::Environment l_environment({.m_turns = 5,
+									.m_mode = cam::EnvironmentMasMode::Parallel,
+									.m_delay_after_turn = 1000,
+									.m_seed = static_cast<unsigned int>(cam::dotnet::next_site_seed("EnvironmentMas.cs:61")),
+									.m_random = cam::dotnet::random_engine()});
+
+	l_environment.add<WriterAgent>("writer");
+	for (int i = 1; i <= l_no_agents; i++) {
+		l_environment.add<MyAgent>("a" + std::to_string(i));
+	}
+
+	l_environment.start();
+	return 0;
+}

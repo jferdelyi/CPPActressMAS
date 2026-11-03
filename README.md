@@ -2,434 +2,198 @@
 
 # <p align="center">CPPActressMAS</p>
 
-A C++ multi-agent framework based on the actor model (based on .NET ActressMas v3.0 https://github.com/florinleon/ActressMas). The aim of this project is to propose an easy-to-use multi-agent system in modern C++ based on actors such as ActressMAS.
+A C++20 multi-agent framework based on the actor model, a port of [ActressMAS](https://github.com/florinleon/ActressMas) v3.1 (.NET). The aim of this project is to propose an easy-to-use multi-agent system in modern C++, with the behaviour of ActressMAS, its examples, and a network that is simple to set up.
 
 **This project is currently under development and may contain bugs**.
 
-The project works on 
- - macOS : Tested
- - Linux : Not tested
- - Windows : Not tested
+## Platforms
 
-Dependencies:
- - cmake 3.22 (may work with lower versions)
- - C++20
+- **macOS** (Apple Silicon, Apple clang): built and tested at every change.
+- **Linux arm64** (Ubuntu 24.04 in a container, gcc 13 and clang 18): built and tested at every change, under AddressSanitizer and ThreadSanitizer too.
+- **Linux x86-64** (gcc and clang) and **Windows** (MSVC, static library, unit and oracle tests): built and tested by the continuous integration (`.github/workflows/tests.yml`).
 
-This project is developed with CLion (CMake). Compilation in pure CMake, the library and all tests will be compiled:
+## Quick start
+
 ``` bash
 git clone https://github.com/jferdelyi/CPPActressMAS.git
-mkdir build
-cmake . -B build
-cmake --build build
+cd CPPActressMAS
+git submodule update --init --depth 1
+cmake --preset debug
+cmake --build --preset debug
+ctest --preset debug
 ```
 
-## Exemples
+`git submodule update --init --depth 1` fetches only the pinned commit of each library (about 20 MB). `git clone --recursive` works too, but downloads every branch of nlohmann/json (about 180 MB). The configuration stops with that hint while the submodules are missing; once they are checked out, the build works offline.
 
-Simples examples, general use
-Observables examples, how to use observables
-Benchmarks examples, to benchmark the library
-
-## API
-**Environment**
+Two agents that exchange three pings and pongs, in a sequential environment of at most ten turns:
 ``` cpp
-/**
- * Initializes a new instance of the EnvironmentMas class.
- *
- * @param p_no_turns The maximum number of turns of the simulation. Setup is
- * considered to be the first turn. The simulation may stop earlier if there
- * are no more agents in the environment. If the number of turns is 0, the
- * simulation runs indefinitely, or until there are no more agents in the
- * environment.
- * @param p_mode Whether agent behaviors are executed in parallel,
- * sequentially or sequentially with random order. The code of a single agent
- * in a turn is always executed sequentially.
- * @param p_delay_after_turn A delay (in miliseconds) after each turn.
- * @param p_seed A random number generator seed for non-deterministic but
- * repeatable experiments.
- **/
-explicit EnvironmentMas(int p_no_turns = 0, const EnvironmentMasMode& p_mode = EnvironmentMasMode::Parallel, int p_delay_after_turn = 0, unsigned int p_seed = std::time(nullptr));
+#include <iostream>
+#include <string>
 
-/**
- * Nothing to delete.
- **/
-virtual ~EnvironmentMas() = default;
+#include <Environment.h>
 
-/**
- * Adds an agent to the environment.
- * @param p_args Argument to create a new agent
- * @return Id of the agent
- **/
-template <ConceptAgent T>
-const std::string& add(auto&&... p_args);
+// Answers every message with "pong", to its sender
+class Pong final : public cam::Agent {
+public:
+	explicit Pong(const std::string& p_name) : Agent(p_name) {}
 
-/**
- * Continues the simulation for an additional number of turns, after an
- * initial simulation has finished. The simulation may stop earlier if there
- * are no more agents in the environment. If the number of turns is 0, the
- * simulation runs indefinitely, or until there are no more agents in the
- * environment.
- *
- * @param p_no_turns The maximum number of turns of the continued simulation
- **/
-void continue_simulation(int p_no_turns = 0);
+	void action(const cam::MessagePointer& p_message) override {
+		std::cout << format(p_message) << '\n';
+		send(p_message->get_sender(), "pong");
+	}
+};
 
-/**
- * Stops the execution of the agent identified by id and removes it from the
- * environment. Use the Remove method instead of Agent.Stop when the decision
- * to stop an agent does not belong to the agent itself, but to some other
- * agent or to an external factor.
- *
- * @param p_agent_id The id of the agent to be removed
- **/
-void remove(const std::string& p_agent_id);
+// Sends "ping" to the agent named "pong" at its setup, then after each answer; stops after the third one
+class Ping final : public cam::Agent {
+private:
+	int m_answers = 0;
 
-/**
- * Sends a message from the outside of the multiagent system. Whenever
- * possible, the agents should use the Send method of their own class, not
- * the Send method of the environment. This method can also be used to
- * simulate a forwarding behavior.
- * @param p_sender_id The sender ID
- * @param p_receiver_id The receiver name
- * @param p_message The message to be sent
- * @param p_length The message length
- * @param p_binary_format The message binary format
- **/
-void send(const std::string& p_sender_id, const std::string& p_receiver_id, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+public:
+	explicit Ping(const std::string& p_name) : Agent(p_name) {}
 
-/**
- * Sends a message by name.
- * @param p_sender_id The sender ID
- * @param p_receiver_name The receiver name
- * @param p_message The message to be sent
- * @param p_length The message length
- * @param p_is_fragment If true search all agent that the name contain "p_receiver_name"
- * @param p_first_only If true send to the first agent found
- * @param p_binary_format The message binary format
- **/
-void send_by_name(const std::string& p_sender_id, const std::string& p_receiver_name, const uint8_t* p_message, const size_t& p_length, bool p_is_fragment, bool p_first_only, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+	void setup() override {
+		send_by_name("pong", "ping");
+	}
 
-/**
- * Send a new message to all agents.
- * @param p_sender_id From
- * @param p_message The message
- * @param p_length The message length
- * @param p_binary_format The message binary format
- **/
-void broadcast(const std::string& p_sender_id, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW) const;
+	void action(const cam::MessagePointer& p_message) override {
+		std::cout << format(p_message) << '\n';
+		if (++m_answers == 3) {
+			stop();
+		} else {
+			send(p_message->get_sender(), "ping");
+		}
+	}
+};
 
-/**
- * Starts the simulation.
- **/
- void start();
-
-/**
- * The number of agents in the environment
- **/
-[[nodiscard]] size_t agents_count() const;
-
-/**
- * Get all agents by name
- * @param p_name the name of agent
- * @param p_first_only if true the first found
- * @return All agents by name
- **/
-[[nodiscard]] std::vector<std::string> get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
-
-/**
- * Get first agent by name
- * @param p_name the name of agent
- * @return All agents by name
- **/
-[[nodiscard]] std::optional<std::string> get_first_agent_by_name(const std::string& p_name) const;
-
-/**
- * Get agent name by id
- * @param p_id the name of agent
- * @return Agents name
- **/
-[[nodiscard]] std::optional<std::string> get_agent_name(const std::string& p_id) const;
-
-/**
- * Get all agents by fragment name
- * @param p_fragment_name the fragment name of agent
- * @param p_first_only if true the first found
- * @return All agents by fragment name
- **/
-[[nodiscard]] std::vector<std::string> get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
-
-/**
- * A method that may be optionally overriden to perform additional
- * processing after the simulation has finished.
- **/
-virtual void simulation_finished();
-
-/**
- * A method that may be optionally overriden to perform additional
- * processing after a turn of the simulation has finished.
- * @param p_turn The turn that has just finished
- **/
-virtual void turn_finished(int p_turn);
-
-/**
- * Get the list of observable agents for an agent and its perception filter.
- * @param p_perceiving_agent Peceiving agent
- **/
-std::vector<ObservablesPointer> get_list_of_observable_agents(const Agent *p_perceiving_agent) const;
-
-// Delete copy constructor
-EnvironmentMas(const EnvironmentMas& ) = delete;
-EnvironmentMas& operator=(EnvironmentMas& ) = delete;
+int main() {
+	cam::Environment l_environment({.m_turns = 10, .m_mode = cam::EnvironmentMasMode::Sequential});
+	l_environment.add<Ping>("ping");
+	l_environment.add<Pong>("pong");
+	l_environment.start();
+	return 0;
+}
 ```
-**Agent**
+It prints `[ping -> pong]: ping` and `[pong -> ping]: pong` three times each.
+
+## Dependencies and licences
+
+| Dependency | Version | How it is obtained | Used for | Licence |
+|---|---|---|---|---|
+| [nlohmann/json](https://github.com/nlohmann/json) | 3.12.0 | git submodule (`ThirdParty/json`) | the library: JSON contents, agent state, JSON envelope codec | MIT |
+| [Tessil/ordered-map](https://github.com/Tessil/ordered-map) | 1.2.0 | git submodule (`ThirdParty/ordered-map`) | the library: agents in their order of insertion | MIT |
+| [doctest](https://github.com/doctest/doctest) | 2.5.3 | git submodule (`ThirdParty/doctest`) | the tests only | MIT |
+| libmosquitto ([Eclipse Mosquitto](https://github.com/eclipse-mosquitto/mosquitto) client library) | 2.0.22 | fetched and built by CMake from a pinned archive (SHA-256), with `CAM_TRANSPORT_MQTT` | the MQTT transport | EPL-2.0 or EDL-1.0 |
+| OpenSSL | 3 | the system (development headers), with `CAM_TRANSPORT_MQTT` | TLS of the MQTT transport (`mqtts://`) | Apache-2.0 |
+| [zenoh-c](https://github.com/eclipse-zenoh/zenoh-c) and [zenoh-cpp](https://github.com/eclipse-zenoh/zenoh-cpp) | 1.7.1 exactly | the system, `find_package(zenohc)` and `find_package(zenohcxx)`, with `CAM_TRANSPORT_ZENOH` | the Zenoh transport | EPL-2.0 or Apache-2.0 |
+
+The core needs CMake 3.22 or later (3.25 for the presets) and a C++20 compiler, nothing else. The tests also use tools that are never linked: a Mosquitto 2 broker for the MQTT tests, and the .NET SDK, in containers, to produce the outputs of the C# originals the oracle tests compare with (`tests/tools/csharp-ref/`).
+
+**Build options**: `BUILD_EXAMPLES` (ON in the presets), `CAM_BUILD_TESTS` (ON when the project is the top-level project), `BUILD_BENCH` (ON in the `bench` preset only), `BUILD_STATIC` and `BUILD_SHARED` (ON), `CAM_TRANSPORT_MQTT` and `CAM_TRANSPORT_ZENOH` (OFF by default; ON in the `debug`, `release`, `asan` and `tsan` presets, OFF in `core` and `bench`). The presets of `CMakePresets.json` are `debug`, `release`, `core`, `asan`, `tsan`, `coverage` and `bench`, built in `build/<preset>`. Every target of the project is built with `-Wall -Wextra -Wpedantic` under GCC and Clang. The library (`CPPActressMAS`, `CPPActressMASStatic`) depends on a network library only when its transport option is ON: the transports compiled in join the library itself, and `Environment::connect(url)` selects them by scheme (the former `cam_transport` target remains as an alias).
+
+## Using the library
+
+The full documentation of each class is in its header: [`Environment.h`](CPPActressMAS/Environment.h), [`Agent.h`](CPPActressMAS/Agent.h), [`Message.h`](CPPActressMAS/Message.h).
+
+**The environment** (`cam::Environment`) runs the agents turn by turn. It is built from a configuration written with designated initializers: `m_turns` (0 for no limit), `m_mode`, `m_delay_after_turn` (ms), `m_seed`, `m_random`, and, for the network, `m_url` and `m_endpoint`. The modes are those of ActressMAS: `Parallel` (the agents of a turn run on several threads), `Sequential` (in their order of insertion) and `SequentialRandom` (in an order drawn at each turn). `start()` runs the simulation until the last turn or until no agent is left; `continue_simulation(n)` runs it further. An environment of your own may override `turn_finished(turn)` and `simulation_finished()`.
+
+| Environment | |
+|---|---|
+| `add<T>(args...)` | creates an agent of type `T` with these arguments, returns its id (`cam::AgentId`); it is reached at once by every send and search and runs from the next turn |
+| `remove(id)` | removes an agent (at the next turn boundary while a simulation runs) |
+| `agents_count()`, `get_agents_by_name(name)`, `get_first_agent_by_name(name)`, `get_agent_name(id)`, `random_agent()` | finds the agents |
+| `set_global_data(key, value)`, `get_global_data()` | data shared with the agents |
+| `send(...)`, `send_by_name(...)`, `broadcast(...)` | sends from outside the agents |
+
+**An agent** (`cam::Agent`) is a class of your own that overrides some of its phases: `setup()` at its first turn, then at each turn `see(observables)` when it uses observables, `action(message)` for each message received, or `default_action()` when none came. It sends with `send(id, content)`, `send_by_name(name, content)`, `send_by_fragment_name(fragment, content)` and `broadcast(content)`, and leaves the simulation with `stop()`. `get_id()`, `get_name()` and `get_environment()` give its identity and its environment.
+
+**A message** (`cam::Message`, received as a `cam::MessagePointer`) carries a text, a JSON value or bytes: `kind()`, `as_text()`, `as_json()`, `as_bytes()` (`content()` gives a JSON view of any of them). `get_sender()` and `get_sender_name()` give its sender; `parse()`, `parse_rest()` and `parse_one()` split a text content into an action and its parameters, as the `Parse` and `Parse1P` of ActressMAS do.
+
+**Observables**: an agent created with `Agent(name, true)` publishes its observable properties in `(*m_observables)["key"] = value` and receives, in `see()`, those of the other agents that its `perception_filter()` keeps.
+
+**Randomness**: the random order and `random_agent()` draw from the seed of the environment (`seed()`), with `RandomEngine::Mt19937` (the same numbers with every standard library) or `RandomEngine::DotNet` (the numbers of the seeded `System.Random` of .NET, so that a port follows the order of its C# original).
+
+## Network
+
+An environment stays offline until it is connected to a transport. It owns its transport URL: the scheme selects the transport among those compiled in the library (`loopback://` always, `zenoh://` with `CAM_TRANSPORT_ZENOH`, `mqtt://` and `mqtts://` with `CAM_TRANSPORT_MQTT`). Without a URL, `connect()` refuses. Zenoh is the recommended network transport: peers talk to each other without a broker, one of them listens and the others connect to it (or to a `zenohd` router):
 ``` cpp
-/**
- * Create a new agent.
- * @param p_name Name of the new agent
- **/
-explicit Agent(std::string p_name);
+CAM_AGENT_TYPE(MyMobileAgent);  // after the class, at global scope: its wire name, for programs that only receive it
 
-/**
- * Nothing to delete.
- **/
-virtual ~Agent() = default;
-
-/**
- * Return id.
- * @return Id of the agent
- **/
-[[nodiscard]] const std::string& get_id() const;
-
-/**
- * Return name.
- * @return Name of the agent
- **/
-[[nodiscard]] const std::string& get_name() const;
-
-/**
- * True if using observables.
- * @return True if using observables
- **/
-[[nodiscard]] bool is_using_observables() const;
-
-/**
- * Get observables.
- * @return Observables
- **/
-[[nodiscard]] ObservablesPointer get_observables() const;
-
-/**
- * True is must run setup.
- * @return True is must run setup
- **/
-[[nodiscard]] bool is_setup() const;
-
-/**
- * True if is dead.
- * @return True if is dead
- **/
-[[nodiscard]] bool is_dead() const;
-
-/**
- * Set environment.
- * @param p_environment The environment
- **/
-void set_environment(EnvironmentMas *p_environment);
-
-/**
- * Internal setup called by the environment.
- **/
-void internal_setup();
-
-/**
- * Internal see called by the environment.
- **/
-void internal_see();
-
-/**
- * Internal action called by the environment.
- **/
-void internal_action();
-
-/**
- * Stops the execution of the agent and removes it from the environment.
- * Use the Stop method instead of Environment.
- * Remove when the decision to be stopped belongs to the agent itself.
- **/
-void stop();
-
-/**
- * Receive a new message.
- * @param p_message The new message
- **/
-void post(const MessagePointer& p_message);
-
-/**
- * Send a new message by ID.
- * @param p_receiver_id The id of the receiver
- * @param p_message The message
- * @param p_length The message size
- **/
-void send(const std::string& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
-void send(const std::string& p_receiver_id, const json& p_message) const;
-
-/**
- * Send a new message by name.
- * @param p_receiver_name The name of the receiver
- * @param p_message The message
- * @param p_length The message size
- * @param p_first_only If true, only the first agent found
- **/
-void send_by_name(const std::string& p_receiver_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0, bool p_first_only = true) const;
-void send_by_name(const std::string& p_receiver_name, const json& p_message, bool p_first_only = true) const;
-
-/**
- * Send a new message by fragment name.
- * @param p_fragment_name The fragment of the receivers
- * @param p_message The message
- * @param p_length The message size
- * @param p_first_only If true, only the first agent found
- **/
-void send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0, bool p_first_only = true) const;
-void send_by_fragment_name(const std::string& p_fragment_name, const json& p_message, bool p_first_only = true) const;
-
-/**
- * Send a new message to all agents.
- * @param p_message The message
- * @param p_length The message size
- **/
-void broadcast(const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
-void broadcast(const json& p_message) const;
-
-/**
- * Perception filter.
- * @param p_observed Observed properties
- * @return True if the agent is observable
- **/
-[[nodiscard]] virtual bool perception_filter(const ObservablesPointer& p_observed) const;
-
-/**
- * Setup the agent.
- **/
-virtual void setup();
-
-/**
- * Compute see.
- * @param p_observable_agents The list of observable agents
- **/
-virtual void see(const std::vector<ObservablesPointer>& p_observable_agents);
-
-/**
- * Compute action.
- * @param p_message The message to compute
- **/
-virtual void action(const MessagePointer& p_message);
-
-/**
- * Compute action if there is no message.
- **/
-virtual void default_action();
-
-// Delete copy constructor
-Agent(const Agent& ) = delete;
-Agent& operator=(Agent& ) = delete;
+// first peer of the simulation: listens on 127.0.0.1:7447, connected at its first start()
+cam::Environment l_environment({.m_url = "zenoh://?listen=tcp/127.0.0.1:7447&ns=my-simulation"});
+l_environment.add<MyMobileAgent>("traveller");  // add<T>() also names the type automatically
+l_environment.start();                           // throws cam::transport::TransportError if the URL does not connect
+// other peers: {.m_url = "zenoh://127.0.0.1:7447/my-simulation"}
+// MQTT broker instead: {.m_url = "mqtt://127.0.0.1:1883/my-simulation"}
+// several environments of one process: {.m_url = "loopback://my-simulation"} for each
+// to connect earlier and get a Result instead: if (const auto l_result = l_environment.connect(); !l_result) { ... }
 ```
-**Message**
+Migration needs the wire name of the agent type in both programs: `add<T>()` gives a type of a named namespace its qualified C++ name, `CAM_AGENT_TYPE(T)` fixes it for a program that only receives `T`, and `EnvironmentConfig::m_accepted_agent_types` restricts what an environment accepts.
+Zenoh options: `mode=peer|client`, `listen=tcp/host:port` (several, comma separated), `connect=tcp/host:port`, `scouting=multicast` (discovery by UDP multicast; off by default, so an environment only talks to the endpoints it was given). Presence relies on Zenoh liveliness: the death of a process takes its environments offline for everyone.
+
+**Envelope codecs.** Every envelope on the wire starts with a 4-byte header (magic, codec id, version) and is encoded by the codec of the transport, chosen by the URL option `codec=` and the same for every environment of a namespace: `protobuf` (default) is the proto3 wire format of [`CPPActressMAS/transport/codec/envelope.proto`](CPPActressMAS/transport/codec/envelope.proto), written and read by the project itself without libprotobuf, so any proto3 implementation given that file can talk to it; `compact` is a fixed little-endian layout; `json` is readable UTF-8 JSON (a text content travels in clear), for debugging and the simplest clients. The binary vectors of each codec are under `tests/unit/vectors/envelope/<codec>/v1/`; the protobuf ones were checked against `protoc`.
+
+**Message content.** Locally nothing is encoded: a JSON value is shared by the receivers of a broadcast. On the wire a text travels as UTF-8, bytes as they are, and a JSON value in the binary encoding of the send options (`cam::ContentEncoding`: MessagePack by default, or CBOR, BSON, UBJSON, BJData, JSON text). `send(receiver, "hello")` sends a text; `send(receiver, json{{"k", 1}})` a JSON value; `send(receiver, bytes, size)` raw bytes.
+
+The examples `Mobile` and `MobilePingPong` run on the in-process `loopback://` transport without argument (available in every build) and take the URLs of their environments in argument to go through the network.
+Messages by id reach a remote agent through the directory of the connected environments; `send_by_name`, `send_by_fragment_name` and `broadcast` stay local unless the last parameter asks for the network scope (a `cam::transport::SendOptions` with `m_scope = cam::transport::Scope::Network`). Everything received from the network is applied at the turn boundary. An agent moves to another environment with `move(environment_id)`: its state (`save_state()`, `load_state()`), its observables and its pending messages travel with it, and it runs `setup()` again on arrival. Several environments of one process can share one transport (`cam::transport::open(url)`, then `environment.connect(transport)`): they then form one node with one connection. Statistics of the transport side: `environment.statistics()`; the other environments: `environment.environments()`.
+
+### Adding a transport
+
+A transport implements `cam::transport::Transport` (`CPPActressMAS/transport/Transport.h`): `open`, `close`, `attach`, `detach`, `publish`, `capabilities`, `config`, `node_id`, `codec`, `name`. The core asks little of it:
+- `publish(sender, address, envelope)` is called at the turn boundary for every envelope leaving an environment; `EndpointRegistry::deliver_locally` serves the environments of the same transport directly, the rest is encoded with `codec()` and sent to the address (`env/<id>/in`, `env/<id>/agent`, `env/<id>/presence`, `all/in`, see `Address::to_key`).
+- Whatever arrives is handed to the endpoint of the target environment with `Endpoint::deliver(address, bytes)` (or an already decoded `Envelope`), from any thread: the core applies it at its next turn boundary. Presences (`Presence` envelopes) make the other environments known; connection changes go through `Endpoint::push_event`.
+- `capabilities()` says honestly what the transport guarantees; the core only needs `pubsub` or a way to reach every known environment.
+
+Two ways to plug it in:
+- **In your program**, without touching the library: give the environment a factory that knows your scheme and falls back on the built-in ones, or hand it the transport directly.
 ``` cpp
-/**
- * Message.
- * @param p_sender Sender.
- * @param p_receiver Receiver.
- * @param p_message Message.
- * @param p_binary_format Binary format used.
- **/
-Message(std::string p_sender, std::string p_receiver, const json& p_message, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::MessagePack);
-Message(std::string p_sender, std::string p_receiver, const uint8_t* p_message, const size_t& p_length, const MessageBinaryFormat& p_binary_format = MessageBinaryFormat::RAW);
+l_environment.set_transport_factory([](const std::string& p_url, cam::transport::TransportConfig p_config)
+		-> cam::transport::Result<std::shared_ptr<cam::transport::Transport>> {
+	if (p_url.rfind("mine://", 0) == 0) {
+		auto l_transport = std::make_shared<MyTransport>(std::move(p_config));
+		if (const auto l_result = l_transport->open(); !l_result) {
+			return l_result.error();
+		}
+		return std::shared_ptr<cam::transport::Transport>(l_transport);
+	}
+	return cam::transport::open(p_url, std::move(p_config));   // loopback, mqtt, zenoh...
+});
+l_environment.connect("mine://somewhere");
+// or: l_environment.connect(std::make_shared<MyTransport>(...));
+```
+- **In the library**: a subdirectory `CPPActressMAS/transport/<name>/` whose `CMakeLists.txt` sets `CAM_<NAME>_SOURCES`, `CAM_<NAME>_INCLUDES`, `CAM_<NAME>_LIBRARIES` and `CAM_<NAME>_DEFINITIONS` for its parent; an option `CAM_TRANSPORT_<NAME>` and a `cam_add_transport(<NAME> CAM_TRANSPORT_<NAME>)` call in the root `CMakeLists.txt`; the scheme in `schemes()`, `parse_url` and `open` of `CPPActressMAS/transport/Facade.cpp` behind `#if CAM_TRANSPORT_<NAME>`; a network test with its CTest label that exits with code 77 when its server is missing. The transports of the library (`mqtt/`, `zenoh/`) are complete examples.
 
-/**
- * Nothing to delete.
- **/
-/*virtual*/ ~Message() = default;
+## Tests
 
-/**
- * Get sender.
- * @return Sender.
- **/
-[[nodiscard]] const std::string& get_sender() const;
-
-/**
- * Get receiver.
- * @return Receiver.
- **/
-[[nodiscard]] const std::string& get_receiver() const;
-
-/**
- * Get binary message.
- * @return binary message JSON
- **/
-[[nodiscard]] const std::vector<std::uint8_t>& get_binary_message() const;
-
-/**
- * Get binary message.
- * @return binary message JSON
- **/
-[[nodiscard]] const MessageBinaryFormat& get_binary_format() const;
-
-/**
- * Get message.
- * @return message JSON
- **/
-[[nodiscard]] json content() const;
-
-/**
- * Format message to string.
- * @return string message from JSON
- **/
-[[nodiscard]] std::string to_string() const;
-
-/**
- * Format message.
- * @return string formated message
- **/
-[[nodiscard]] /*virtual*/ std::string format() const;
-
-// Delete copy constructor
-Message(const Message& ) = delete;
-Message& operator=(Message& ) = delete;
+One folder of `tests/` per type of test, one CTest label per type: `unit`, `integration`, `network` (plus `mqtt` or `zenoh`), `characterization`, `iso` (the C# examples ported as they are, compared with the output of the C# originals), `examples` and `perf`. How to run them, by hand and on each platform: [tests/README.md](tests/README.md).
+``` bash
+cmake --workflow --preset debug        # every test
+cmake --workflow --preset iso          # one type
+tests/run.sh asan unit iso             # types under a sanitizer preset
 ```
 
-## Backlogs
+## Examples
 
-Core backlog
-- [x] Offline core (parallel, sequential, random sequential)
-- [x] Observables
-- [x] Performance check (compared to .NET ActressMAS)
-- [x] Network system (using MQTT)
-- [x] On macOS
-- [ ] On Linux
-- [ ] On Linux ARM
-- [ ] On Windows
-- [ ] On Android ?
-- [ ] On iOS ?
-- [x] Static library 
-- [x] Dynamic library
+`Examples/` holds C++ versions of the examples of ActressMAS v3.1, built with `-DBUILD_EXAMPLES=ON` ([Examples/README.md](Examples/README.md)): first steps, observables, reactive agents, mobile agents, BDI, the game of life, mechanism design, the prisoner's dilemma, serialization, benchmarks. They run offline; `Mobile` and `MobilePingPong` also go through the network.
 
-Extented backlog
-- [ ] Godot plugin (for graphical protocols and algorithms)
+Every example project of ActressMAS v3.1 that runs agents (33 of them; the two servers of its remote example have no environment) is also ported line by line, its bugs included, in `tests/iso/ports/`: the `iso` tests run the ports and compare their output with the output of the C# originals ([tests/iso/README.md](tests/iso/README.md)).
 
-Multiagent protocols and algorithms implemented with CPPActressMAS
-- [x] Simple examples of using the ActressMas framework
-- [x] Benchmarks: PingPong, Skynet
-- [x] Reactive architecture for agents
-- [ ] Belief-Desire-Intention (BDI) architecture for agents
-- [ ] Learning Real-Time A* (LRTA*) search algorithm
-- [ ] Computing the Shapley value
-- [ ] Auctions: English, Vickrey
-- [ ] Yellow Pages to register and find services
-- [ ] Zeuthen Strategy for negotiation
-- [ ] Contract Net protocol
-- [ ] Mechanism design: Grove-Clarke taxes
-- [ ] Iterated Prisoner's Dilemma
-- [ ] Predator-Prey Simulation
-- [ ] Game of Life
-- [ ] Voting methods: Copeland, Borda count
-- [x] Mobile agents
+## Benchmarks and performance
+
+`tests/bench/` holds the measurement copies of the C# E30 benchmarks (PingPong, Skynet, SkynetNumeric), two models of Antelmi et al. (Wolf, Sheep and Grass; Flockers), the end-to-end transport benchmark and the envelope codec micro-benchmark ([tests/bench/README.md](tests/bench/README.md)):
+``` bash
+cmake --workflow --preset bench
+build/bench/tests/bench/bench_PingPong --sequential --trials 3
+```
+
+Against ActressMAS v3.1 measured on the same machine, the C++ is faster on every benchmark: ×4.8 on Skynet and SkynetNumeric, ×2.3 on PingPong, from ×4.1 (1 000 agents) to ×1.6 (128 000 agents) on Wolf, Sheep and Grass. Method, conditions and every number: [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
+
+## License
+
+CPPActressMAS is distributed under the Eclipse Public License 2.0 ([LICENSE](LICENSE)).
+
+It is a C++ port of [ActressMAS](https://github.com/florinleon/ActressMas) by Florin Leon, distributed under the Apache License 2.0: the framework follows its behaviour, and the ports of `tests/iso/ports/` follow the code of its examples line by line.
+
+Its licence is in [LICENSE-ActressMAS](LICENSE-ActressMAS).
+
+The lock-free queue of `CPPActressMAS/util/MPSCQueue.hpp` comes from [CppBenchmark](https://github.com/chronoxor/CppBenchmark) by Ivan Shynkarenka, where this file is in the public domain (Unlicense).

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of the C# example E01 Reactive Architecture, see ../Oracle.props: the WinForms form is replaced by
+       Stubs/PlanetForm.cs, which draws nothing; Program.cs.sed bounds the turns (the example never stops). -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E01 Reactive Architecture/</OracleSources>
+    <OracleExcludes>$(OracleSources)PlanetForm.cs;$(OracleSources)PlanetForm.Designer.cs</OracleExcludes>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>

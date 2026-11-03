@@ -1,0 +1,8 @@
+#cam oracle SkynetNumericParallel
+#cam csharp ActressMas eb0bb73, Examples/E30 Benchmarks/SkynetNumeric/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var env = new EnvironmentMas(parallel: false);/var env = new EnvironmentMas();/
+#cam command cd Oracles/SkynetNumericParallel/bin/Release/net10.0 && dotnet SkynetNumericParallel.dll
+#cam seed 0
+Long Sum = 199990000
+109.000 ms

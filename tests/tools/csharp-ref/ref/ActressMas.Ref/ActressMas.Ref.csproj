@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The ActressMAS v3.1 framework compiled from the ORIGINAL sources (nothing rewritten).
+    AmasProfile selects which original folders are compiled:
+      agents : Agents/*.cs + Info.cs                     -> FAILS: CS0246 'Container' (EnvironmentMas.cs:29,306)
+      core   : agents + ContainerServer/*.cs             -> FAILS: CS0246 AsyncClientServerLib/SocketServerLib types
+      full   : core + ClientServer/**/*.cs (default)     -> OK, = item list of the original ActressMas.csproj
+    Properties/AssemblyInfo.cs is not compiled: the SDK generates the assembly attributes (else CS0579 duplicates).
+  -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>ActressMas.Ref</AssemblyName>
+    <RootNamespace>ActressMas</RootNamespace>
+    <AmasProfile Condition="'$(AmasProfile)' == ''">full</AmasProfile>
+    <!-- 1591;1572: same NoWarn as the original csproj.
+         SYSLIB0011: BinaryFormatter is obsolete AS AN ERROR on net8.0+ (ContainerServer/ContainerMessage.cs:55,68).
+         Suppressing it only lets the file compile; on net9.0+ BinaryFormatter throws PlatformNotSupportedException
+         at run time, so the remote features (Container/Server, Agent.Move, SendRemote) do not work. The local
+         EnvironmentMas (all benchmarks, ordering, RNG) never calls it. -->
+    <NoWarn>$(NoWarn);1591;1572;SYSLIB0011</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(AmasFw)Agents/*.cs" />
+    <Compile Include="$(AmasFw)Info.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(AmasProfile)' == 'core' Or '$(AmasProfile)' == 'full'">
+    <Compile Include="$(AmasFw)ContainerServer/*.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(AmasProfile)' == 'full'">
+    <Compile Include="$(AmasFw)ClientServer/**/*.cs" />
+  </ItemGroup>
+</Project>

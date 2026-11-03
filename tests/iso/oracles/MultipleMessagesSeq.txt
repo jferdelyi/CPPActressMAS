@@ -1,0 +1,31 @@
+#cam oracle MultipleMessagesSeq
+#cam csharp ActressMas eb0bb73, Examples/E00 Simple Examples/MultipleMessages/ (sources unchanged but the stubs and patch below, seed shim)
+#cam runtime Microsoft.NETCore.App 10.0.12 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+#cam patch Program.cs: s/var env = new EnvironmentMas(noTurns:20, parallel:true);/var env = new EnvironmentMas(noTurns:20, randomOrder: false, parallel: false);/
+#cam command cd Oracles/MultipleMessagesSeq/bin/Release/net10.0 && dotnet MultipleMessagesSeq.dll
+#cam seed 0
+[Manager -> Worker0]: start
+[Manager -> Worker1]: start
+[Manager -> Worker2]: start
+[Manager -> Worker3]: start
+[Worker1 -> Worker3]: request
+[Worker2 -> Worker3]: request
+[Manager -> Worker4]: start
+[Worker0 -> Worker4]: request
+[Worker3 -> Worker4]: request
+[Worker0 -> Manager]: report
+	[Manager]: Worker0 reporting
+[Worker1 -> Manager]: report
+	[Manager]: Worker1 reporting
+[Worker2 -> Manager]: report
+	[Manager]: Worker2 reporting
+[Worker3 -> Manager]: report
+	[Manager]: Worker3 reporting
+[Worker4 -> Manager]: report
+	[Manager]: Worker4 reporting
+[Worker4 -> Worker0]: reply
+[Worker3 -> Worker1]: reply
+[Worker3 -> Worker2]: reply
+[Worker4 -> Worker3]: request
+[Worker4 -> Worker3]: reply
+[Worker3 -> Worker4]: reply

@@ -1,0 +1,6 @@
+# E00 MultipleMessages in a sequential, fixed order: a variant of the oracles, the original sources but its line (tests/tools/csharp-ref/ref/Oracles/MultipleMessagesSeq/).
+# Sequential, so the C# fixes every line: the whole trace in order, the senders of the messages included.
+ignore ^$
+cover all
+fact trace ^(.+)$
+same trace seq

@@ -7,30 +7,39 @@
  *  CPP version of ActressMAS by Florin Leon                              *
  *  https://github.com/florinleon/ActressMas                              *
  *                                                                        *
- *  This program is free software; you can redistribute it and/or modify  *
- *  it under the terms of the GNU General License as published by         *
- *  the Free Software Foundation. This program is distributed in the      *
- *  hope that it will be useful, but WITHOUT ANY WARRANTY; without even   *
- *  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR   *
- *  PURPOSE. See the GNU General License for more details.                *
+ *  This program and the accompanying materials are made available under  *
+ *  the terms of the Eclipse Public License 2.0, which is available at    *
+ *  https://www.eclipse.org/legal/epl-2.0/ and in the LICENSE file.       *
+ *                                                                        *
+ *  SPDX-License-Identifier: EPL-2.0                                      *
  *                                                                        *
  **************************************************************************/
 
 #pragma once
 
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/types/vector.hpp>            // Serialize vector
-#include <cereal/types/string.hpp>            // Serialize string
-#include <cereal/types/unordered_map.hpp>    // Serialize unordered map
+#include <atomic>
+#include <cassert>
+#include <concepts>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-#include "MPSCQueue.hpp"
 #include "Message.h"
+#include "transport/Types.h"
+#include "util/MPSCQueue.hpp"
 
 /**
  * CPPActressMAS
- */
+ **/
 namespace cam {
 	class Environment;
+
+	class TurnPool;
+
+	class AgentCollection;
 
 	class Agent;
 
@@ -51,15 +60,17 @@ namespace cam {
 	 **/
 	class Agent {
 		friend Environment;
+		friend AgentCollection;
+		friend TurnPool;
 
 	private:
 		/**
-		 * Unique ID.
+		 * Unique ID: 15 base62 characters (see generate_agent_id), never allocated when copied.
 		 **/
-		std::string m_id;
+		AgentId m_id;
 
 		/**
-		 * Name of the agent.
+		 * Name of the agent; the messages it sends keep a copy, which outlives the agent.
 		 **/
 		std::string m_name;
 
@@ -74,9 +85,26 @@ namespace cam {
 		bool m_is_setup;
 
 		/**
-		 * True if dead.
+		 * Bit of m_state: the agent is stopped or removed.
 		 **/
-		bool m_is_dead;
+		static constexpr std::uint8_t DEAD = 1;
+
+		/**
+		 * Bit of m_state: the agent is in the collection of its environment.
+		 **/
+		static constexpr std::uint8_t INSERTED = 2;
+
+		/**
+		 * DEAD and INSERTED, changed by one atomic operation each (any thread may stop the agent while the simulation
+		 * thread inserts it): of a stop and an insertion that race, exactly one sees the other, so the collection counts a
+		 * stopped agent once, and only while it holds it.
+		 **/
+		std::atomic<std::uint8_t> m_state;
+
+		/**
+		 * True while a migration of this agent is in progress: the agent does not run, its messages wait.
+		 **/
+		bool m_in_transit;
 
 		/**
 		 * Messages arrived.
@@ -99,7 +127,7 @@ namespace cam {
 		/**
 		 * Create a new agent.
 		 * @param p_name Name of the new agent
-		 * @param p_using_observables If true, this agent can see
+		 * @param p_using_observables If true, this agent perceives the observable properties of the other agents (see())
 		 **/
 		explicit Agent(std::string p_name, bool p_using_observables = false);
 
@@ -112,7 +140,7 @@ namespace cam {
 		 * Return id.
 		 * @return Id of the agent
 		 **/
-		[[nodiscard]] const std::string& get_id() const { return m_id; }
+		[[nodiscard]] const AgentId& get_id() const { return m_id; }
 
 		/**
 		 * Return name.
@@ -133,8 +161,8 @@ namespace cam {
 		[[nodiscard]] ObservablesPointer get_observables() const { return m_observables; }
 
 		/**
-		 * True is must run setup.
-		 * @return True is must run setup
+		 * True once setup() has run.
+		 * @return True if the setup is done
 		 **/
 		[[nodiscard]] bool is_setup() const { return m_is_setup; }
 
@@ -142,11 +170,18 @@ namespace cam {
 		 * True if is dead.
 		 * @return True if is dead
 		 **/
-		[[nodiscard]] bool is_dead() const { return m_is_dead; }
+		[[nodiscard]] bool is_dead() const { return (m_state.load(std::memory_order_relaxed) & DEAD) != 0; }
 
 		/**
-		 * Run one turn (for one agent)
-		 * @param p_run_setup_separately If true, run setup in the same tick as see/act
+		 * True while a migration of this agent is in progress.
+		 * @return True if in transit
+		 **/
+		[[nodiscard]] bool is_in_transit() const { return m_in_transit; }
+
+		/**
+		 * Run one turn (for one agent): nothing if the agent is dead or in transit; once begun, every phase runs,
+		 * even if the agent stops on the way.
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise in the same turn as see/act
 		 **/
 		void run_turn(bool p_run_setup_separately = true);
 
@@ -167,8 +202,9 @@ namespace cam {
 
 		/**
 		 * Stops the execution of the agent and removes it from the environment.
-		 * Use the Stop method instead of Environment.
-		 * Remove when the decision to be stopped belongs to the agent itself.
+		 * Use the Stop method instead of Environment.Remove when the decision to be stopped belongs to the agent itself.
+		 * The agent is no longer counted, found by name nor sent to; it finishes its current turn and is
+		 * destroyed at the turn boundary. Stopping twice does nothing.
 		 **/
 		void stop();
 
@@ -179,101 +215,204 @@ namespace cam {
 		void post(const MessagePointer& p_message);
 
 		/**
-		 * Send a new message by ID.
+		 * Send a new message by ID. A local receiver is served directly; a receiver hosted by
+		 * another environment is reached through the transport at the end of the turn. The
+		 * content stays typed locally (text, JSON value or bytes) and is encoded once on the wire.
 		 * @param p_receiver_id The id of the receiver
-		 * @param p_message The message
+		 * @param p_message The message (bytes)
 		 * @param p_length The message size
+		 * @param p_options Send options (encoding tag of the bytes, priority)
+		 * @return Success, or UnknownDestination
 		 **/
-		void
-		send(const std::string& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
+		transport::Result<void>
+		send(const AgentId& p_receiver_id, const uint8_t* p_message = nullptr, const size_t& p_length = 0,
+			 const transport::SendOptions& p_options = {}) const;
 
-		void send(const std::string& p_receiver_id, const json& p_message) const;
+		transport::Result<void> send(const AgentId& p_receiver_id, const json& p_message,
+									 const transport::SendOptions& p_options = {}) const;
 
-		/**
-		 * Send a new message by name.
-		 * @param p_receiver_name The name of the receiver
-		 * @param p_message The message
-		 * @param p_length The message size
-		 * @param p_first_only If true, only the first agent found
-		 **/
-		void
-		send_by_name(const std::string& p_receiver_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0,
-					 bool p_first_only = true) const;
+		transport::Result<void> send(const AgentId& p_receiver_id, std::string p_text,
+									 const transport::SendOptions& p_options = {}) const;
 
-		void send_by_name(const std::string& p_receiver_name, const json& p_message, bool p_first_only = true) const;
+		transport::Result<void> send(const AgentId& p_receiver_id, const char* p_text,
+									 const transport::SendOptions& p_options = {}) const;
 
-		/**
-		 * Send a new message by fragment name.
-		 * @param p_fragment_name The fragment of the receivers
-		 * @param p_message The message
-		 * @param p_length The message size
-		 * @param p_first_only If true, only the first agent found
-		 **/
-		void send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message = nullptr,
-								   const size_t& p_length = 0, bool p_first_only = true) const;
-
-		void send_by_fragment_name(const std::string& p_fragment_name, const json& p_message,
-								   bool p_first_only = true) const;
-
-		/**
-		 * Send a new message to all agents.
-		 * @param p_message The message
-		 * @param p_length The message size
-		 **/
-		void broadcast(const uint8_t* p_message = nullptr, const size_t& p_length = 0) const;
-
-		void broadcast(const json& p_message) const;
-
-		/**
-		 * Move to another environment.
-		 * @param p_environment_id New environment
-		 * @param p_message Move message
-		 **/
-		template<ConceptAgent T>
-		void move(const std::string& p_environment_id, const json& p_message) {
-			internal_move(serialize_to_stream<T>(), p_message, p_environment_id);
+		// A shared text. The overloads for Text are templates: a braced JSON list never takes them.
+		template<std::same_as<Text> T>
+		transport::Result<void> send(const AgentId& p_receiver_id, const T& p_text, const transport::SendOptions& p_options = {}) const {
+			return send_text(p_receiver_id, p_text, p_options);
 		}
 
 		/**
-		 * Call to reset agent i.e. set setup and dead to false
+		 * Send a new message by name: local agents, and with the network scope every connected environment.
+		 * @param p_receiver_name The name of the receiver
+		 * @param p_message The message (bytes)
+		 * @param p_length The message size
+		 * @param p_first_only If true, only the first agent found (per environment)
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
+		transport::Result<void>
+		send_by_name(const std::string& p_receiver_name, const uint8_t* p_message = nullptr, const size_t& p_length = 0,
+					 bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, const json& p_message, bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, std::string p_text, bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const;
+
+		template<std::same_as<Text> T>
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, const T& p_text, const bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const {
+			return send_text_by_name(p_receiver_name, p_text, false, p_first_only, p_options);
+		}
+
+		transport::Result<void> send_by_name(const std::string& p_receiver_name, const char* p_text, bool p_first_only = true,
+											 const transport::SendOptions& p_options = {}) const;
+
+		/**
+		 * Send a new message by fragment name: local agents, and with the network scope every connected environment.
+		 * @param p_fragment_name The fragment of the receivers
+		 * @param p_message The message (bytes)
+		 * @param p_length The message size
+		 * @param p_first_only If true, only the first agent found (per environment)
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const uint8_t* p_message = nullptr,
+													  const size_t& p_length = 0, bool p_first_only = true,
+													  const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const json& p_message,
+													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, std::string p_text,
+													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
+
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const char* p_text,
+													  bool p_first_only = true, const transport::SendOptions& p_options = {}) const;
+
+		template<std::same_as<Text> T>
+		transport::Result<void> send_by_fragment_name(const std::string& p_fragment_name, const T& p_text, const bool p_first_only = true,
+													  const transport::SendOptions& p_options = {}) const {
+			return send_text_by_name(p_fragment_name, p_text, true, p_first_only, p_options);
+		}
+
+		/**
+		 * Send a new message to all agents: local agents except this one, and with the network scope every
+		 * agent of the connected environments.
+		 * @param p_message The message (bytes)
+		 * @param p_length The message size
+		 * @param p_options Send options (scope, encoding, priority)
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
+		transport::Result<void> broadcast(const uint8_t* p_message = nullptr, const size_t& p_length = 0,
+										  const transport::SendOptions& p_options = {}) const;
+
+		/**
+		 * Send a JSON value to all agents, as the bytes overload does.
+		 * @param p_message The value
+		 * @param p_options Send options
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
+		transport::Result<void> broadcast(const json& p_message, const transport::SendOptions& p_options = {}) const;
+
+		/**
+		 * Send a text to all agents, as the bytes overload does.
+		 * @param p_text The text
+		 * @param p_options Send options
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
+		transport::Result<void> broadcast(std::string p_text, const transport::SendOptions& p_options = {}) const;
+
+		/**
+		 * Send a text to all agents, as the bytes overload does.
+		 * @param p_text The text
+		 * @param p_options Send options
+		 * @return Success, or NotConnected when the network scope is asked offline
+		 **/
+		transport::Result<void> broadcast(const char* p_text, const transport::SendOptions& p_options = {}) const;
+
+		template<std::same_as<Text> T>
+		transport::Result<void> broadcast(const T& p_text, const transport::SendOptions& p_options = {}) const {
+			return broadcast_text(p_text, p_options);
+		}
+
+		/**
+		 * Move to another environment through the transport (three-step migration). The agent type must
+		 * have a wire name in the catalogue of both processes (AgentTypes: given by add<T>(), CAM_AGENT_TYPE(T) or
+		 * Environment::register_agent_type) and be accepted by the destination. The agent keeps its id, carries
+		 * save_state(), its observables and its unconsumed messages, and runs setup() again on arrival.
+		 * Until the destination confirms, the agent stays here, inactive; it resumes if the move fails.
+		 * @param p_environment_id Destination environment id
+		 * @param p_options Send options (priority)
+		 * @return Success (move started), or NotConnected, UnknownDestination, UnknownAgentType, InTransit
+		 **/
+		transport::Result<void> move(const std::string& p_environment_id, const transport::SendOptions& p_options = {});
+
+		/**
+		 * State of the agent carried by a migration, as JSON; the default is an empty object (never null).
+		 * Derived agents return their own fields here.
+		 * @return The state
+		 **/
+		[[nodiscard]] virtual json save_state() const { return json::object(); }
+
+		/**
+		 * Restore the state saved by save_state() on arrival in another environment.
+		 * @param p_state The state
+		 **/
+		virtual void load_state(const json& p_state) { (void) p_state; }
+
+		/**
+		 * Call to reset agent i.e. set setup and dead to false.
 		 **/
 		void reset();
 
 		/**
-		 * The number of agents in the environment
+		 * The number of agents in the environment.
 		 **/
 		[[nodiscard]] size_t agents_count() const;
 
 		/**
-		 * Get all agents by name
-		 * @param p_name the name of agent
-		 * @param p_first_only if true the first found
-		 * @return All agents by name
+		 * Get the agents of a name.
+		 * @param p_name The name
+		 * @param p_first_only If true, the first one found only
+		 * @return Their ids
 		 **/
-		[[nodiscard]] std::vector<std::string>
+		[[nodiscard]] std::vector<AgentId>
 		get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
 
 		/**
-		 * Get first agent by name
-		 * @param p_name the name of agent
-		 * @return All agents by name
+		 * Get the first agent of a name.
+		 * @param p_name The name
+		 * @return Its id, or nothing
 		 **/
-		[[nodiscard]] std::optional<std::string> get_first_agent_by_name(const std::string& p_name) const;
+		[[nodiscard]] std::optional<AgentId> get_first_agent_by_name(const std::string& p_name) const;
 
 		/**
-		 * Get agent name by id
-		 * @param p_id the name of agent
-		 * @return Agents name
+		 * Get the name of an agent.
+		 * @param p_id The agent id
+		 * @return Its name, or nothing
 		 **/
-		[[nodiscard]] std::optional<std::string> get_agent_name(const std::string& p_id) const;
+		[[nodiscard]] std::optional<std::string> get_agent_name(const AgentId& p_id) const;
 
 		/**
-		 * Get all agents by fragment name
+		 * As Format() of the C# message: "[sender -> receiver]: content", the sender named by the message itself
+		 * (even once removed, or in another environment), the receiver by this environment; the raw id when no name
+		 * is known (a message built by hand, or sent from outside the agents).
+		 * @param p_message The message
+		 * @return The text
+		 **/
+		[[nodiscard]] std::string format(const MessagePointer& p_message) const;
+
+		/**
+		 * Get all agents by fragment name.
 		 * @param p_fragment_name the fragment name of agent
 		 * @param p_first_only if true the first found
 		 * @return All agents by fragment name
 		 **/
-		[[nodiscard]] std::vector<std::string>
+		[[nodiscard]] std::vector<AgentId>
 		get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
 
 		/**
@@ -305,93 +444,99 @@ namespace cam {
 		 **/
 		virtual void default_action();
 
-		/**
-		 * Serialize agent
-		 * @return stream
-		 */
-		template<ConceptAgent T>
-		std::stringstream serialize_to_stream() {
-			std::stringstream l_stream;
-			cereal::PortableBinaryOutputArchive l_output_archive(l_stream);
-			l_output_archive(*dynamic_cast<T*>(this));
-			return l_stream;
-		}
-
-		/**
-		 * Serialize agent
-		 * @param p_stream input stream
-		 */
-		template<ConceptAgent T>
-		void deserialize_from_stream(std::stringstream& p_stream) {
-			cereal::PortableBinaryInputArchive l_input_archive(p_stream);
-			l_input_archive(*dynamic_cast<T*>(this));
-		}
-
-		/**
-		 * Serialize agent
-		 * @param p_archive archive to store agent
-		 */
-		template<class Archive>
-		void save(Archive& p_archive) const {
-			std::unordered_map<std::string, std::vector<std::uint8_t>> l_serialized_observables;
-			for (const auto& l_observable: *m_observables) {
-				l_serialized_observables.emplace(l_observable.first, json::to_msgpack(l_observable.second));
-			}
-			p_archive(m_id, m_name, m_is_dead, m_is_setup, m_is_using_observables, m_messages,
-					  l_serialized_observables);
-		}
-
-		/**
-		 * Deserialize agent
-		 * @param p_archive archive to restore agent
-		 */
-		template<class Archive>
-		void load(Archive& p_archive) {
-			std::unordered_map<std::string, std::vector<std::uint8_t>> l_serialized_observables;
-			p_archive(m_id, m_name, m_is_dead, m_is_setup, m_is_using_observables, m_messages,
-					  l_serialized_observables);
-			for (const auto& l_observable: l_serialized_observables) {
-				m_observables->emplace(l_observable.first, json::from_msgpack(l_observable.second));
-			}
-		}
-
 		// Delete copy constructor
 		Agent(const Agent&) = delete;
 
-		Agent& operator=(Agent&) = delete;
+		Agent& operator=(const Agent&) = delete;
 
 	protected:
 
 		/**
-		 * Constructor by stream
-		 */
-		explicit Agent();
-
-		/**
-		 * Get environment
-		 * @param p_archive archive to restore agent
-		 */
+		 * Get environment.
+		 * @return The environment
+		 **/
 		Environment* get_environment() const {
 			assert(m_environment);
 			return m_environment;
 		}
 
-		/**
-		 * Internal move
-		  * @param p_agent_stream The agent stream
-		 * @param p_message Move message
-		 * @param p_environment_id New environment
-		 */
-		void internal_move(const std::stringstream& p_agent_stream, const json& p_message,
-						   const std::string& p_environment_id);
-
 	private:
+		/**
+		 * Send a shared text by id.
+		 * @param p_receiver_id The receiver
+		 * @param p_text The text
+		 * @param p_options Send options
+		 * @return Success, or UnknownDestination
+		 **/
+		transport::Result<void> send_text(const AgentId& p_receiver_id, const Text& p_text, const transport::SendOptions& p_options) const;
+
+		/**
+		 * Send a shared text by name or by fragment of name.
+		 * @param p_name The name or the fragment
+		 * @param p_text The text
+		 * @param p_is_fragment True for a fragment
+		 * @param p_first_only True for the first agent found only
+		 * @param p_options Send options
+		 * @return Success, or the error of the network scope
+		 **/
+		transport::Result<void> send_text_by_name(const std::string& p_name, const Text& p_text, bool p_is_fragment, bool p_first_only,
+												  const transport::SendOptions& p_options) const;
+
+		/**
+		 * Send a shared text to every other agent.
+		 * @param p_text The text
+		 * @param p_options Send options
+		 * @return Success, or the error of the network scope
+		 **/
+		transport::Result<void> broadcast_text(const Text& p_text, const transport::SendOptions& p_options) const;
+
+
+		/**
+		 * Run the phases of one turn (setup, see, action), without any check.
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise in the same turn as see/act
+		 **/
+		void run_phases(bool p_run_setup_separately);
+
+		/**
+		 * Run one turn of a Parallel snapshot (TurnPool only): the agent runs even if it was removed since the turn
+		 * began, as the C#; nothing if it is in transit.
+		 **/
+		void run_parallel_turn();
 
 		/**
 		 * Set environment.
 		 * @param p_environment The environment
 		 **/
 		void set_environment(Environment* p_environment) { m_environment = p_environment; }
+
+		/**
+		 * Give the agent the identity it had before a migration (environment only).
+		 * @param p_id The id
+		 * @param p_name The name
+		 **/
+		void set_identity(const AgentId& p_id, std::string p_name) {
+			m_id = p_id;
+			m_name = std::move(p_name);
+		}
+
+		/**
+		 * Receive a message built by the environment, moved in: no reference count change.
+		 * @param p_message The new message
+		 **/
+		void receive(MessagePointer&& p_message);
+
+		/**
+		 * Take every message waiting in the queue (environment only, turn boundary).
+		 * @return The messages, oldest first
+		 **/
+		std::vector<MessagePointer> take_messages() {
+			std::vector<MessagePointer> l_messages;
+			MessagePointer l_message;
+			while (m_messages.dequeue(l_message)) {
+				l_messages.push_back(std::move(l_message));
+			}
+			return l_messages;
+		}
 	};
 
 	// Agent pointer

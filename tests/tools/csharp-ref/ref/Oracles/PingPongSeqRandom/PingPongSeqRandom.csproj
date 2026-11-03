@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Oracle of a variant of the C# example E30 Benchmarks/PingPong, see ../Oracle.props: the variant commented in its Program.cs: sequential, random order, 100 000 turns (Program.cs.sed). -->
+  <PropertyGroup>
+    <OracleSources>$(AmasEx)E30 Benchmarks/PingPong/</OracleSources>
+  </PropertyGroup>
+  <Import Project="../Oracle.props" />
+</Project>
