@@ -23,8 +23,11 @@
 // containers are two environments of this process on the loopback transport, each named after its container, and
 // their consoles are printed one after the other at the end. The C# containers never stop: they are stopped once the
 // ping agent has its answers, as the processes of the oracle were.
-// Arguments: [pause after each turn in ms], 0 by default as the C#.
+// Arguments: [pause after each turn in ms] [transport URL] [container], by default 0 as the C#, the loopback transport
+// and both containers. With an actressmas:// URL (a server, without container name), each container connects under its
+// own name, as the C# containers do; a container named alone runs alone, against containers of other processes.
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
@@ -32,6 +35,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <DotNet.hpp>
 #include <Environment.h>
@@ -47,10 +51,10 @@ class Container final : public cam::Environment {
 		// Set once the scenario is over: the processes of the oracle are stopped from outside
 		static inline std::atomic<bool> s_stop = false;
 
-		Container(const std::string& p_name, const int p_pause) :
+		Container(const std::string& p_name, const int p_pause, const std::string& p_url) :
 				Environment({.m_mode = cam::EnvironmentMasMode::Parallel,
 							 .m_delay_after_turn = p_pause,
-							 .m_url = "loopback://remote-messages",
+							 .m_url = p_url,
 							 .m_endpoint = {.m_name = p_name}}),
 				m_name(p_name) {}
 
@@ -156,16 +160,32 @@ void configure(Container& p_env, const std::string& p_home) {
 	}
 }
 
+// The URL of a container: an ActressMAS server takes the name of the container, as the C# Container does
+std::string url_of(const std::string& p_url, const std::string& p_container) {
+	return p_url.rfind("actressmas://", 0) == 0 ? p_url + "/" + p_container : p_url;
+}
+
 int main(int argc, char** argv) {
 	const int l_pause = argc > 1 ? std::atoi(argv[1]) : 0;
+	const std::string l_url = argc > 2 ? argv[2] : "loopback://remote-messages";
+	const std::string l_only = argc > 3 ? argv[3] : "";
 
-	Container l_container1("Container1", l_pause);
-	Container l_container2("Container2", l_pause);
-	configure(l_container1, l_container1.container_name());
-	configure(l_container2, l_container2.container_name());
+	Container l_container1("Container1", l_pause, url_of(l_url, "Container1"));
+	Container l_container2("Container2", l_pause, url_of(l_url, "Container2"));
+	std::vector<Container*> l_running;  // Container2 first, as in the oracle
+	for (Container* const l_container: {&l_container2, &l_container1}) {
+		if (l_only.empty() || l_only == l_container->container_name()) {
+			l_running.push_back(l_container);
+		}
+	}
+	for (Container* const l_container: {&l_container1, &l_container2}) {
+		if (std::find(l_running.begin(), l_running.end(), l_container) != l_running.end()) {
+			configure(*l_container, l_container->container_name());
+		}
+	}
 
 	// Both registered before either runs its MAS, as the containers of the oracle with their server
-	for (Container* const l_container: {&l_container2, &l_container1}) {
+	for (Container* const l_container: l_running) {
 		if (const auto l_result = l_container->connect(); !l_result) {
 			cam::dotnet::write_line("Cannot connect " + l_container->container_name() + ": " + l_result.error().m_message);
 			return 1;
@@ -173,21 +193,35 @@ int main(int argc, char** argv) {
 	}
 
 	// RunMas in each container: Container2 first, as in the oracle
-	std::thread l_thread2(&Container::start, &l_container2);
-	std::thread l_thread1(&Container::start, &l_container1);
+	std::vector<std::thread> l_threads;
+	for (Container* const l_container: l_running) {
+		l_threads.emplace_back(&Container::start, l_container);
+	}
 
-	// The scenario is over once the ping agent has both answers (at most 60 s)
+	// The scenario is over once the ping agent has both answers, in either order (the C# server may swap them), or, for
+	// Container2 alone, once it has answered (at most 60 s)
+	const bool l_ping_here = l_only.empty() || l_only == "Container1";
+	const auto l_over = [&]() {
+		if (!l_ping_here) {
+			return l_container2.console().find("request-info") != std::string::npos;
+		}
+		const std::string l_console = l_container1.console();
+		return l_console.find("Info 1 from") != std::string::npos && l_console.find("Info 2 from") != std::string::npos;
+	};
 	const auto l_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
-	while (l_container1.console().find("Info 2 from") == std::string::npos && std::chrono::steady_clock::now() < l_deadline) {
+	while (!l_over() && std::chrono::steady_clock::now() < l_deadline) {
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 	Container::s_stop = true;
-	l_thread1.join();
-	l_thread2.join();
+	for (auto& l_thread: l_threads) {
+		l_thread.join();
+	}
 
 	// The console of each process
 	for (const Container* const l_container: {&l_container1, &l_container2}) {
-		cam::dotnet::write(l_container->console());
+		if (std::find(l_running.begin(), l_running.end(), l_container) != l_running.end()) {
+			cam::dotnet::write(l_container->console());
+		}
 	}
 	return 0;
 }

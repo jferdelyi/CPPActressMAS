@@ -156,6 +156,27 @@ cam_add_iso(PredatorPrey)
 cam_add_iso(PredatorPreyGui 0)
 # E20: one environment per container of the C#, on the loopback transport, stopped once the scenario is over
 cam_add_iso(RemoteMessages)
+# The same port over the ActressMAS transport: its two containers connect, each under its name, to the relay of the
+# tests (support/ActressMasRelay.hpp), which follows the rules of the ContainerServer of the C#, as to that server; a
+# remote sender is "name@container" as in the oracle, which stricter rules compare.
+if (CAM_TRANSPORT_ACTRESSMAS)
+	add_executable(cam_actressmas_relay ${CMAKE_CURRENT_LIST_DIR}/../support/actressmas_relay.cpp)
+	target_link_libraries(cam_actressmas_relay cam_test_support ${CAM_TEST_LIBRARY})
+	add_test(NAME iso.RemoteMessages.actressmas
+		COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/rules/RemoteMessages.actressmas.rules ${CMAKE_CURRENT_LIST_DIR}/oracles/RemoteMessages.txt
+			-- $<TARGET_FILE:cam_actressmas_relay> -- $<TARGET_FILE:iso_RemoteMessages> 0 actressmas://127.0.0.1:{port}
+		WORKING_DIRECTORY $<TARGET_FILE_DIR:iso_RemoteMessages>)
+	set_tests_properties(iso.RemoteMessages.actressmas PROPERTIES LABELS iso TIMEOUT 300)
+	cam_apply_tsan_suppressions(iso.RemoteMessages.actressmas)
+	# The relay sends the first answer of the pong agent 300 ms after the second, as the thread pool of the C# server may
+	# do: the scenario waits for both answers, whatever their order
+	add_test(NAME iso.RemoteMessages.actressmas.unordered
+		COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/rules/RemoteMessages.actressmas.unordered.rules ${CMAKE_CURRENT_LIST_DIR}/oracles/RemoteMessages.txt
+			-- $<TARGET_FILE:cam_actressmas_relay> --swap 300 -- $<TARGET_FILE:iso_RemoteMessages> 0 actressmas://127.0.0.1:{port}
+		WORKING_DIRECTORY $<TARGET_FILE_DIR:iso_RemoteMessages>)
+	set_tests_properties(iso.RemoteMessages.actressmas.unordered PROPERTIES LABELS iso TIMEOUT 300)
+	cam_apply_tsan_suppressions(iso.RemoteMessages.actressmas.unordered)
+endif()
 cam_add_iso(MasMobileConsole)
 if (CAM_ISO_HAS_LRTA_MAPS)
 	cam_add_iso(LrtaStar)

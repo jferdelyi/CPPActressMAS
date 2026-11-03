@@ -1,0 +1,18 @@
+# E20 RemoteMessages over the ActressMAS transport: the two containers connect to a server of the protocol of the C#
+# (the relay of the tests), each under its name, and a message from another container names its sender
+# "name@container", as in the C#: the sender is compared with its container. The lines of the C# Container class
+# (connection to the server, registration, "Running MAS...") are not compared: the containers are environments of the
+# library.
+section ^This is Container\d$
+ignore ^$
+ignore ^Container connecting to server\.\.\.$
+ignore ^Container connected to server\.$
+ignore ^Container\d registered\.$
+ignore ^Running MAS\.\.\.$
+cover all
+fact setup ^\[(ping-agent|pong-agent)\] (.+)$
+fact received ^\t\[(\S+) -> (ping-agent|pong-agent)\]: (.+)$
+same setup seq by 0
+same received seq by 1
+check setup count == 2
+check received count == 3
