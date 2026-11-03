@@ -7,6 +7,8 @@
 # Examples: tests\run.ps1                    every test, Debug
 #           tests\run.ps1 unit iso           the unit and oracle tests
 #           tests\run.ps1 -Configuration Release
+# Preset and Configuration are named only: otherwise "unit iso" would bind to them by position
+[CmdletBinding(PositionalBinding = $false)]
 param(
 	[string]$Preset = "msvc",
 	[ValidateSet("Debug", "Release", "RelWithDebInfo")][string]$Configuration = "Debug",
