@@ -16,7 +16,7 @@ jobs:
     name: macOS, Apple clang, Debug
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
       - name: Configure, build and test
@@ -34,7 +34,7 @@ jobs:
       CC: ${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
       CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
       # Every configuration builds with -Wall -Wextra -Wpedantic: a warning of the project fails the build
@@ -56,7 +56,7 @@ jobs:
       CC: gcc
       CXX: g++
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
       # The sanitizers place their shadow memory at fixed addresses, which the 32 bits of mmap randomisation of the
@@ -74,7 +74,7 @@ jobs:
     name: Windows, MSVC, Debug
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
       - name: Configure, build, and run the unit and oracle tests
