@@ -254,6 +254,11 @@ endif()
 if (CAM_SANITIZER)
 	set_tests_properties(iso.PingPongSeqRandom iso.gardner PROPERTIES TIMEOUT 1500)
 endif()
+# MSVC in Debug (no optimisation, checked iterators): on the Windows runner of the CI, PingPong took 116 s, so
+# PingPongSeqRandom passed 300 s, and GameOfLife took 226 s, close to its 300 s
+if (MSVC)
+	set_tests_properties(iso.PingPongSeqRandom iso.GameOfLife PROPERTIES TIMEOUT 900)
+endif()
 # A test that passes on a regular expression ignores its exit code: an error exit code or a report of a sanitizer still
 # fails it
 cam_fail_on_sanitizer_report(iso.shapley.two iso.shapley.three)
