@@ -21,6 +21,8 @@
 #                        of the distribution tests (tests/iso/iso_stats.cpp)
 #             e20build | capture | e20 | e20mono   (ContainerServer harness, ref/E20; always net8: BinaryFormatter throws
 #             on net9+; e20mono adds the SHIPPED .NET Framework server and mobile containers under Mono, ref/mono/e20-mono.sh)
+#             e20cpp   : RemoteMessages with C++ containers over the ActressMAS transport (Linux build of tests/run.sh
+#                        --linux gcc debug) and the C# server, compared with the oracle (WORKDIR/logs/e20cpp/)
 #             e20gui   : MasMobileGui without WinForms (ref/E20/MasMobileGui.Console), server and three containers; its
 #                        agent cannot move on .NET 8 (Agent.Move serializes a System.Type)
 #             e20oracles: WORKDIR/logs/oracles/RemoteMessages.txt and MasMobileConsole.txt from the captures of e20 and
@@ -229,6 +231,45 @@ do_e20() {    # E20 RemoteMessages through the Tap: Server :5000 <- Tap :5001 <-
     wait; echo done"
   for f in server container2 container1 container1-dup; do echo "== $f"; cat "$W/logs/e20/$f.txt"; done
 }
+do_e20cpp() {  # E20 RemoteMessages with C++ containers (the port of tests/iso over the ActressMAS transport), built for Linux
+               # in build/linux-gcc-debug (tests/run.sh --linux): (a) the C# server and both containers in C++; (b) the C#
+               # server and Container2 (pong-agent, RemoteMessages.Console) with Container1 (ping-agent) in C++. Each run is
+               # compared with the oracle by iso_check: (b) on the consoles of both processes, the C++ one and the C# one.
+               # The C# server relays each message on a thread of its pool: the two answers may come in either order, so
+               # the received messages are compared as a multiset (RemoteMessages.actressmas.unordered.rules).
+  local root bin check L f status=0
+  root="$(cd "$TOOLS/../../.." && pwd -P)"
+  bin="build/linux-gcc-debug/tests/iso/iso_RemoteMessages"
+  check="build/linux-gcc-debug/tests/iso/cam_iso_check tests/iso/rules/RemoteMessages.actressmas.unordered.rules tests/iso/oracles/RemoteMessages.txt --actual"
+  L="$W/logs/e20cpp"
+  mkdir -p "$L"
+  cpp() { podman run --rm --pull=never --network=host --name "cam-csref-e20cpp-$$-$RANDOM" -v "$root":/src -v "$W":/w -w /src \
+            localhost/cam-linux-dev:24.04-zenoh "$@"; }
+  # (a) both containers in C++, each registered under its name with the server of the C#
+  e20 bash -c "timeout 25 dotnet ServerConsole/bin/Release/$E20_TFM/ServerConsole.dll 5000 3000 20 > /w/logs/e20cpp/server-a.txt 2>&1" &
+  local server=$!
+  sleep 4
+  cpp timeout 20 "$bin" 0 actressmas://127.0.0.1:5000 > "$L/actual-a.txt" 2>&1 || true
+  wait "$server" || true
+  # (b) Container2 in C#, Container1 in C++
+  e20 bash -c "B=bin/Release/$E20_TFM; L=/w/logs/e20cpp
+    timeout 30 dotnet ServerConsole/\$B/ServerConsole.dll 5000 3000 25 > \$L/server-b.txt 2>&1 &
+    sleep 3
+    timeout 25 dotnet RemoteMessages.Console/\$B/RemoteMessages.Console.dll 127.0.0.1 5000 Container2 2000 18 > \$L/container2-b.txt 2>&1 &
+    wait" &
+  local csharp=$!
+  sleep 8
+  cpp timeout 20 "$bin" 0 actressmas://127.0.0.1:5000 Container1 > "$L/container1-b.txt" 2>&1 || true
+  wait "$csharp" || true
+  cat "$L/container1-b.txt" "$L/container2-b.txt" > "$L/actual-b.txt"
+  # Both runs are checked, whatever the first one gives
+  for f in a b; do
+    echo "== ($f)"
+    cpp $check "/w/logs/e20cpp/actual-$f.txt" > "$L/check-$f.txt" 2>&1 || status=1
+    tail -3 "$L/check-$f.txt"
+  done
+  return "$status"
+}
 do_e20mono() {  # runtime cross-check: shipped .NET Framework Server + MasMobileConsole (Mono) <-> Tap + RemoteMessages (.NET 8)
   local run; run="$(date +%Y%m%d-%H%M%S)"; mkdir -p "$W/logs/e20mono-$run"
   podman run --rm --pull=never --network=host --name "cam-csref-e20mono-$$" -e RUN="$run" -v "$W":/w docker.io/library/ubuntu:24.04 \
@@ -304,7 +345,7 @@ do_distrib() {  # outputs of some oracle projects at many seeds, for the distrib
 case "$ACTION" in
   build) do_build ;; rng) do_rng ;; trace) do_trace ;; format) do_format ;; bench) do_bench ;; benchref) do_benchref ;; e00) do_e00 ;; probe) do_probe ;; mono) do_mono ;;
   shimcheck) do_shimcheck ;; oracles) do_oracles ;; distrib) do_distrib ;;
-  e20build) do_e20build ;; capture) do_capture ;; e20) do_e20 ;; e20mono) do_e20mono ;; e20gui) do_e20gui ;; e20oracles) do_e20oracles ;;
+  e20build) do_e20build ;; capture) do_capture ;; e20) do_e20 ;; e20cpp) do_e20cpp ;; e20mono) do_e20mono ;; e20gui) do_e20gui ;; e20oracles) do_e20oracles ;;
   all) do_build; do_rng; do_trace; do_format; do_bench; do_e00; do_probe; do_shimcheck; do_oracles ;;
   *) echo "unknown action $ACTION" >&2; exit 2 ;;
 esac

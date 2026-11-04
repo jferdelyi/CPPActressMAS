@@ -37,6 +37,13 @@ parallel ones, compared line by line where the parallel original only allows inv
 is an argument of the port (`adjacent` for BDI, `calculate` for Shapley: `iso.shapley.two` and `.three` check the
 calculator alone on the examples of the Shapley value); the example itself runs unchanged without it.
 
+**Over the ActressMAS transport.** `iso.RemoteMessages.actressmas` runs the port of E20 with each container connected
+under its name to the relay of the tests (`tests/support/ActressMasRelay.hpp`), which follows the rules of the C#
+server; its rules compare the remote sender as `name@container`, as the C# writes it. The C# server relays each message
+on a thread of its pool, so the two answers of the pong agent may come in either order:
+`iso.RemoteMessages.actressmas.unordered` has the relay swap them (`--swap`) and compares the messages received as a
+multiset. `tests/tools/csharp-ref/csharp-ref.sh e20cpp` runs the same port against the C# server itself.
+
 **A known divergence is paired, never tolerated wholesale.** `same NAME bag alias C <regex>` pairs a C++ tuple whose
 column C matches the regex with a C# tuple equal on every other column; any other difference still fails the test. No
 rule needs it today: it served while a message showed the identifier of a sender already removed.

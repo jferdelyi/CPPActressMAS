@@ -12,6 +12,12 @@ cam_add_doctest(smoke cam_tests smoke.cpp)
 cam_add_doctest(transport cam_transport_tests envelope_codec.cpp endpoint.cpp actressmas_codec.cpp)
 target_compile_definitions(cam_transport_tests PRIVATE CAM_VECTORS_DIR="${CMAKE_CURRENT_LIST_DIR}/vectors")
 
+# The ActressMAS transport without a connection: identifiers derived from the names, "name@container", the content as
+# the C# reads it. Built with the transport only.
+if (CAM_TRANSPORT_ACTRESSMAS)
+	cam_add_doctest(actressmas_transport cam_actressmas_transport_tests actressmas_transport.cpp)
+endif()
+
 # Environment::connect(url): the URL kept by the environment, the default factory over the schemes compiled in, a
 # custom factory, and the shared loopback of a namespace.
 cam_add_doctest(connect cam_connect_tests connect.cpp)

@@ -1,0 +1,17 @@
+# E20 RemoteMessages over the ActressMAS transport, with a server that may swap two messages of a container: the C#
+# server relays each message on a thread of its pool, so the two answers of the pong agent may reach Container1 in either
+# order, in the C# as in the C++. The messages received are compared as a multiset, each with its sender
+# "name@container"; everything else as in RemoteMessages.actressmas.rules.
+section ^This is Container\d$
+ignore ^$
+ignore ^Container connecting to server\.\.\.$
+ignore ^Container connected to server\.$
+ignore ^Container\d registered\.$
+ignore ^Running MAS\.\.\.$
+cover all
+fact setup ^\[(ping-agent|pong-agent)\] (.+)$
+fact received ^\t\[(\S+) -> (ping-agent|pong-agent)\]: (.+)$
+same setup seq by 0
+same received bag
+check setup count == 2
+check received count == 3

@@ -19,7 +19,7 @@ The layer is part of the core library; the network transports join it behind the
 | [`network/`](network/README.md) | Parts shared by the network transports: presence cache, ordered worker thread. |
 | [`mqtt/`](mqtt/README.md) | MQTT transport (`CAM_TRANSPORT_MQTT`, libmosquitto). |
 | [`zenoh/`](zenoh/README.md) | Zenoh transport (`CAM_TRANSPORT_ZENOH`, zenoh-c and zenoh-cpp). |
-| [`actressmas/`](actressmas/README.md) | Wire format of the ActressMAS v3.1 `ContainerServer` (C#). |
+| [`actressmas/`](actressmas/README.md) | Wire format of the ActressMAS v3.1 `ContainerServer` (C#), and the transport that is its client (`CAM_TRANSPORT_ACTRESSMAS`). |
 
 ## Notes
 - **Content**: a message keeps its typed content locally; it is encoded only when it leaves the process.
