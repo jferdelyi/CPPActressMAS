@@ -825,6 +825,16 @@ namespace cam {
 		[[nodiscard]] std::vector<AgentId> find_agents(const std::string& p_name, bool p_is_fragment, bool p_first_only) const;
 
 		/**
+		 * The first living agent whose name matches, in the order of the collection, then of the agents added and not
+		 * inserted yet: the one a search finds first and a send with first_only reaches; without the lock.
+		 * @param p_name The name, or a fragment of it
+		 * @param p_is_fragment If true, the names that contain p_name
+		 * @param p_hold Holds the agent when it is added and not inserted yet, as long as the caller uses it
+		 * @return The agent, or null
+		 **/
+		[[nodiscard]] Agent* find_first_agent(const std::string& p_name, bool p_is_fragment, AgentPointer& p_hold) const;
+
+		/**
 		 * The name of an agent, added and not inserted yet included; without the lock (an agent during a turn, or the
 		 * simulation thread).
 		 * @param p_id The agent id

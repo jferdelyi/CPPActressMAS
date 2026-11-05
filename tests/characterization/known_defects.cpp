@@ -364,7 +364,7 @@ TEST_SUITE("characterization") {
 		void action(const cam::MessagePointer&) override { g_receivers.push_back(get_id()); }
 	};
 
-	TEST_CASE("the first agent found by fragment is the first agent sent to" * doctest::expected_failures(1)) {
+	TEST_CASE("fixed: the first agent found by fragment is the first agent sent to") {
 		g_receivers.clear();
 		cam::Environment l_env(1, Mode::Sequential);
 		for (int i = 1; i <= 9; ++i) {
@@ -376,7 +376,7 @@ TEST_SUITE("characterization") {
 		l_env.continue_simulation(1);
 		REQUIRE(l_lookup.size() == 1);
 		REQUIRE(g_receivers.size() == 1);
-		CHECK(l_lookup[0] == g_receivers[0]);  // insertion order for the lookup, hash order for the send
+		CHECK(l_lookup[0] == g_receivers[0]);  // the send used to follow the hash order of the name index
 	}
 
 	// ---------------------------------------------------------------- sender of a message from a removed agent

@@ -246,13 +246,20 @@ void cam::Environment::deliver_broadcast(const AgentId& p_sender_id, const std::
 bool cam::Environment::deliver_by_name(const AgentId& p_sender_id, const std::string& p_sender_name,
 									   const std::string& p_receiver_name, MessageContent p_content, const bool p_is_fragment,
 									   const bool p_first_only, const std::string& p_sender_environment) const {
-	// Each receiver is served once the next one is known: the last one takes the content without a copy; the agents added
-	// and not inserted yet come last, as in the order of addition of the C#
-	std::vector<AgentPointer> l_pending;
+	// The first agent is the one a search finds first, whatever the order of the name index
+	if (p_first_only) {
+		AgentPointer l_hold;
+		Agent* const l_first = find_first_agent(p_receiver_name, p_is_fragment, l_hold);
+		if (!l_first) {
+			return false;
+		}
+		l_first->receive(make_message(p_sender_id, p_sender_name, l_first->get_id(), std::move(p_content), p_sender_environment));
+		return true;
+	}
+	// Every matching agent: each receiver is served once the next one is known, the last one takes the content without a
+	// copy; the agents added and not inserted yet come last, as in the order of addition of the C#
 	const AgentId* l_last_id = nullptr;
 	Agent* l_last_agent = nullptr;
-	bool l_over = false;
-	// Visit a matching agent; the search is over at the first one with first_only
 	const auto l_visit = [&](const AgentId& p_id, Agent* p_agent) {
 		if (!p_agent || p_agent->is_dead()) {
 			return;
@@ -262,31 +269,26 @@ bool cam::Environment::deliver_by_name(const AgentId& p_sender_id, const std::st
 		}
 		l_last_id = &p_id;
 		l_last_agent = p_agent;
-		l_over = p_first_only;
 	};
 	if (p_is_fragment) {
 		for (const auto& [l_name, l_id]: m_agent_collection.m_agents_by_name) {
 			if (l_name.find(p_receiver_name) != std::string::npos) {
 				l_visit(l_id, m_agent_collection.find(l_id));
-				if (l_over) {
-					break;
-				}
 			}
 		}
 	} else {
 		// A name is a key of the index: no scan of every agent
 		const auto [l_begin, l_end] = m_agent_collection.m_agents_by_name.equal_range(p_receiver_name);
-		for (auto l_it = l_begin; l_it != l_end && !l_over; ++l_it) {
+		for (auto l_it = l_begin; l_it != l_end; ++l_it) {
 			l_visit(l_it->second, m_agent_collection.find(l_it->second));
 		}
 	}
-	if (!l_over) {
-		// A name takes a single part of the name index of the agents added and not inserted yet; a fragment, all of them
-		l_pending = p_is_fragment ? m_agent_collection.pending_agents() : m_agent_collection.pending_named(p_receiver_name);
-	}
-	for (auto l_it = l_pending.begin(); l_it != l_pending.end() && !l_over; ++l_it) {
-		if (!p_is_fragment || (*l_it)->get_name().find(p_receiver_name) != std::string::npos) {
-			l_visit((*l_it)->get_id(), l_it->get());
+	// A name takes the agents of that name only; a fragment, every agent added and not inserted yet
+	const std::vector<AgentPointer> l_pending = p_is_fragment ? m_agent_collection.pending_agents()
+															  : m_agent_collection.pending_named(p_receiver_name);
+	for (const AgentPointer& l_agent: l_pending) {
+		if (!p_is_fragment || l_agent->get_name().find(p_receiver_name) != std::string::npos) {
+			l_visit(l_agent->get_id(), l_agent.get());
 		}
 	}
 	if (!l_last_agent) {
@@ -487,6 +489,11 @@ cam::Environment::get_filtered_agents(const std::string& p_fragment_name, const 
 }
 
 std::vector<cam::AgentId> cam::Environment::find_agents(const std::string& p_name, const bool p_is_fragment, const bool p_first_only) const {
+	if (p_first_only) {
+		AgentPointer l_hold;
+		const Agent* const l_first = find_first_agent(p_name, p_is_fragment, l_hold);
+		return l_first ? std::vector<AgentId>{l_first->get_id()} : std::vector<AgentId>{};
+	}
 	// The living agents whose name matches, in their order; the agents added and not inserted yet come last
 	std::vector<AgentId> l_found;
 	const auto l_matches = [&](const Agent& p_agent) {
@@ -496,20 +503,47 @@ std::vector<cam::AgentId> cam::Environment::find_agents(const std::string& p_nam
 	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
 		if (l_matches(*l_agent)) {
 			l_found.push_back(l_id);
-			if (p_first_only) {
-				return l_found;
-			}
 		}
 	}
 	for (const auto& l_agent: p_is_fragment ? m_agent_collection.pending_agents() : m_agent_collection.pending_named(p_name)) {
 		if (l_matches(*l_agent)) {
 			l_found.push_back(l_agent->get_id());
-			if (p_first_only) {
-				return l_found;
-			}
 		}
 	}
 	return l_found;
+}
+
+cam::Agent* cam::Environment::find_first_agent(const std::string& p_name, const bool p_is_fragment, AgentPointer& p_hold) const {
+	// The collection holds its agents under the lock of the caller: a raw pointer, without a count of references
+	const auto& l_agents = m_agent_collection.m_agents;
+	if (p_is_fragment) {
+		for (const auto& [l_id, l_agent]: l_agents) {
+			if (!l_agent->is_dead() && l_agent->get_name().find(p_name) != std::string::npos) {
+				return l_agent.get();
+			}
+		}
+	} else {
+		// The index gives the agents of the name without a scan; the first one has the smallest position in the collection
+		auto l_first = l_agents.end();
+		const auto [l_begin, l_end] = m_agent_collection.m_agents_by_name.equal_range(p_name);
+		for (auto l_it = l_begin; l_it != l_end; ++l_it) {
+			const auto l_agent = l_agents.find(l_it->second);
+			if (l_agent != l_agents.end() && !l_agent->second->is_dead() && (l_first == l_agents.end() || l_agent < l_first)) {
+				l_first = l_agent;
+			}
+		}
+		if (l_first != l_agents.end()) {
+			return l_first->second.get();
+		}
+	}
+	// The agents added and not inserted yet come from a copy of their list: p_hold keeps the one found alive
+	for (const auto& l_agent: p_is_fragment ? m_agent_collection.pending_agents() : m_agent_collection.pending_named(p_name)) {
+		if (!l_agent->is_dead() && (!p_is_fragment || l_agent->get_name().find(p_name) != std::string::npos)) {
+			p_hold = l_agent;
+			return p_hold.get();
+		}
+	}
+	return nullptr;
 }
 
 std::optional<std::string> cam::Environment::find_agent_name(const AgentId& p_id) const {

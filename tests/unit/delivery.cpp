@@ -302,6 +302,12 @@ namespace {
 		cam::AgentPointer m_target;
 	};
 
+	// Records its id at each message it reads.
+	struct Namesake final : cam::Agent {
+		explicit Namesake(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer&) override { g_recorder.record("got:" + get_id().str()); }
+	};
+
 	// The position of an entry in the recorder, or the number of entries when absent
 	std::size_t position_of(const std::string& p_entry) {
 		const auto l_entries = g_recorder.entries();
@@ -696,4 +702,28 @@ TEST_SUITE("delivery") {
 		l_env.continue_simulation(1);
 		CHECK(g_recorder.count_of("finished") == 2);
 	}
+
+	TEST_CASE("a send to the first agent of a name reaches the agent a search finds first, in every mode") {
+		for (const auto l_mode: {Mode::Sequential, Mode::SequentialRandom, Mode::Parallel}) {
+			g_recorder.clear();
+			cam::Environment l_env(1, l_mode);
+			std::vector<cam::AgentId> l_twins;
+			for (int i = 0; i < 9; ++i) {
+				l_twins.push_back(l_env.add<Namesake>("twin"));
+			}
+			l_env.start();  // inserted: their order is the order of addition
+			REQUIRE(l_env.get_first_agent_by_name("twin") == l_twins[0]);
+			l_env.send_content_by_name("ext", "twin", cam::MessageContent(std::string("x")), false, true);
+			l_env.continue_simulation(1);
+			CHECK(g_recorder.entries() == std::vector<std::string>{"got:" + l_twins[0].str()});
+
+			g_recorder.clear();
+			l_env.remove(l_twins[0]);  // outside a turn: at once
+			REQUIRE(l_env.get_first_agent_by_name("twin") == l_twins[1]);
+			l_env.send_content_by_name("ext", "twin", cam::MessageContent(std::string("x")), false, true);
+			l_env.continue_simulation(1);
+			CHECK(g_recorder.entries() == std::vector<std::string>{"got:" + l_twins[1].str()});
+		}
+	}
+
 }
