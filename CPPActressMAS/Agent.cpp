@@ -17,6 +17,7 @@
 
 #include "Agent.h"
 
+#include <algorithm>
 #include <thread>
 
 #include "Environment.h"
@@ -271,6 +272,17 @@ cam::transport::Result<void> cam::Agent::move(const std::string& p_environment_i
 	return l_result;
 }
 
+bool cam::Agent::can_move(const std::string& p_environment_id) const {
+	const Environment* const l_environment = get_environment();
+	if (!l_environment->is_connected() || p_environment_id == l_environment->get_id()) {
+		return false;
+	}
+	const auto l_environments = l_environment->environments();
+	return std::any_of(l_environments.begin(), l_environments.end(), [&p_environment_id](const transport::EnvironmentInfo& p_info) {
+		return p_info.m_online && p_info.m_id == p_environment_id;
+	});
+}
+
 std::string cam::Agent::format(const MessagePointer& p_message) const {
 	const auto l_name = [this](const AgentId& p_id) { return get_agent_name(p_id).value_or(p_id.str()); };
 	// The sender as the message names it (the C# Message.Sender), even once it is removed or when it is remote
@@ -300,6 +312,10 @@ std::optional<std::string> cam::Agent::get_agent_name(const AgentId& p_id) const
 
 std::vector<cam::AgentId> cam::Agent::get_filtered_agents(const std::string& p_fragment_name, bool p_first_only) const {
 	return get_environment()->find_agents(p_fragment_name, true, p_first_only);
+}
+
+std::vector<cam::AgentId> cam::Agent::all_agents() const {
+	return get_environment()->list_agents();
 }
 
 bool cam::Agent::perception_filter(const ObservablesPointer&) const {

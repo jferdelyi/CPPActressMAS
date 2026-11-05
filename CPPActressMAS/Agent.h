@@ -353,6 +353,26 @@ namespace cam {
 		}
 
 		/**
+		 * Send a message to each of several agents by id, as SendToMany of the C# does by name: every receiver is
+		 * served, whatever happens to the others.
+		 * @param p_receiver_ids The ids of the receivers
+		 * @param p_content The content: a text, a JSON value or a shared text
+		 * @param p_options Send options (encoding, priority)
+		 * @return Success, or the first error (UnknownDestination for a receiver that no environment hosts)
+		 **/
+		template<typename C>
+		transport::Result<void> send_to_many(const std::vector<AgentId>& p_receiver_ids, const C& p_content,
+											 const transport::SendOptions& p_options = {}) const {
+			transport::Result<void> l_result;
+			for (const AgentId& l_receiver_id: p_receiver_ids) {
+				if (auto l_sent = send(l_receiver_id, p_content, p_options); !l_sent && l_result) {
+					l_result = std::move(l_sent);
+				}
+			}
+			return l_result;
+		}
+
+		/**
 		 * Move to another environment through the transport (three-step migration). The agent type must
 		 * have a wire name in the catalogue of both processes (AgentTypes: given by add<T>(), CAM_AGENT_TYPE(T) or
 		 * Environment::register_agent_type) and be accepted by the destination. The agent keeps its id, carries
@@ -363,6 +383,14 @@ namespace cam {
 		 * @return Success (move started), or NotConnected, UnknownDestination, UnknownAgentType, InTransit
 		 **/
 		transport::Result<void> move(const std::string& p_environment_id, const transport::SendOptions& p_options = {});
+
+		/**
+		 * True if this agent may move to that environment, as CanMove of the C#: its environment is connected, the
+		 * destination is another environment, and it is online among those known through the transport.
+		 * @param p_environment_id Destination environment id
+		 * @return True if a move there may start
+		 **/
+		[[nodiscard]] bool can_move(const std::string& p_environment_id) const;
 
 		/**
 		 * State of the agent carried by a migration, as JSON; the default is an empty object (never null).
@@ -427,6 +455,13 @@ namespace cam {
 		 **/
 		[[nodiscard]] std::vector<AgentId>
 		get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
+
+		/**
+		 * Get all the agents of the environment, as AllAgents of the C# gives their names: in their order, the agents
+		 * added and not inserted yet last, the stopped or removed ones excluded; this agent included.
+		 * @return Their ids
+		 **/
+		[[nodiscard]] std::vector<AgentId> all_agents() const;
 
 		/**
 		 * Perception filter.

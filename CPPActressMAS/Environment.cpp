@@ -217,14 +217,15 @@ bool cam::Environment::deliver_local(const AgentId& p_sender_id, const std::stri
 }
 
 void cam::Environment::deliver_broadcast(const AgentId& p_sender_id, const std::string& p_sender_name,
-										 MessageContent p_content, const std::string& p_sender_environment) const {
+										 MessageContent p_content, const bool p_include_sender,
+										 const std::string& p_sender_environment) const {
 	// Each receiver is served once the next one is known: the last one takes the content without a copy; the agents added
 	// and not inserted yet come last, as in the order of addition of the C#
 	const std::vector<AgentPointer> l_pending = m_agent_collection.pending_agents();
 	const AgentId* l_last_id = nullptr;
 	const AgentPointer* l_last_agent = nullptr;
 	const auto l_visit = [&](const AgentId& p_id, const AgentPointer& p_agent) {
-		if (p_id != p_sender_id && !p_agent->is_dead()) {
+		if ((p_include_sender || p_id != p_sender_id) && !p_agent->is_dead()) {
 			if (l_last_agent) {
 				(*l_last_agent)->receive(make_message(p_sender_id, p_sender_name, *l_last_id, MessageContent(p_content), p_sender_environment));
 			}
@@ -341,10 +342,10 @@ cam::transport::Result<void>
 cam::Environment::broadcast_content(const AgentId& p_sender_id, const std::string& p_sender_name,
 									MessageContent p_content, const transport::SendOptions& p_options) const {
 	if (p_options.m_scope != transport::Scope::Network) {
-		deliver_broadcast(p_sender_id, p_sender_name, std::move(p_content));
+		deliver_broadcast(p_sender_id, p_sender_name, std::move(p_content), p_options.m_include_sender);
 		return {};
 	}
-	deliver_broadcast(p_sender_id, p_sender_name, p_content);
+	deliver_broadcast(p_sender_id, p_sender_name, p_content, p_options.m_include_sender);
 	if (!m_endpoint) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "network scope asked while offline");
 	}
@@ -444,6 +445,27 @@ std::vector<cam::AgentId>
 cam::Environment::get_agents_by_name(const std::string& p_name, const bool p_first_only) const {
 	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
 	return find_agents(p_name, false, p_first_only);
+}
+
+std::vector<cam::AgentId> cam::Environment::all_agents() const {
+	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
+	return list_agents();
+}
+
+std::vector<cam::AgentId> cam::Environment::list_agents() const {
+	std::vector<AgentId> l_agents;
+	l_agents.reserve(m_agent_collection.m_agents.size());
+	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
+		if (!l_agent->is_dead()) {
+			l_agents.push_back(l_id);
+		}
+	}
+	for (const auto& l_agent: m_agent_collection.pending_agents()) {
+		if (!l_agent->is_dead()) {
+			l_agents.push_back(l_agent->get_id());
+		}
+	}
+	return l_agents;
 }
 
 std::optional<cam::AgentId> cam::Environment::get_first_agent_by_name(const std::string& p_name) const {
@@ -802,7 +824,7 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 									p_envelope.m_target_kind == TargetKind::Fragment, p_envelope.m_first_only, l_origin);
 					break;
 				case TargetKind::Broadcast:
-					deliver_broadcast(*l_sender, l_sender_name, std::move(l_content.value()), l_origin);
+					deliver_broadcast(*l_sender, l_sender_name, std::move(l_content.value()), false, l_origin);
 					break;
 				case TargetKind::Environment:
 				default:

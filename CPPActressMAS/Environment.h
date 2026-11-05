@@ -487,6 +487,13 @@ namespace cam {
 		get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
 
 		/**
+		 * Get all the agents, as AllAgents of the C# gives their names: in their order, the agents added and not inserted
+		 * yet last, the stopped or removed ones excluded.
+		 * @return Their ids
+		 **/
+		[[nodiscard]] std::vector<AgentId> all_agents() const;
+
+		/**
 		 * Get the first agent of a name.
 		 * @param p_name The name
 		 * @return Its id, or nothing
@@ -850,6 +857,12 @@ namespace cam {
 		[[nodiscard]] size_t count_agents() const { return m_agent_collection.count(); }
 
 		/**
+		 * All the living agents in their order, the agents added and not inserted yet last; without the lock.
+		 * @return Their ids
+		 **/
+		[[nodiscard]] std::vector<AgentId> list_agents() const;
+
+		/**
 		 * Deliver a message to a local agent by id; nothing leaves the environment.
 		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
@@ -877,14 +890,15 @@ namespace cam {
 							 const std::string& p_sender_environment = {}) const;
 
 		/**
-		 * Deliver a message to every local agent but the sender.
+		 * Deliver a message to every local agent but the sender, unless it asks for its own copy.
 		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
 		 * @param p_content The content, copied for every receiver but the last, which takes it
+		 * @param p_include_sender If true, the sender receives it too
 		 * @param p_sender_environment Origin environment of a message received through the transport
 		 **/
 		void deliver_broadcast(const AgentId& p_sender_id, const std::string& p_sender_name, MessageContent p_content,
-							   const std::string& p_sender_environment = {}) const;
+							   bool p_include_sender, const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Build a message for a local queue.

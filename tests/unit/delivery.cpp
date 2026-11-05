@@ -308,6 +308,59 @@ namespace {
 		void action(const cam::MessagePointer&) override { g_recorder.record("got:" + get_id().str()); }
 	};
 
+	// Records every text it reads as "<name>:read:<text>".
+	struct Hearer final : cam::Agent {
+		explicit Hearer(const std::string& p_name) : Agent(p_name) {}
+		void action(const cam::MessagePointer& p_message) override { g_recorder.record(get_name() + ":read:" + p_message->as_text()); }
+	};
+
+	// Broadcasts once, at its first action, asking for its own copy or not; records what it reads.
+	struct Crier final : cam::Agent {
+		Crier(const std::string& p_name, const bool p_include_sender) : Agent(p_name), m_include_sender(p_include_sender) {}
+		void action(const cam::MessagePointer& p_message) override { g_recorder.record(get_name() + ":read:" + p_message->as_text()); }
+		void default_action() override {
+			if (!m_done) {
+				m_done = true;
+				broadcast(std::string("hear"), cam::transport::SendOptions{.m_include_sender = m_include_sender});
+			}
+		}
+	private:
+		bool m_include_sender;
+		bool m_done = false;
+	};
+
+	// Sends one text to several agents at its first action, and records the result.
+	struct Distributor final : cam::Agent {
+		Distributor(const std::string& p_name, std::vector<cam::AgentId> p_receivers) : Agent(p_name), m_receivers(std::move(p_receivers)) {}
+		void default_action() override {
+			if (!m_done) {
+				m_done = true;
+				const auto l_result = send_to_many(m_receivers, std::string("share"));
+				g_recorder.record(get_name() + ":" + (l_result ? std::string("ok") : cam::transport::to_string(l_result.error().m_code)));
+			}
+		}
+	private:
+		std::vector<cam::AgentId> m_receivers;
+		bool m_done = false;
+	};
+
+	// Records the names of all the agents, at its first action.
+	struct Census final : cam::Agent {
+		explicit Census(const std::string& p_name) : Agent(p_name) {}
+		void default_action() override {
+			if (!m_done) {
+				m_done = true;
+				std::string l_names;
+				for (const auto& l_id: all_agents()) {
+					l_names += (l_names.empty() ? "" : ",") + get_agent_name(l_id).value_or("?");
+				}
+				g_recorder.record(get_name() + ":" + l_names);
+			}
+		}
+	private:
+		bool m_done = false;
+	};
+
 	// The position of an entry in the recorder, or the number of entries when absent
 	std::size_t position_of(const std::string& p_entry) {
 		const auto l_entries = g_recorder.entries();
@@ -724,6 +777,45 @@ TEST_SUITE("delivery") {
 			l_env.continue_simulation(1);
 			CHECK(g_recorder.entries() == std::vector<std::string>{"got:" + l_twins[1].str()});
 		}
+	}
+
+
+	TEST_CASE("a broadcast reaches its sender too when it asks for its own copy, as includeSender of the C#") {
+		for (const bool l_include: {false, true}) {
+			g_recorder.clear();
+			cam::Environment l_env(3, Mode::Sequential);
+			l_env.add<Crier>("crier", l_include);
+			l_env.add<Hearer>("hearer");
+			l_env.start();  // turn 1: the crier broadcasts; turn 2: it reads its own copy, when asked
+			CHECK(g_recorder.count_of("hearer:read:hear") == 1);
+			CHECK(g_recorder.count_of("crier:read:hear") == (l_include ? 1 : 0));
+		}
+	}
+
+	TEST_CASE("send_to_many serves each receiver once, and an unknown one does not stop the others") {
+		g_recorder.clear();
+		cam::Environment l_env(3, Mode::Sequential);
+		const cam::AgentId l_a = l_env.add<Hearer>("a");
+		const cam::AgentId l_b = l_env.add<Hearer>("b");
+		l_env.add<Distributor>("distributor", std::vector<cam::AgentId>{l_a, cam::AgentId("nobody"), l_b});
+		l_env.start();  // turn 1: the distributor sends; turn 2: a and b read
+		CHECK(g_recorder.count_of("a:read:share") == 1);
+		CHECK(g_recorder.count_of("b:read:share") == 1);
+		CHECK(g_recorder.count_of("distributor:unknown destination") == 1);
+	}
+
+	TEST_CASE("all_agents gives every living agent in its order, the agents not inserted yet last, as AllAgents of the C#") {
+		g_recorder.clear();
+		cam::Environment l_env(1, Mode::Sequential);
+		const cam::AgentId l_a = l_env.add<Hearer>("a");
+		const cam::AgentId l_b = l_env.add<Hearer>("b");
+		const cam::AgentId l_census = l_env.add<Census>("census");
+		l_env.start();  // inserted
+		l_env.remove(l_b);
+		const cam::AgentId l_d = l_env.add<Hearer>("d");  // added, not inserted yet
+		CHECK(l_env.all_agents() == std::vector<cam::AgentId>{l_a, l_census, l_d});
+		l_env.continue_simulation(1);  // the census sees the same, itself included
+		CHECK(g_recorder.entries() == std::vector<std::string>{"census:a,census,d"});
 	}
 
 }

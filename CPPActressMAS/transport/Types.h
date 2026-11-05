@@ -133,6 +133,11 @@ namespace cam::transport {
 		 * Reserved, always 0 today.
 		 **/
 		std::uint32_t m_priority = 0;
+
+		/**
+		 * broadcast only: the sender receives its own message too, as includeSender of the C#; local, never on the wire.
+		 **/
+		bool m_include_sender = false;
 	};
 
 	/**
