@@ -32,6 +32,9 @@ file(GLOB SOURCES CONFIGURE_DEPENDS
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/loopback/*.cpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/network/*.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/transport/network/*.cpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/detail/*.h
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/detail/*.hpp
+		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/detail/*.cpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/util/*.h
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/util/*.hpp
 		${CMAKE_CURRENT_LIST_DIR}/CPPActressMAS/util/*.cpp

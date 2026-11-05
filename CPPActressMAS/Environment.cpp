@@ -23,10 +23,10 @@
 #include <thread>
 
 #include "Agent.h"
+#include "detail/RecyclingAllocator.hpp"
 #include "transport/codec/ContentCodec.h"
 #include "transport/Facade.h"
 #include "util/Identifier.h"
-#include "util/RecyclingAllocator.hpp"
 
 namespace {
 

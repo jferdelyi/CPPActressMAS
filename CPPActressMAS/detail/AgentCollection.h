@@ -31,10 +31,10 @@
 
 #include <tsl/ordered_map.h>
 
-#include "Agent.h"
-#include "util/DotnetRandom.h"
-#include "util/RecyclingAllocator.hpp"
-#include "util/TurnPool.h"
+#include "../Agent.h"
+#include "../util/DotnetRandom.h"
+#include "RecyclingAllocator.hpp"
+#include "TurnPool.h"
 
 /**
  * CPPActressMAS

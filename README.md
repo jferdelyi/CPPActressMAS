@@ -201,4 +201,4 @@ It is a C++ port of [ActressMAS](https://github.com/florinleon/ActressMas) by Fl
 
 Its licence is in [LICENSE-ActressMAS](LICENSE-ActressMAS).
 
-The lock-free queue of `CPPActressMAS/util/MPSCQueue.hpp` comes from [CppBenchmark](https://github.com/chronoxor/CppBenchmark) by Ivan Shynkarenka, where this file is in the public domain (Unlicense).
+The lock-free queue of `CPPActressMAS/detail/MPSCQueue.hpp` comes from [CppBenchmark](https://github.com/chronoxor/CppBenchmark) by Ivan Shynkarenka, where this file is in the public domain (Unlicense).

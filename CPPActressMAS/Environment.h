@@ -34,12 +34,12 @@
 using json = nlohmann::json;
 
 #include "Agent.h"
-#include "AgentCollection.h"
 #include "AggregateException.h"
 #include "AgentTypes.h"
 #include "Message.h"
+#include "detail/AgentCollection.h"
+#include "detail/RecyclingAllocator.hpp"
 #include "transport/Endpoint.h"
-#include "util/RecyclingAllocator.hpp"
 
 /**
  * CPPActressMAS
