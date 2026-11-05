@@ -681,12 +681,6 @@ namespace cam {
 		 **/
 		virtual void turn_finished(int) {}
 
-		/**
-		 * Get the list of observable agents for an agent and its perception filter.
-		 * @param p_perceiving_agent Perceiving agent
-		 **/
-		const std::vector<cam::ObservablesPointer> get_list_of_observable_agents(const Agent* p_perceiving_agent) const;
-
 		// Delete copy constructor
 		Environment(const Environment&) = delete;
 
@@ -753,6 +747,14 @@ namespace cam {
 		virtual void on_delivery_failure(const transport::Error&) {}
 
 	private:
+
+		/**
+		 * The published observables of the other agents that pass the perception filter of an agent, the agents added
+		 * and not inserted yet last (Agent::internal_see).
+		 * @param p_perceiving_agent Perceiving agent
+		 * @return The copies, in the order of the agents
+		 **/
+		[[nodiscard]] std::vector<cam::ObservablesPointer> get_list_of_observable_agents(const Agent* p_perceiving_agent) const;
 
 		/**
 		 * Mark an agent dead (stop or removal), once: it is no longer counted, found by name nor sent to, and the turn

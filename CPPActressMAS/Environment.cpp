@@ -579,7 +579,7 @@ std::optional<std::string> cam::Environment::find_agent_name(const AgentId& p_id
 	return {};
 }
 
-const std::vector<cam::ObservablesPointer>
+std::vector<cam::ObservablesPointer>
 cam::Environment::get_list_of_observable_agents(const Agent* p_perceiving_agent) const {
 	std::vector<cam::ObservablesPointer> l_observable_agent_list;
 

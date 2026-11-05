@@ -192,41 +192,12 @@ namespace cam {
 		[[nodiscard]] bool is_in_transit() const { return m_in_transit; }
 
 		/**
-		 * Run one turn (for one agent): nothing if the agent is dead or in transit; once begun, every phase runs,
-		 * even if the agent stops on the way.
-		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise once, in the same turn as
-		 * the first see and action
-		 **/
-		void run_turn(bool p_run_setup_separately = true);
-
-		/**
-		 * Internal setup called by the environment.
-		 **/
-		void internal_setup();
-
-		/**
-		 * Internal see called by the environment.
-		 **/
-		void internal_see();
-
-		/**
-		 * Internal action called by the environment.
-		 **/
-		void internal_action();
-
-		/**
 		 * Stops the execution of the agent and removes it from the environment.
 		 * Use the Stop method instead of Environment.Remove when the decision to be stopped belongs to the agent itself.
 		 * The agent is no longer counted, found by name nor sent to; it finishes its current turn and is
 		 * destroyed at the turn boundary. Stopping twice does nothing.
 		 **/
 		void stop();
-
-		/**
-		 * Receive a new message.
-		 * @param p_message The new message
-		 **/
-		void post(const MessagePointer& p_message);
 
 		/**
 		 * Send a new message by ID. A local receiver is served directly; a receiver hosted by
@@ -407,11 +378,6 @@ namespace cam {
 		virtual void load_state(const json& p_state) { (void) p_state; }
 
 		/**
-		 * Call to reset agent i.e. set setup and dead to false.
-		 **/
-		void reset();
-
-		/**
 		 * The number of agents in the environment.
 		 **/
 		[[nodiscard]] size_t agents_count() const;
@@ -510,6 +476,40 @@ namespace cam {
 		}
 
 	private:
+		/**
+		 * Run one turn (for one agent): nothing if the agent is dead or in transit; once begun, every phase runs,
+		 * even if the agent stops on the way.
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise once, in the same turn as
+		 * the first see and action
+		 **/
+		void run_turn(bool p_run_setup_separately = true);
+
+		/**
+		 * Internal setup called by the environment.
+		 **/
+		void internal_setup();
+
+		/**
+		 * Internal see called by the environment.
+		 **/
+		void internal_see();
+
+		/**
+		 * Internal action called by the environment.
+		 **/
+		void internal_action();
+
+		/**
+		 * Receive a message already built (environment only).
+		 * @param p_message The new message
+		 **/
+		void post(const MessagePointer& p_message);
+
+		/**
+		 * Reset the agent on its arrival after a migration (environment only): setup runs again, and it is no longer dead.
+		 **/
+		void reset();
+
 		/**
 		 * Send a shared text by id.
 		 * @param p_receiver_id The receiver
