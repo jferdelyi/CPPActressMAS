@@ -41,7 +41,7 @@ cam_add_doctest(removal cam_removal_tests removal.cpp)
 cam_add_doctest(observables cam_observables_tests observables.cpp)
 
 # The turn loop, as the C#: the exceptions of the agents, raw in the Sequential modes, together at the end of the turn in
-# Parallel mode.
+# Parallel mode; the setup alone at the first turn of an agent, or in the same turn as its first see and action.
 cam_add_doctest(turns cam_turns_tests turns.cpp)
 
 # Delivery and turn semantics: the order of the messages of one sender, agents and messages from another thread while

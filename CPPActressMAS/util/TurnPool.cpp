@@ -73,9 +73,10 @@ cam::TurnPool::~TurnPool() {
 	}
 }
 
-void cam::TurnPool::run(const std::vector<Agent*>& p_agents) {
+void cam::TurnPool::run(const std::vector<Agent*>& p_agents, const bool p_run_setup_separately) {
 	// Published to the workers by the release of the generation
 	m_agents = &p_agents;
+	m_run_setup_separately = p_run_setup_separately;
 	m_next.store(0, std::memory_order_relaxed);
 	m_busy.store(m_threads.size(), std::memory_order_relaxed);
 	m_generation.fetch_add(1, std::memory_order_release);
@@ -122,7 +123,7 @@ void cam::TurnPool::run_agents() {
 	for (std::size_t l_index = m_next.fetch_add(1, std::memory_order_relaxed); l_index < l_agents.size();
 		 l_index = m_next.fetch_add(1, std::memory_order_relaxed)) {
 		try {
-			l_agents[l_index]->run_parallel_turn();  // even if removed since the turn began, as in the C#
+			l_agents[l_index]->run_parallel_turn(m_run_setup_separately);  // even if removed since the turn began, as in the C#
 		} catch (...) {
 			// Kept: the exceptions of the turn leave run() together once every agent has run
 			const std::lock_guard<std::mutex> l_lock(m_exceptions_mutex);

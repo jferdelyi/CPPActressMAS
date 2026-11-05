@@ -43,9 +43,10 @@ namespace {
 } // namespace
 
 cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, const unsigned int p_seed,
-									   const RandomEngine p_random_engine) :
+									   const RandomEngine p_random_engine, const bool p_run_setup_separately) :
 		m_turn_pool(p_environment_mas_mode == EnvironmentMasMode::Parallel ? std::make_unique<TurnPool>(worker_count()) : nullptr),
 		m_environment_mas_mode(p_environment_mas_mode),
+		m_run_setup_separately(p_run_setup_separately),
 		m_seed(p_seed),
 		m_random_engine(p_random_engine),
 		m_mt19937(p_seed),
@@ -255,7 +256,7 @@ void cam::AgentCollection::run_turn() {
 	// Sequential: an agent removed earlier in the turn is skipped by run_turn(), as the C# (ContainsKey)
 	if (m_environment_mas_mode == EnvironmentMasMode::Sequential) {
 		for (auto& [l_agent_id, l_agent]: m_agents) {
-			l_agent->run_turn();
+			l_agent->run_turn(m_run_setup_separately);
 		}
 
 		// Parallel: every agent alive at the start of the turn at once, without copy nor shuffle, as the C# does
@@ -267,7 +268,7 @@ void cam::AgentCollection::run_turn() {
 				m_turn_agents.push_back(l_agent.get());
 			}
 		}
-		m_turn_pool->run(m_turn_agents);
+		m_turn_pool->run(m_turn_agents, m_run_setup_separately);
 
 		// Sequential, in a random order drawn each turn
 	} else {
@@ -283,7 +284,7 @@ void cam::AgentCollection::run_turn() {
 		random_permutation(l_count, m_turn_order);
 		for (size_t l_index = 0; l_index < l_count; l_index++) {
 			if (AgentPointer l_agent = get(m_turn_ids[static_cast<size_t>(m_turn_order[l_index])]); l_agent) {
-				l_agent->run_turn();
+				l_agent->run_turn(m_run_setup_separately);
 			}
 		}
 	}

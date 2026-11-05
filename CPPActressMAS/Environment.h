@@ -74,7 +74,8 @@ namespace cam {
 	 * random order, drawn from std::random_device when absent; m_random: its generator; m_url: transport URL, the
 	 * environment connects through it at its first start() (offline when empty); m_endpoint: name and limits of that
 	 * connection; m_accepted_agent_types: wire names of the agent types that may arrive here by migration (every type
-	 * of the catalogue of the process when absent).
+	 * of the catalogue of the process when absent); m_run_setup_separately: false to run the setup of an agent in the
+	 * same turn as its first see and action.
 	 **/
 	struct EnvironmentConfig {
 		/**
@@ -116,6 +117,12 @@ namespace cam {
 		 * Wire names of the agent types that may arrive by migration (every type of the catalogue when absent).
 		 **/
 		std::optional<std::vector<std::string>> m_accepted_agent_types{};
+
+		/**
+		 * True: setup() runs alone at the first turn of an agent, as the C#; false: in that turn, setup() runs once, then
+		 * see() and the action, in every mode, an agent that arrives by migration included.
+		 **/
+		bool m_run_setup_separately = true;
 	};
 
 	/**

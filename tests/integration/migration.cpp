@@ -55,6 +55,10 @@ namespace {
 		explicit TestEnvironment(std::string p_label, const Mode p_mode = Mode::Sequential) : Environment(1, p_mode), m_label(std::move(p_label)) {
 			g_labels[get_id()] = m_label;
 		}
+		// From a whole configuration
+		TestEnvironment(std::string p_label, const cam::EnvironmentConfig& p_config) : Environment(p_config), m_label(std::move(p_label)) {
+			g_labels[get_id()] = m_label;
+		}
 		// Accepting only the given agent types: the catalogue of the process is shared by every environment
 		TestEnvironment(std::string p_label, std::vector<std::string> p_accepted_types) :
 				Environment({.m_turns = 1, .m_mode = Mode::Sequential, .m_accepted_agent_types = std::move(p_accepted_types)}),
@@ -363,6 +367,27 @@ TEST_SUITE("migration") {
 		CHECK(g_recorder.count_of("s:hops=1") == 0);
 		l_b.start();
 		CHECK(g_recorder.count_of("s:hops=1") == 1);
+		REQUIRE(l_a.disconnect());
+		REQUIRE(l_b.disconnect());
+	}
+
+	TEST_CASE("with the setup in the same turn, an agent that arrives runs its setup and its action in its first turn there") {
+		g_recorder.clear();
+		auto l_transport = open_loopback();
+		TestEnvironment l_a("A");
+		TestEnvironment l_b("B", cam::EnvironmentConfig{.m_turns = 1, .m_mode = Mode::Sequential, .m_run_setup_separately = false});
+		l_a.register_agent_type<Hopper>("Hopper");
+		l_b.register_agent_type<Hopper>("Hopper");
+		REQUIRE(l_b.connect(l_transport, config("B")));
+		REQUIRE(l_a.connect(l_transport, config("A")));
+		l_a.add<Hopper>("h", l_b.get_id());
+		l_a.start();  // setup alone, the default of A
+		l_a.start();  // move to B
+		l_b.start();  // offer: accept
+		l_a.start();  // accept: commit
+		l_b.start();  // commit: inserted; setup, then its action, in the same turn
+		CHECK(g_recorder.count_of("h:setup@B") == 1);
+		CHECK(g_recorder.count_of("h:running@B") == 1);
 		REQUIRE(l_a.disconnect());
 		REQUIRE(l_b.disconnect());
 	}

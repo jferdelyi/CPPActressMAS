@@ -53,6 +53,11 @@ namespace cam {
 		const std::vector<Agent*>* m_agents = nullptr;
 
 		/**
+		 * True if setup() runs alone at the first turn of an agent, for the current turn.
+		 **/
+		bool m_run_setup_separately = true;
+
+		/**
 		 * Index of the next agent to run.
 		 **/
 		std::atomic<std::size_t> m_next{0};
@@ -118,8 +123,9 @@ namespace cam {
 		 * Run one turn of every agent and return when all are done; then throw the exceptions of the agents, if any, in
 		 * an AggregateException, in the order of the agents.
 		 * @param p_agents The agents of the turn
+		 * @param p_run_setup_separately True if setup() runs alone at the first turn of an agent
 		 **/
-		void run(const std::vector<Agent*>& p_agents);
+		void run(const std::vector<Agent*>& p_agents, bool p_run_setup_separately);
 	};
 
 } // namespace cam

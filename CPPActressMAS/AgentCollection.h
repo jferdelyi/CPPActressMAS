@@ -148,6 +148,11 @@ namespace cam {
 		EnvironmentMasMode m_environment_mas_mode;
 
 		/**
+		 * True if setup() runs alone at the first turn of an agent; false to run it in the same turn as see and action.
+		 **/
+		bool m_run_setup_separately;
+
+		/**
 		 * Seed of the random generator.
 		 **/
 		unsigned int m_seed;
@@ -232,8 +237,10 @@ namespace cam {
 		 * @param p_environment_mas_mode Execution mode of the turns
 		 * @param p_seed Seed of the random order
 		 * @param p_random_engine Generator of the random order and of random_agent
+		 * @param p_run_setup_separately True if setup() runs alone at the first turn of an agent
 		 **/
-		explicit AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, unsigned int p_seed, RandomEngine p_random_engine);
+		explicit AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, unsigned int p_seed, RandomEngine p_random_engine,
+								 bool p_run_setup_separately = true);
 
 		/**
 		 * Nothing to delete.

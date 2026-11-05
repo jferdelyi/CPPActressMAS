@@ -194,7 +194,8 @@ namespace cam {
 		/**
 		 * Run one turn (for one agent): nothing if the agent is dead or in transit; once begun, every phase runs,
 		 * even if the agent stops on the way.
-		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise in the same turn as see/act
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise once, in the same turn as
+		 * the first see and action
 		 **/
 		void run_turn(bool p_run_setup_separately = true);
 
@@ -541,15 +542,17 @@ namespace cam {
 
 		/**
 		 * Run the phases of one turn (setup, see, action), without any check.
-		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise in the same turn as see/act
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise once, in the same turn as
+		 * the first see and action
 		 **/
 		void run_phases(bool p_run_setup_separately);
 
 		/**
 		 * Run one turn of a Parallel snapshot (TurnPool only): the agent runs even if it was removed since the turn
 		 * began, as the C#; nothing if it is in transit.
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn
 		 **/
-		void run_parallel_turn();
+		void run_parallel_turn(bool p_run_setup_separately);
 
 		/**
 		 * Publish a copy of the observables for the other agents, when the table has changed since the last one.

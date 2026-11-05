@@ -58,11 +58,11 @@ void cam::Agent::run_turn(const bool p_run_setup_separately) {
 	run_phases(p_run_setup_separately);
 }
 
-void cam::Agent::run_parallel_turn() {
+void cam::Agent::run_parallel_turn(const bool p_run_setup_separately) {
 	if (is_in_transit()) {
 		return;
 	}
-	run_phases(true);
+	run_phases(p_run_setup_separately);
 }
 
 void cam::Agent::run_phases(const bool p_run_setup_separately) {
@@ -78,7 +78,10 @@ void cam::Agent::run_phases(const bool p_run_setup_separately) {
 		}
 
 	} else {
-		internal_setup();
+		// The setup shares the first turn of the agent: once, then see and the action, at every turn
+		if (!is_setup()) {
+			internal_setup();
+		}
 		if (is_using_observables()) {
 			internal_see();
 		}

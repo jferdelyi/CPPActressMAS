@@ -19,11 +19,13 @@
 // The turn loop, as the C# (RunTurn): an exception thrown by an agent leaves start() and continue_simulation() at once
 // in the Sequential modes; in Parallel mode every agent of the turn runs to its end, then the exceptions of the turn
 // leave together, in the order of the agents, in an AggregateException (Parallel.Invoke); turn_finished() and
-// simulation_finished() are not called then. Agents record into a Recorder and never assert; the tests check after
-// start().
+// simulation_finished() are not called then. The setup of an agent runs alone at its first turn, or, with
+// m_run_setup_separately set to false, once in that turn before its first see and action. Agents record into a Recorder
+// and never assert; the tests check after start().
 
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -59,12 +61,33 @@ namespace {
 		bool m_thrown = false;
 	};
 
+	// Uses observables, and records its setup, its perceptions and its actions.
+	struct Phases final : cam::Agent {
+		explicit Phases(const std::string& p_name) : Agent(p_name, true) {}
+		void setup() override {
+			(*m_observables)["Name"] = get_name();
+			g_recorder.record(get_name() + ":setup");
+		}
+		[[nodiscard]] bool perception_filter(const cam::ObservablesPointer&) const override { return true; }
+		void see(const std::vector<cam::ObservablesPointer>& p_observable_agents) override {
+			g_recorder.record(get_name() + ":see:" + std::to_string(p_observable_agents.size()));
+		}
+		void default_action() override { g_recorder.record(get_name() + ":act"); }
+	};
+
 	// Records the end of each turn and the end of the simulation.
 	struct Watched final : cam::Environment {
 		Watched(const int p_turns, const Mode p_mode) : Environment(p_turns, p_mode) {}
 		void turn_finished(const int p_turn) override { g_recorder.record("turn:" + std::to_string(p_turn)); }
 		void simulation_finished() override { g_recorder.record("finished"); }
 	};
+
+	// The number of entries of the recorder that start with a prefix
+	std::size_t count_prefix(const std::string& p_prefix) {
+		const auto l_entries = g_recorder.entries();
+		return static_cast<std::size_t>(std::count_if(l_entries.begin(), l_entries.end(),
+													  [&p_prefix](const std::string& p_entry) { return p_entry.starts_with(p_prefix); }));
+	}
 
 	// The messages of the exceptions of an aggregate, in their order
 	std::vector<std::string> messages_of(const cam::AggregateException& p_aggregate) {
@@ -143,6 +166,46 @@ TEST_SUITE("turns") {
 		CHECK(g_recorder.count_of("w2:acted") == 0);  // the turn stops at the thrower
 		CHECK_FALSE(g_recorder.contains("turn:1"));
 		CHECK_FALSE(g_recorder.contains("finished"));
+	}
+
+
+	TEST_CASE("by default, the setup of an agent runs alone at its first turn, in every mode, as the C#") {
+		for (const auto l_mode: {Mode::Sequential, Mode::SequentialRandom, Mode::Parallel}) {
+			g_recorder.clear();
+			cam::Environment l_env(3, l_mode);
+			l_env.add<Phases>("p1");
+			l_env.add<Phases>("p2");
+			l_env.start();
+			for (const std::string l_name: {"p1", "p2"}) {
+				CHECK(g_recorder.count_of(l_name + ":setup") == 1);
+				CHECK(count_prefix(l_name + ":see:") == 2);
+				CHECK(g_recorder.count_of(l_name + ":act") == 2);
+			}
+		}
+	}
+
+	TEST_CASE("with the setup in the same turn, it runs once, then see and the action, from the first turn, in every mode") {
+		for (const auto l_mode: {Mode::Sequential, Mode::SequentialRandom, Mode::Parallel}) {
+			g_recorder.clear();
+			cam::Environment l_env({.m_turns = 3, .m_mode = l_mode, .m_run_setup_separately = false});
+			l_env.add<Phases>("p1");
+			l_env.add<Phases>("p2");
+			l_env.start();
+			for (const std::string l_name: {"p1", "p2"}) {
+				CHECK(g_recorder.count_of(l_name + ":setup") == 1);
+				CHECK(count_prefix(l_name + ":see:") == 3);
+				CHECK(g_recorder.count_of(l_name + ":act") == 3);
+			}
+		}
+	}
+
+	TEST_CASE("with the setup in the same turn, an agent sees in its first turn what the others showed at their setup") {
+		g_recorder.clear();
+		cam::Environment l_env({.m_turns = 1, .m_mode = Mode::Sequential, .m_run_setup_separately = false});
+		l_env.add<Phases>("p1");
+		l_env.add<Phases>("p2");
+		l_env.start();  // p1: setup, sees nothing yet; p2: setup, sees p1
+		CHECK(g_recorder.entries() == std::vector<std::string>{"p1:setup", "p1:see:0", "p1:act", "p2:setup", "p2:see:1", "p2:act"});
 	}
 
 }
