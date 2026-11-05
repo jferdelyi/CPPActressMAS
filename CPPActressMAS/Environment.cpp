@@ -452,6 +452,29 @@ std::optional<cam::AgentId> cam::Environment::get_first_agent_by_name(const std:
 	return l_agents[0];
 }
 
+json cam::Environment::get_global_data() const {
+	const std::shared_lock<std::shared_mutex> l_lock(m_environment_data_mutex);
+	return m_environment_data;
+}
+
+std::optional<json> cam::Environment::get_global_data(const std::string& p_key) const {
+	const std::shared_lock<std::shared_mutex> l_lock(m_environment_data_mutex);
+	if (const auto l_it = m_environment_data.find(p_key); l_it != m_environment_data.end()) {
+		return *l_it;
+	}
+	return std::nullopt;
+}
+
+void cam::Environment::set_global_data(const std::string& p_key, const json& p_value) {
+	const std::unique_lock<std::shared_mutex> l_lock(m_environment_data_mutex);
+	m_environment_data[p_key] = p_value;
+}
+
+void cam::Environment::remove_global_data(const std::string& p_key) {
+	const std::unique_lock<std::shared_mutex> l_lock(m_environment_data_mutex);
+	m_environment_data.erase(p_key);
+}
+
 std::optional<std::string> cam::Environment::get_agent_name(const AgentId& p_id) const {
 	const std::shared_lock<std::shared_mutex> l_lock(m_agent_collection.m_agents_mutex);
 	return find_agent_name(p_id);

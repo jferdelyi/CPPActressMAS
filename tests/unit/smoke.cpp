@@ -489,6 +489,18 @@ TEST_SUITE("unit") {
 		CHECK(l_env.get_global_data().size() == 1);
 	}
 
+	TEST_CASE("one global data is read by its key, without the others") {
+		cam::Environment l_env(1, Mode::Sequential);
+		CHECK_FALSE(l_env.get_global_data("Size").has_value());  // nothing set yet
+		l_env.set_global_data("Size", 11);
+		l_env.set_global_data("Name", "planet");
+		REQUIRE(l_env.get_global_data("Size").has_value());
+		CHECK(*l_env.get_global_data("Size") == 11);
+		CHECK(*l_env.get_global_data("Name") == "planet");
+		l_env.remove_global_data("Size");
+		CHECK_FALSE(l_env.get_global_data("Size").has_value());
+	}
+
 	TEST_CASE("a message built by hand carries its sender, receiver and content, whatever the constructor") {
 		const cam::AgentId l_sender("sender");
 		const cam::AgentId l_receiver("receiver");

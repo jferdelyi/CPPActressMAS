@@ -156,6 +156,27 @@ namespace {
 		std::cout << "OK no crash (the others see the copy published by the owner)\n";
 	}
 
+	struct Gossip final : cam::Agent {  // writes and reads the global data of its environment at each action
+		explicit Gossip(const std::string& p_name) : Agent(p_name) {}
+		void default_action() override {
+			for (int i = 0; i < 50; i++) {
+				get_environment()->set_global_data(get_name() + std::to_string(i % 5), i);  // insertions: concurrent rebalance
+				volatile std::size_t l_size = get_environment()->get_global_data().size();
+				(void) l_size;
+				get_environment()->remove_global_data(get_name() + std::to_string((i + 2) % 5));
+			}
+		}
+	};
+
+	void global_data_parallel() {  // the global data written and read by the agents of Parallel turns
+		cam::Environment l_env(30, Mode::Parallel);
+		for (int i = 0; i < 8; i++) {
+			l_env.add<Gossip>("g" + std::to_string(i));
+		}
+		l_env.start();
+		std::cout << "OK no crash (the global data are guarded)\n";
+	}
+
 	struct Victim final : cam::Agent {  // writes its dead flag while handling a message
 		Victim(const std::string& p_name, const int p_patience) : Agent(p_name), m_patience(p_patience) {}
 		int m_patience;  // messages accepted before stop(): the victims die at successive turns
@@ -327,6 +348,7 @@ namespace {
 			{"remove_then_send_by_name", "fixed", remove_then_send_by_name},
 			{"random_agent_bound", "fixed", random_agent_bound},
 			{"observables_parallel", "fixed (TSan)", observables_parallel},
+			{"global_data_parallel", "fixed (TSan)", global_data_parallel},
 			{"stop_and_send_parallel", "fixed (TSan)", stop_and_send_parallel},
 			{"remove_during_parallel_turn", "fixed (TSan, ASan)", remove_during_parallel_turn},
 			{"remove_during_sequential_turn", "fixed", remove_during_sequential_turn},

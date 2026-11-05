@@ -24,6 +24,7 @@
 #include <mutex>
 #include <optional>
 #include <random>
+#include <shared_mutex>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -236,6 +237,11 @@ namespace cam {
 		 * Information that agent can get about the environment.
 		 **/
 		json m_environment_data;
+
+		/**
+		 * Guards m_environment_data: the agents of a Parallel turn, and other threads, read and write it at once.
+		 **/
+		mutable std::shared_mutex m_environment_data_mutex;
 
 		/**
 		 * Side of this environment on its transport; null while offline.
@@ -525,29 +531,30 @@ namespace cam {
 		[[nodiscard]] const std::string& get_id() const { return m_id; }
 
 		/**
-		 * Get the data of the environment, shared with its agents.
+		 * Get the data of the environment, shared with its agents (a copy, read under a lock: any thread may write them).
 		 * @return The data
 		 **/
-		[[nodiscard]] json get_global_data() const {
-			return m_environment_data;
-		}
+		[[nodiscard]] json get_global_data() const;
 
 		/**
-		 * Set a data of the environment.
+		 * Get one data of the environment, without copying the others.
+		 * @param p_key The key
+		 * @return A copy of its value, or nothing when the key is absent
+		 **/
+		[[nodiscard]] std::optional<json> get_global_data(const std::string& p_key) const;
+
+		/**
+		 * Set a data of the environment, from any thread.
 		 * @param p_key The key
 		 * @param p_value The value
 		 **/
-		void set_global_data(const std::string& p_key, const json& p_value) {
-			m_environment_data[p_key] = p_value;
-		}
+		void set_global_data(const std::string& p_key, const json& p_value);
 
 		/**
-		 * Remove a data of the environment.
+		 * Remove a data of the environment, from any thread.
 		 * @param p_key The key
 		 **/
-		void remove_global_data(const std::string& p_key) {
-			m_environment_data.erase(p_key);
-		}
+		void remove_global_data(const std::string& p_key);
 
 		//###############################################################
 		//	Transport
