@@ -310,10 +310,10 @@ TEST_SUITE("characterization") {
 		void default_action() override { throw std::runtime_error("boom from " + get_name()); }
 	};
 
-	TEST_CASE("an exception thrown by an agent in Parallel mode propagates out of start" * doctest::expected_failures(1)) {
+	TEST_CASE("fixed: an exception thrown by an agent in Parallel mode propagates out of start") {
 		cam::Environment l_env(3, Mode::Parallel);
 		l_env.add<Thrower>("t");
-		CHECK_THROWS_AS(l_env.start(), std::exception);  // swallowed today: future::wait(), never get()
+		CHECK_THROWS_AS(l_env.start(), std::exception);  // used to be swallowed by the pool of the turn
 	}
 
 	TEST_CASE("witness: an exception thrown by an agent in Sequential mode propagates out of start") {

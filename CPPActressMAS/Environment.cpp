@@ -424,7 +424,8 @@ void cam::Environment::run_turns(const int p_no_turns) {
 			}
 		}
 	} catch (...) {
-		// The Sequential modes let the exceptions of the agents through
+		// The exceptions of the agents leave the simulation, as in the C#: raw in the Sequential modes, together in an
+		// AggregateException in Parallel mode
 		m_agent_collection.set_simulation_running(false);
 		throw;
 	}

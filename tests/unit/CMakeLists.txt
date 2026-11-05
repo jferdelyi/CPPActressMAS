@@ -40,6 +40,10 @@ cam_add_doctest(removal cam_removal_tests removal.cpp)
 # Observables: what an agent sees of the others before each action, as the C#.
 cam_add_doctest(observables cam_observables_tests observables.cpp)
 
+# The turn loop, as the C#: the exceptions of the agents, raw in the Sequential modes, together at the end of the turn in
+# Parallel mode.
+cam_add_doctest(turns cam_turns_tests turns.cpp)
+
 # Delivery and turn semantics: the order of the messages of one sender, agents and messages from another thread while
 # the environment runs, a shared read-only JSON content, and the turn loop of the C# manual.
 cam_add_doctest(delivery cam_delivery_tests delivery.cpp)

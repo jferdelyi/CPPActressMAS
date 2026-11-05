@@ -31,7 +31,7 @@ namespace {
 		return l_cores == 0 ? 7 : l_cores - 1;
 	}
 
-	// Marks a turn as running for its lifetime, exceptions included (the Sequential modes let them through)
+	// Marks a turn as running for its lifetime, exceptions of the agents included
 	struct TurnGuard final {
 		std::atomic<bool>& m_running;
 		explicit TurnGuard(std::atomic<bool>& p_running) : m_running(p_running) { m_running.store(true, std::memory_order_relaxed); }

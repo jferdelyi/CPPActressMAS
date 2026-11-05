@@ -34,6 +34,7 @@ using json = nlohmann::json;
 
 #include "Agent.h"
 #include "AgentCollection.h"
+#include "AggregateException.h"
 #include "AgentTypes.h"
 #include "Message.h"
 #include "transport/Endpoint.h"
@@ -358,7 +359,7 @@ namespace cam {
 		 * initial simulation has finished. The simulation may stop earlier if there
 		 * are no more agents in the environment. If the number of turns is 0, the
 		 * simulation runs indefinitely, or until there are no more agents in the
-		 * environment.
+		 * environment. An exception thrown by an agent leaves it as it leaves start().
 		 *
 		 * @param p_no_turns The maximum number of turns of the continued simulation
 		 **/
@@ -459,7 +460,9 @@ namespace cam {
 										  const transport::SendOptions& p_options = {}) const;
 
 		/**
-		 * Starts the simulation.
+		 * Starts the simulation. An exception thrown by an agent leaves it, as in the C#: at once in the Sequential modes,
+		 * and in Parallel mode once every agent of the turn has run, together with those of the other agents of the turn,
+		 * in an AggregateException; turn_finished() and simulation_finished() are not called then.
 		 **/
 		void start();
 

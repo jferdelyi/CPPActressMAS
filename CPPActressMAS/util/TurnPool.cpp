@@ -21,7 +21,10 @@
 #include <immintrin.h>
 #endif
 
+#include <algorithm>
+
 #include "../Agent.h"
+#include "../AggregateException.h"
 
 namespace {
 
@@ -82,6 +85,22 @@ void cam::TurnPool::run(const std::vector<Agent*>& p_agents) {
 		l_busy = wait_change(m_busy, l_busy);
 	}
 	m_agents = nullptr;
+
+	// Every agent of the turn has run: their exceptions leave together, in the order of the agents, as Parallel.Invoke
+	std::vector<std::pair<std::size_t, std::exception_ptr>> l_thrown;
+	{
+		const std::lock_guard<std::mutex> l_lock(m_exceptions_mutex);
+		l_thrown.swap(m_exceptions);
+	}
+	if (!l_thrown.empty()) {
+		std::sort(l_thrown.begin(), l_thrown.end(), [](const auto& p_left, const auto& p_right) { return p_left.first < p_right.first; });
+		std::vector<std::exception_ptr> l_exceptions;
+		l_exceptions.reserve(l_thrown.size());
+		for (auto& l_entry: l_thrown) {
+			l_exceptions.push_back(std::move(l_entry.second));
+		}
+		throw AggregateException(std::move(l_exceptions));
+	}
 }
 
 void cam::TurnPool::work() {
@@ -105,7 +124,9 @@ void cam::TurnPool::run_agents() {
 		try {
 			l_agents[l_index]->run_parallel_turn();  // even if removed since the turn began, as in the C#
 		} catch (...) {
-			// Swallowed, as the futures of the former thread pool did
+			// Kept: the exceptions of the turn leave run() together once every agent has run
+			const std::lock_guard<std::mutex> l_lock(m_exceptions_mutex);
+			m_exceptions.emplace_back(l_index, std::current_exception());
 		}
 	}
 }

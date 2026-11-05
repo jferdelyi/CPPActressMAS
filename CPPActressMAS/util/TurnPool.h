@@ -20,7 +20,10 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <exception>
+#include <mutex>
 #include <thread>
+#include <utility>
 #include <vector>
 
 /**
@@ -34,7 +37,8 @@ namespace cam {
 	 * Persistent threads that run the agents of a Parallel turn. Each turn wakes the threads once; they and
 	 * the calling thread take the agents one by one through an atomic index, so no task, future or allocation is
 	 * made per agent. Between turns a thread spins briefly, turns being close to each other, then sleeps on an
-	 * atomic wait. An exception thrown by an agent is swallowed, as with the former thread pool.
+	 * atomic wait. The exceptions thrown by the agents are kept, and leave run() together once every agent of the turn
+	 * has run (AggregateException), as Parallel.Invoke in the C#.
 	 **/
 	class TurnPool final {
 	private:
@@ -69,6 +73,16 @@ namespace cam {
 		std::atomic<bool> m_stop{false};
 
 		/**
+		 * Guards m_exceptions.
+		 **/
+		std::mutex m_exceptions_mutex;
+
+		/**
+		 * Exceptions thrown by the agents of the current turn, with the index of their agent.
+		 **/
+		std::vector<std::pair<std::size_t, std::exception_ptr>> m_exceptions;
+
+		/**
 		 * Loop of a worker thread.
 		 **/
 		void work();
@@ -101,7 +115,8 @@ namespace cam {
 		TurnPool& operator=(const TurnPool&) = delete;
 
 		/**
-		 * Run one turn of every agent and return when all are done.
+		 * Run one turn of every agent and return when all are done; then throw the exceptions of the agents, if any, in
+		 * an AggregateException, in the order of the agents.
 		 * @param p_agents The agents of the turn
 		 **/
 		void run(const std::vector<Agent*>& p_agents);
