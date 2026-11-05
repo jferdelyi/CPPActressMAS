@@ -19,7 +19,7 @@
 
 #include <stdexcept>
 
-#include "util/RecyclingAllocator.hpp"
+#include "detail/RecyclingAllocator.hpp"
 
 namespace {
 

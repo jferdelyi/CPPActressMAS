@@ -29,7 +29,7 @@
 #include <nlohmann/json.hpp>
 
 #include "AgentId.h"
-#include "util/RecyclingAllocator.hpp"
+#include "detail/RecyclingAllocator.hpp"
 
 using json = nlohmann::json;
 

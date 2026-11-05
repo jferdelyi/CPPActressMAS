@@ -28,8 +28,8 @@
 #include <vector>
 
 #include "Message.h"
+#include "detail/MPSCQueue.hpp"
 #include "transport/Types.h"
-#include "util/MPSCQueue.hpp"
 
 /**
  * CPPActressMAS

@@ -25,7 +25,7 @@
 #include <thread>
 #include <vector>
 
-#include <util/MPSCQueue.hpp>
+#include <detail/MPSCQueue.hpp>
 
 TEST_SUITE("unit") {
 

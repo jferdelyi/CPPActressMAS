@@ -21,8 +21,8 @@
 #include <thread>
 
 #include "Environment.h"
+#include "detail/RecyclingAllocator.hpp"
 #include "util/Identifier.h"
-#include "util/RecyclingAllocator.hpp"
 
 namespace {
 

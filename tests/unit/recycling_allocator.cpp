@@ -26,7 +26,7 @@
 #include <thread>
 #include <vector>
 
-#include <util/RecyclingAllocator.hpp>
+#include <detail/RecyclingAllocator.hpp>
 
 namespace {
 
