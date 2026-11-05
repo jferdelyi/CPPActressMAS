@@ -27,8 +27,9 @@ namespace cam::test {
 	/**
 	 * Thread-safe event log for tests.
 	 *
-	 * Agents never assert (an exception thrown by an agent is swallowed in Parallel mode):
-	 * they record what happens here and the test checks the entries after start() returns.
+	 * Agents never assert (the checks of doctest are not made for the threads of a Parallel turn, and an exception
+	 * thrown by an agent stops the simulation): they record what happens here and the test checks the entries after
+	 * start() returns.
 	 **/
 	class Recorder final {
 	private:

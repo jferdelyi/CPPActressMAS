@@ -5,7 +5,7 @@ What the types of tests share; no test here.
 | File | Role |
 |---|---|
 | `doctest_main.cpp` | The `main` of every doctest program (`cam_doctest_main`) |
-| `Recorder.hpp` | A thread-safe recorder: agents never assert (an exception thrown by an agent is swallowed in Parallel mode), they record what happens and the test checks after `start()` |
+| `Recorder.hpp` | A thread-safe recorder: agents never assert (the checks of doctest are not made for the threads of a Parallel turn, and an exception thrown by an agent stops the simulation), they record what happens and the test checks after `start()` |
 | `wait_until.hpp` | Bounded wait for a condition, for the tests that cross threads or the network |
 | `tcp_probe.hpp` | Bounded TCP connection attempt: the network tests skip when their broker does not answer |
 | `ActressMasRelay.hpp` | A relay with the rules of the ContainerServer of ActressMAS v3.1 (C#), on 127.0.0.1: the ActressMAS transport is tested against it in the process of the test, without .NET. It keeps the order of the messages of a container, unless asked to swap them as the thread pool of the C# server may do |
