@@ -55,6 +55,10 @@ namespace {
 		explicit TestEnvironment(std::string p_label, const Mode p_mode = Mode::Sequential) : Environment(1, p_mode), m_label(std::move(p_label)) {
 			g_labels[get_id()] = m_label;
 		}
+		// From a whole configuration
+		TestEnvironment(std::string p_label, const cam::EnvironmentConfig& p_config) : Environment(p_config), m_label(std::move(p_label)) {
+			g_labels[get_id()] = m_label;
+		}
 		// Accepting only the given agent types: the catalogue of the process is shared by every environment
 		TestEnvironment(std::string p_label, std::vector<std::string> p_accepted_types) :
 				Environment({.m_turns = 1, .m_mode = Mode::Sequential, .m_accepted_agent_types = std::move(p_accepted_types)}),
@@ -114,6 +118,19 @@ namespace {
 		std::string m_away;
 		int m_hops = 0;
 		int m_counter = 0;
+	};
+
+	// Uses observables and records the hops it sees, at each perception.
+	struct Spotter final : cam::Agent {
+		explicit Spotter(const std::string& p_name) : Agent(p_name, true) {}
+		[[nodiscard]] bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
+			return p_observed->contains("hops");
+		}
+		void see(const std::vector<cam::ObservablesPointer>& p_observable_agents) override {
+			for (const auto& l_observed: p_observable_agents) {
+				g_recorder.record(get_name() + ":hops=" + l_observed->at("hops").dump());
+			}
+		}
 	};
 
 	// Moves once to a target, then records every turn it runs.
@@ -325,6 +342,52 @@ TEST_SUITE("migration") {
 				"A:joined:B", "B:joined:A", "t:setup@A counter=0", "t:move:ok", "t:setup@B counter=1", "t:move:ok",
 				"t:setup@A counter=2", "t:done@A counter=3 hops=2"};
 		CHECK(l_entries == l_expected);
+		REQUIRE(l_a.disconnect());
+		REQUIRE(l_b.disconnect());
+	}
+
+	TEST_CASE("an agent that arrives is seen with the observables it brings, before its setup runs again") {
+		g_recorder.clear();
+		auto l_transport = open_loopback();
+		TestEnvironment l_a("A");
+		TestEnvironment l_b("B");
+		l_a.register_agent_type<Traveler>("Traveler");
+		l_b.register_agent_type<Traveler>("Traveler");
+		REQUIRE(l_b.connect(l_transport, config("B")));
+		REQUIRE(l_a.connect(l_transport, config("A")));
+		l_b.add<Spotter>("s");  // inserted before the traveler arrives: it runs first in each turn of B
+		l_a.add<Traveler>("t", l_a.get_id(), l_b.get_id());
+		l_b.start();  // the setup of the spotter
+		l_a.start();  // setup: hops 0 observable
+		l_a.start();  // move to B
+		l_b.start();  // offer: accept sent; nothing to see yet
+		l_a.start();  // accept: commit sent
+		l_b.start();  // commit: inserted with the hops it brings, seen at once; then its setup shows hops 1
+		CHECK(g_recorder.count_of("s:hops=0") == 1);
+		CHECK(g_recorder.count_of("s:hops=1") == 0);
+		l_b.start();
+		CHECK(g_recorder.count_of("s:hops=1") == 1);
+		REQUIRE(l_a.disconnect());
+		REQUIRE(l_b.disconnect());
+	}
+
+	TEST_CASE("with the setup in the same turn, an agent that arrives runs its setup and its action in its first turn there") {
+		g_recorder.clear();
+		auto l_transport = open_loopback();
+		TestEnvironment l_a("A");
+		TestEnvironment l_b("B", cam::EnvironmentConfig{.m_turns = 1, .m_mode = Mode::Sequential, .m_run_setup_separately = false});
+		l_a.register_agent_type<Hopper>("Hopper");
+		l_b.register_agent_type<Hopper>("Hopper");
+		REQUIRE(l_b.connect(l_transport, config("B")));
+		REQUIRE(l_a.connect(l_transport, config("A")));
+		l_a.add<Hopper>("h", l_b.get_id());
+		l_a.start();  // setup alone, the default of A
+		l_a.start();  // move to B
+		l_b.start();  // offer: accept
+		l_a.start();  // accept: commit
+		l_b.start();  // commit: inserted; setup, then its action, in the same turn
+		CHECK(g_recorder.count_of("h:setup@B") == 1);
+		CHECK(g_recorder.count_of("h:running@B") == 1);
 		REQUIRE(l_a.disconnect());
 		REQUIRE(l_b.disconnect());
 	}

@@ -60,8 +60,12 @@ cam_add_ok_probe(remove_during_sequential_turn)
 # Fixed: add<T>() returned a reference to the identifier of the agent, dangling once the agent was destroyed; it returns
 # the identifier by value now
 cam_add_ok_probe(dangling_add_ref)
-# Known: the live observables of an agent are read by the others while their owner writes them
-cam_add_crash_probe(observables_parallel tsan "ThreadSanitizer: data race")
+# Fixed: the others read the live observables of an agent while their owner wrote them; they see a copy published by
+# the owner now
+cam_add_ok_probe(observables_parallel)
+# Fixed: the agents of a Parallel turn wrote and read the global data of their environment without a lock; they are
+# guarded now
+cam_add_ok_probe(global_data_parallel)
 # Fixed: send_content() and remove() from another thread read the collection while the turn boundary inserted the agents
 # added from outside or erased the removed ones, and lost messages; the public functions of the environment take a
 # shared lock now, as the ConcurrentDictionary of the C# in Parallel mode

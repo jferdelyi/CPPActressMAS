@@ -111,6 +111,17 @@ namespace cam {
 		 **/
 		MPSCQueue<MessagePointer> m_messages;
 
+		/**
+		 * Copy of the observables published for the other agents (null: nothing to observe), replaced only when the
+		 * table has changed: a reader keeps the copy it holds, never a table being written.
+		 **/
+		ObservablesPointer m_published;
+
+		/**
+		 * Guards m_published for the time of a pointer copy.
+		 **/
+		mutable std::atomic_flag m_published_lock;
+
 	protected:
 
 		/**
@@ -119,7 +130,8 @@ namespace cam {
 		bool m_is_using_observables;
 
 		/**
-		 * List of observables.
+		 * Observable properties of this agent, written by the agent itself; the other agents see the copy published
+		 * after each of its turns.
 		 **/
 		std::shared_ptr<Observables> m_observables;
 
@@ -155,7 +167,8 @@ namespace cam {
 		[[nodiscard]] bool is_using_observables() const { return m_is_using_observables; }
 
 		/**
-		 * Get observables.
+		 * The observables of this agent, as it writes them, for the agent itself; the other agents see the copy
+		 * published after each of its turns, at its addition and at its insertion.
 		 * @return Observables
 		 **/
 		[[nodiscard]] ObservablesPointer get_observables() const { return m_observables; }
@@ -179,40 +192,12 @@ namespace cam {
 		[[nodiscard]] bool is_in_transit() const { return m_in_transit; }
 
 		/**
-		 * Run one turn (for one agent): nothing if the agent is dead or in transit; once begun, every phase runs,
-		 * even if the agent stops on the way.
-		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise in the same turn as see/act
-		 **/
-		void run_turn(bool p_run_setup_separately = true);
-
-		/**
-		 * Internal setup called by the environment.
-		 **/
-		void internal_setup();
-
-		/**
-		 * Internal see called by the environment.
-		 **/
-		void internal_see();
-
-		/**
-		 * Internal action called by the environment.
-		 **/
-		void internal_action();
-
-		/**
 		 * Stops the execution of the agent and removes it from the environment.
 		 * Use the Stop method instead of Environment.Remove when the decision to be stopped belongs to the agent itself.
 		 * The agent is no longer counted, found by name nor sent to; it finishes its current turn and is
 		 * destroyed at the turn boundary. Stopping twice does nothing.
 		 **/
 		void stop();
-
-		/**
-		 * Receive a new message.
-		 * @param p_message The new message
-		 **/
-		void post(const MessagePointer& p_message);
 
 		/**
 		 * Send a new message by ID. A local receiver is served directly; a receiver hosted by
@@ -340,6 +325,26 @@ namespace cam {
 		}
 
 		/**
+		 * Send a message to each of several agents by id, as SendToMany of the C# does by name: every receiver is
+		 * served, whatever happens to the others.
+		 * @param p_receiver_ids The ids of the receivers
+		 * @param p_content The content: a text, a JSON value or a shared text
+		 * @param p_options Send options (encoding, priority)
+		 * @return Success, or the first error (UnknownDestination for a receiver that no environment hosts)
+		 **/
+		template<typename C>
+		transport::Result<void> send_to_many(const std::vector<AgentId>& p_receiver_ids, const C& p_content,
+											 const transport::SendOptions& p_options = {}) const {
+			transport::Result<void> l_result;
+			for (const AgentId& l_receiver_id: p_receiver_ids) {
+				if (auto l_sent = send(l_receiver_id, p_content, p_options); !l_sent && l_result) {
+					l_result = std::move(l_sent);
+				}
+			}
+			return l_result;
+		}
+
+		/**
 		 * Move to another environment through the transport (three-step migration). The agent type must
 		 * have a wire name in the catalogue of both processes (AgentTypes: given by add<T>(), CAM_AGENT_TYPE(T) or
 		 * Environment::register_agent_type) and be accepted by the destination. The agent keeps its id, carries
@@ -350,6 +355,14 @@ namespace cam {
 		 * @return Success (move started), or NotConnected, UnknownDestination, UnknownAgentType, InTransit
 		 **/
 		transport::Result<void> move(const std::string& p_environment_id, const transport::SendOptions& p_options = {});
+
+		/**
+		 * True if this agent may move to that environment, as CanMove of the C#: its environment is connected, the
+		 * destination is another environment, and it is online among those known through the transport.
+		 * @param p_environment_id Destination environment id
+		 * @return True if a move there may start
+		 **/
+		[[nodiscard]] bool can_move(const std::string& p_environment_id) const;
 
 		/**
 		 * State of the agent carried by a migration, as JSON; the default is an empty object (never null).
@@ -363,11 +376,6 @@ namespace cam {
 		 * @param p_state The state
 		 **/
 		virtual void load_state(const json& p_state) { (void) p_state; }
-
-		/**
-		 * Call to reset agent i.e. set setup and dead to false.
-		 **/
-		void reset();
 
 		/**
 		 * The number of agents in the environment.
@@ -416,6 +424,13 @@ namespace cam {
 		get_filtered_agents(const std::string& p_fragment_name, bool p_first_only = false) const;
 
 		/**
+		 * Get all the agents of the environment, as AllAgents of the C# gives their names: in their order, the agents
+		 * added and not inserted yet last, the stopped or removed ones excluded; this agent included.
+		 * @return Their ids
+		 **/
+		[[nodiscard]] std::vector<AgentId> all_agents() const;
+
+		/**
 		 * Perception filter.
 		 * @param p_observed Observed properties
 		 * @return True if the agent is observable
@@ -462,6 +477,40 @@ namespace cam {
 
 	private:
 		/**
+		 * Run one turn (for one agent): nothing if the agent is dead or in transit; once begun, every phase runs,
+		 * even if the agent stops on the way.
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise once, in the same turn as
+		 * the first see and action
+		 **/
+		void run_turn(bool p_run_setup_separately = true);
+
+		/**
+		 * Internal setup called by the environment.
+		 **/
+		void internal_setup();
+
+		/**
+		 * Internal see called by the environment.
+		 **/
+		void internal_see();
+
+		/**
+		 * Internal action called by the environment.
+		 **/
+		void internal_action();
+
+		/**
+		 * Receive a message already built (environment only).
+		 * @param p_message The new message
+		 **/
+		void post(const MessagePointer& p_message);
+
+		/**
+		 * Reset the agent on its arrival after a migration (environment only): setup runs again, and it is no longer dead.
+		 **/
+		void reset();
+
+		/**
 		 * Send a shared text by id.
 		 * @param p_receiver_id The receiver
 		 * @param p_text The text
@@ -493,15 +542,29 @@ namespace cam {
 
 		/**
 		 * Run the phases of one turn (setup, see, action), without any check.
-		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise in the same turn as see/act
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn; otherwise once, in the same turn as
+		 * the first see and action
 		 **/
 		void run_phases(bool p_run_setup_separately);
 
 		/**
 		 * Run one turn of a Parallel snapshot (TurnPool only): the agent runs even if it was removed since the turn
 		 * began, as the C#; nothing if it is in transit.
+		 * @param p_run_setup_separately If true, setup runs alone at the first turn
 		 **/
-		void run_parallel_turn();
+		void run_parallel_turn(bool p_run_setup_separately);
+
+		/**
+		 * Publish a copy of the observables for the other agents, when the table has changed since the last one.
+		 * Called by the thread that runs the agent, or by the simulation thread while the agent does not run.
+		 **/
+		void publish_observables();
+
+		/**
+		 * The copy of the observables published for the other agents.
+		 * @return The copy, or null when nothing is observable
+		 **/
+		[[nodiscard]] ObservablesPointer published_observables() const;
 
 		/**
 		 * Set environment.

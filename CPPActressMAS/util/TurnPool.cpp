@@ -21,7 +21,10 @@
 #include <immintrin.h>
 #endif
 
+#include <algorithm>
+
 #include "../Agent.h"
+#include "../AggregateException.h"
 
 namespace {
 
@@ -70,9 +73,10 @@ cam::TurnPool::~TurnPool() {
 	}
 }
 
-void cam::TurnPool::run(const std::vector<Agent*>& p_agents) {
+void cam::TurnPool::run(const std::vector<Agent*>& p_agents, const bool p_run_setup_separately) {
 	// Published to the workers by the release of the generation
 	m_agents = &p_agents;
+	m_run_setup_separately = p_run_setup_separately;
 	m_next.store(0, std::memory_order_relaxed);
 	m_busy.store(m_threads.size(), std::memory_order_relaxed);
 	m_generation.fetch_add(1, std::memory_order_release);
@@ -82,6 +86,22 @@ void cam::TurnPool::run(const std::vector<Agent*>& p_agents) {
 		l_busy = wait_change(m_busy, l_busy);
 	}
 	m_agents = nullptr;
+
+	// Every agent of the turn has run: their exceptions leave together, in the order of the agents, as Parallel.Invoke
+	std::vector<std::pair<std::size_t, std::exception_ptr>> l_thrown;
+	{
+		const std::lock_guard<std::mutex> l_lock(m_exceptions_mutex);
+		l_thrown.swap(m_exceptions);
+	}
+	if (!l_thrown.empty()) {
+		std::sort(l_thrown.begin(), l_thrown.end(), [](const auto& p_left, const auto& p_right) { return p_left.first < p_right.first; });
+		std::vector<std::exception_ptr> l_exceptions;
+		l_exceptions.reserve(l_thrown.size());
+		for (auto& l_entry: l_thrown) {
+			l_exceptions.push_back(std::move(l_entry.second));
+		}
+		throw AggregateException(std::move(l_exceptions));
+	}
 }
 
 void cam::TurnPool::work() {
@@ -103,9 +123,11 @@ void cam::TurnPool::run_agents() {
 	for (std::size_t l_index = m_next.fetch_add(1, std::memory_order_relaxed); l_index < l_agents.size();
 		 l_index = m_next.fetch_add(1, std::memory_order_relaxed)) {
 		try {
-			l_agents[l_index]->run_parallel_turn();  // even if removed since the turn began, as in the C#
+			l_agents[l_index]->run_parallel_turn(m_run_setup_separately);  // even if removed since the turn began, as in the C#
 		} catch (...) {
-			// Swallowed, as the futures of the former thread pool did
+			// Kept: the exceptions of the turn leave run() together once every agent has run
+			const std::lock_guard<std::mutex> l_lock(m_exceptions_mutex);
+			m_exceptions.emplace_back(l_index, std::current_exception());
 		}
 	}
 }

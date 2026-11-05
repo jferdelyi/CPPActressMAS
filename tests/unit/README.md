@@ -1,12 +1,12 @@
 # Unit tests
 
 The pieces of the library alone, one doctest program per piece (label `unit`, tests `unit.<name>`). Agents never
-assert: in Parallel mode an exception thrown by an agent is swallowed, so they record what happens
-(`support/Recorder.hpp`) and the test checks after `start()`.
+assert: the checks of doctest are not made for the threads of a Parallel turn, and an exception thrown by an agent stops
+the simulation, so they record what happens (`support/Recorder.hpp`) and the test checks after `start()`.
 
 | Test | File | What it checks |
 |---|---|---|
-| `unit.smoke` | `smoke.cpp` | The public API in one environment: configuration and modes, delivery by id, name, fragment and broadcast, typed contents, shared texts, lookups (from the environment and from an agent), global data, messages built by hand, stopping and removal, empty environments, Parallel turns |
+| `unit.smoke` | `smoke.cpp` | The public API in one environment: configuration and modes, delivery by id, name, fragment and broadcast, typed contents, shared texts, lookups (from the environment and from an agent), global data (whole or by key), messages built by hand, stopping and removal, empty environments, Parallel turns; the internals that stay out of the API (checked when compiling) |
 | `unit.transport` | `envelope_codec.cpp`, `endpoint.cpp`, `actressmas_codec.cpp` | The transport layer without an environment: envelope codecs (round trips, binary vectors, malformed input), `Endpoint` (sequences, deduplication, reordering, overflows, counters), the ActressMAS wire codec against bytes captured from the C# code |
 | `unit.connect` | `connect.cpp` | `Environment::connect(url)`: the URL kept by the environment, the schemes compiled in, malformed URLs, a custom factory, the shared loopback of a namespace and its codec |
 | `unit.mpsc_queue` | `mpsc_queue.cpp` | The queue of the agent messages: arrival order, several producers at once, nodes recycled per thread |
@@ -16,7 +16,9 @@ assert: in Parallel mode an exception thrown by an agent is swallowed, so they r
 | `unit.identifier` | `identifier.cpp` | UUIDs and short agent identifiers, unique from several threads |
 | `unit.worker` | `worker.cpp` | The worker of the network transports: the jobs posted before its start run in order, a stop drops the pending ones |
 | `unit.removal` | `removal.cpp` | Removal of agents: deferred to the turn boundary during a turn, at once outside a turn |
-| `unit.observables` | `observables.cpp` | What an agent sees of the others before each action, as the C#: its filter, never itself, nor empty observables, nor a stopped agent; the default filter |
+| `unit.observables` | `observables.cpp` | What an agent sees of the others before each action, as the C#: its filter, never itself, nor empty observables, nor a stopped agent; the default filter; in a sequential turn the writes of the agents that ran before; in Parallel a copy never half written; an agent added during the turn; a copy published again only when it changes |
+| `unit.turns` | `turns.cpp` | The turn loop: the exceptions of the agents (raw in the Sequential modes, together at the end of a Parallel turn in an `AggregateException`, without `turn_finished` nor `simulation_finished`); the setup alone at the first turn of an agent, or in the same turn as its first see and action |
+| `unit.delivery` | `delivery.cpp` | Delivery and turn semantics: the order of the messages of a sender, agents and messages from another thread while the environment runs, a shared read-only JSON content, the first agent of a name or a fragment (the one a search finds first), a broadcast with or without its sender, `send_to_many`, `all_agents` |
 | `unit.dotnet_random` | `dotnet_random.cpp` | The generator of the seeded `System.Random` of .NET, against the series of the C# |
 | `unit.random_order` | `random_order.cpp` | The random order of the sequential modes: the turn orders of the C#, portable Mt19937, seeds |
 | `unit.message_parse` | `message_parse.cpp` | The text of a message as the C# reads it: `Parse`, `Parse1P`, `Format` with names |

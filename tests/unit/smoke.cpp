@@ -242,6 +242,37 @@ namespace {
 		void simulation_finished() override { g_recorder.record("finished"); }
 	};
 
+
+	// What code outside the library may call on an agent and on an environment: the access checks of a requires
+	// expression, evaluated in a template, say whether a member is reachable.
+	template<typename T>
+	concept Stops = requires(T& p_agent) { p_agent.stop(); };
+
+	template<typename T>
+	concept RunsTurns = requires(T& p_agent) { p_agent.run_turn(true); };
+
+	template<typename T>
+	concept RunsPhases = requires(T& p_agent) {
+		p_agent.internal_setup();
+	} || requires(T& p_agent) {
+		p_agent.internal_see();
+	} || requires(T& p_agent) {
+		p_agent.internal_action();
+	};
+
+	template<typename T>
+	concept Posts = requires(T& p_agent, const cam::MessagePointer& p_message) { p_agent.post(p_message); };
+
+	template<typename T>
+	concept Resets = requires(T& p_agent) { p_agent.reset(); };
+
+	template<typename T>
+	concept ListsObservables = requires(const T& p_environment, const cam::Agent* p_agent) {
+		p_environment.get_list_of_observable_agents(p_agent);
+	};
+
+	template<typename T>
+	concept CountsAgents = requires(const T& p_environment) { p_environment.agents_count(); };
 } // namespace
 
 TEST_SUITE("unit") {
@@ -476,6 +507,16 @@ TEST_SUITE("unit") {
 		CHECK(g_recorder.entries() == std::vector<std::string>{"found:agent-2", "found:none"});
 	}
 
+	TEST_CASE("the turn and its phases, a message posted to a queue and the observables of the others stay inside the library") {
+		static_assert(Stops<cam::Agent>);  // the checks see a public member
+		static_assert(!RunsTurns<cam::Agent>);
+		static_assert(!RunsPhases<cam::Agent>);
+		static_assert(!Posts<cam::Agent>);
+		static_assert(!Resets<cam::Agent>);
+		static_assert(CountsAgents<cam::Environment>);
+		static_assert(!ListsObservables<cam::Environment>);
+	}
+
 	TEST_CASE("global data is set, replaced, read and removed by key") {
 		cam::Environment l_env(1, Mode::Sequential);
 		l_env.set_global_data("Size", 11);
@@ -487,6 +528,18 @@ TEST_SUITE("unit") {
 		l_env.remove_global_data("absent");  // nothing to remove: no effect
 		CHECK_FALSE(l_env.get_global_data().contains("Size"));
 		CHECK(l_env.get_global_data().size() == 1);
+	}
+
+	TEST_CASE("one global data is read by its key, without the others") {
+		cam::Environment l_env(1, Mode::Sequential);
+		CHECK_FALSE(l_env.get_global_data("Size").has_value());  // nothing set yet
+		l_env.set_global_data("Size", 11);
+		l_env.set_global_data("Name", "planet");
+		REQUIRE(l_env.get_global_data("Size").has_value());
+		CHECK(*l_env.get_global_data("Size") == 11);
+		CHECK(*l_env.get_global_data("Name") == "planet");
+		l_env.remove_global_data("Size");
+		CHECK_FALSE(l_env.get_global_data("Size").has_value());
 	}
 
 	TEST_CASE("a message built by hand carries its sender, receiver and content, whatever the constructor") {

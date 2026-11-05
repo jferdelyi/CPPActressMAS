@@ -286,22 +286,22 @@ TEST_SUITE("characterization") {
 		void default_action() override { ++m_defaults; }
 	};
 
-	TEST_CASE("run_turn(false) runs the setup once, in the same turn as the action" * doctest::expected_failures(1)) {
-		SetupCounter l_agent("same");  // Agent::run_turn is public; no environment needed
-		for (int i = 0; i < 5; ++i) {
-			l_agent.run_turn(false);
-		}
-		CHECK(l_agent.m_setups == 1);  // replayed at every turn today
-		CHECK(l_agent.m_defaults == 5);
+	TEST_CASE("fixed: the setup in the same turn (run_turn(false)) runs once, in the same turn as the first action") {
+		const auto l_agent = std::make_shared<SetupCounter>("same");  // the option of the environment, now public
+		cam::Environment l_env({.m_turns = 5, .m_mode = Mode::Sequential, .m_run_setup_separately = false});
+		l_env.add(l_agent);
+		l_env.start();
+		CHECK(l_agent->m_setups == 1);  // used to be replayed at every turn
+		CHECK(l_agent->m_defaults == 5);
 	}
 
-	TEST_CASE("witness: run_turn(true) runs the setup alone at the first turn") {
-		SetupCounter l_agent("separate");
-		for (int i = 0; i < 5; ++i) {
-			l_agent.run_turn(true);
-		}
-		CHECK(l_agent.m_setups == 1);
-		CHECK(l_agent.m_defaults == 4);
+	TEST_CASE("witness: by default (run_turn(true)) the setup runs alone at the first turn") {
+		const auto l_agent = std::make_shared<SetupCounter>("separate");
+		cam::Environment l_env(5, Mode::Sequential);
+		l_env.add(l_agent);
+		l_env.start();
+		CHECK(l_agent->m_setups == 1);
+		CHECK(l_agent->m_defaults == 4);
 	}
 
 	// ---------------------------------------------------------------- exception thrown by an agent
@@ -310,10 +310,10 @@ TEST_SUITE("characterization") {
 		void default_action() override { throw std::runtime_error("boom from " + get_name()); }
 	};
 
-	TEST_CASE("an exception thrown by an agent in Parallel mode propagates out of start" * doctest::expected_failures(1)) {
+	TEST_CASE("fixed: an exception thrown by an agent in Parallel mode propagates out of start") {
 		cam::Environment l_env(3, Mode::Parallel);
 		l_env.add<Thrower>("t");
-		CHECK_THROWS_AS(l_env.start(), std::exception);  // swallowed today: future::wait(), never get()
+		CHECK_THROWS_AS(l_env.start(), std::exception);  // used to be swallowed by the pool of the turn
 	}
 
 	TEST_CASE("witness: an exception thrown by an agent in Sequential mode propagates out of start") {
@@ -364,7 +364,7 @@ TEST_SUITE("characterization") {
 		void action(const cam::MessagePointer&) override { g_receivers.push_back(get_id()); }
 	};
 
-	TEST_CASE("the first agent found by fragment is the first agent sent to" * doctest::expected_failures(1)) {
+	TEST_CASE("fixed: the first agent found by fragment is the first agent sent to") {
 		g_receivers.clear();
 		cam::Environment l_env(1, Mode::Sequential);
 		for (int i = 1; i <= 9; ++i) {
@@ -376,7 +376,7 @@ TEST_SUITE("characterization") {
 		l_env.continue_simulation(1);
 		REQUIRE(l_lookup.size() == 1);
 		REQUIRE(g_receivers.size() == 1);
-		CHECK(l_lookup[0] == g_receivers[0]);  // insertion order for the lookup, hash order for the send
+		CHECK(l_lookup[0] == g_receivers[0]);  // the send used to follow the hash order of the name index
 	}
 
 	// ---------------------------------------------------------------- sender of a message from a removed agent

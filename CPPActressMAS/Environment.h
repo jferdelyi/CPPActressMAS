@@ -24,6 +24,7 @@
 #include <mutex>
 #include <optional>
 #include <random>
+#include <shared_mutex>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -34,6 +35,7 @@ using json = nlohmann::json;
 
 #include "Agent.h"
 #include "AgentCollection.h"
+#include "AggregateException.h"
 #include "AgentTypes.h"
 #include "Message.h"
 #include "transport/Endpoint.h"
@@ -72,7 +74,8 @@ namespace cam {
 	 * random order, drawn from std::random_device when absent; m_random: its generator; m_url: transport URL, the
 	 * environment connects through it at its first start() (offline when empty); m_endpoint: name and limits of that
 	 * connection; m_accepted_agent_types: wire names of the agent types that may arrive here by migration (every type
-	 * of the catalogue of the process when absent).
+	 * of the catalogue of the process when absent); m_run_setup_separately: false to run the setup of an agent in the
+	 * same turn as its first see and action.
 	 **/
 	struct EnvironmentConfig {
 		/**
@@ -114,6 +117,12 @@ namespace cam {
 		 * Wire names of the agent types that may arrive by migration (every type of the catalogue when absent).
 		 **/
 		std::optional<std::vector<std::string>> m_accepted_agent_types{};
+
+		/**
+		 * True: setup() runs alone at the first turn of an agent, as the C#; false: in that turn, setup() runs once, then
+		 * see() and the action, in every mode, an agent that arrives by migration included.
+		 **/
+		bool m_run_setup_separately = true;
 	};
 
 	/**
@@ -237,6 +246,11 @@ namespace cam {
 		json m_environment_data;
 
 		/**
+		 * Guards m_environment_data: the agents of a Parallel turn, and other threads, read and write it at once.
+		 **/
+		mutable std::shared_mutex m_environment_data_mutex;
+
+		/**
 		 * Side of this environment on its transport; null while offline.
 		 **/
 		std::unique_ptr<transport::Endpoint> m_endpoint;
@@ -358,7 +372,7 @@ namespace cam {
 		 * initial simulation has finished. The simulation may stop earlier if there
 		 * are no more agents in the environment. If the number of turns is 0, the
 		 * simulation runs indefinitely, or until there are no more agents in the
-		 * environment.
+		 * environment. An exception thrown by an agent leaves it as it leaves start().
 		 *
 		 * @param p_no_turns The maximum number of turns of the continued simulation
 		 **/
@@ -459,7 +473,9 @@ namespace cam {
 										  const transport::SendOptions& p_options = {}) const;
 
 		/**
-		 * Starts the simulation.
+		 * Starts the simulation. An exception thrown by an agent leaves it, as in the C#: at once in the Sequential modes,
+		 * and in Parallel mode once every agent of the turn has run, together with those of the other agents of the turn,
+		 * in an AggregateException; turn_finished() and simulation_finished() are not called then.
 		 **/
 		void start();
 
@@ -476,6 +492,13 @@ namespace cam {
 		 **/
 		[[nodiscard]] std::vector<AgentId>
 		get_agents_by_name(const std::string& p_name, bool p_first_only = false) const;
+
+		/**
+		 * Get all the agents, as AllAgents of the C# gives their names: in their order, the agents added and not inserted
+		 * yet last, the stopped or removed ones excluded.
+		 * @return Their ids
+		 **/
+		[[nodiscard]] std::vector<AgentId> all_agents() const;
 
 		/**
 		 * Get the first agent of a name.
@@ -522,29 +545,30 @@ namespace cam {
 		[[nodiscard]] const std::string& get_id() const { return m_id; }
 
 		/**
-		 * Get the data of the environment, shared with its agents.
+		 * Get the data of the environment, shared with its agents (a copy, read under a lock: any thread may write them).
 		 * @return The data
 		 **/
-		[[nodiscard]] json get_global_data() const {
-			return m_environment_data;
-		}
+		[[nodiscard]] json get_global_data() const;
 
 		/**
-		 * Set a data of the environment.
+		 * Get one data of the environment, without copying the others.
+		 * @param p_key The key
+		 * @return A copy of its value, or nothing when the key is absent
+		 **/
+		[[nodiscard]] std::optional<json> get_global_data(const std::string& p_key) const;
+
+		/**
+		 * Set a data of the environment, from any thread.
 		 * @param p_key The key
 		 * @param p_value The value
 		 **/
-		void set_global_data(const std::string& p_key, const json& p_value) {
-			m_environment_data[p_key] = p_value;
-		}
+		void set_global_data(const std::string& p_key, const json& p_value);
 
 		/**
-		 * Remove a data of the environment.
+		 * Remove a data of the environment, from any thread.
 		 * @param p_key The key
 		 **/
-		void remove_global_data(const std::string& p_key) {
-			m_environment_data.erase(p_key);
-		}
+		void remove_global_data(const std::string& p_key);
 
 		//###############################################################
 		//	Transport
@@ -657,12 +681,6 @@ namespace cam {
 		 **/
 		virtual void turn_finished(int) {}
 
-		/**
-		 * Get the list of observable agents for an agent and its perception filter.
-		 * @param p_perceiving_agent Perceiving agent
-		 **/
-		const std::vector<cam::ObservablesPointer> get_list_of_observable_agents(const Agent* p_perceiving_agent) const;
-
 		// Delete copy constructor
 		Environment(const Environment&) = delete;
 
@@ -729,6 +747,14 @@ namespace cam {
 		virtual void on_delivery_failure(const transport::Error&) {}
 
 	private:
+
+		/**
+		 * The published observables of the other agents that pass the perception filter of an agent, the agents added
+		 * and not inserted yet last (Agent::internal_see).
+		 * @param p_perceiving_agent Perceiving agent
+		 * @return The copies, in the order of the agents
+		 **/
+		[[nodiscard]] std::vector<cam::ObservablesPointer> get_list_of_observable_agents(const Agent* p_perceiving_agent) const;
 
 		/**
 		 * Mark an agent dead (stop or removal), once: it is no longer counted, found by name nor sent to, and the turn
@@ -815,6 +841,16 @@ namespace cam {
 		[[nodiscard]] std::vector<AgentId> find_agents(const std::string& p_name, bool p_is_fragment, bool p_first_only) const;
 
 		/**
+		 * The first living agent whose name matches, in the order of the collection, then of the agents added and not
+		 * inserted yet: the one a search finds first and a send with first_only reaches; without the lock.
+		 * @param p_name The name, or a fragment of it
+		 * @param p_is_fragment If true, the names that contain p_name
+		 * @param p_hold Holds the agent when it is added and not inserted yet, as long as the caller uses it
+		 * @return The agent, or null
+		 **/
+		[[nodiscard]] Agent* find_first_agent(const std::string& p_name, bool p_is_fragment, AgentPointer& p_hold) const;
+
+		/**
 		 * The name of an agent, added and not inserted yet included; without the lock (an agent during a turn, or the
 		 * simulation thread).
 		 * @param p_id The agent id
@@ -828,6 +864,12 @@ namespace cam {
 		 * @return The number of agents
 		 **/
 		[[nodiscard]] size_t count_agents() const { return m_agent_collection.count(); }
+
+		/**
+		 * All the living agents in their order, the agents added and not inserted yet last; without the lock.
+		 * @return Their ids
+		 **/
+		[[nodiscard]] std::vector<AgentId> list_agents() const;
 
 		/**
 		 * Deliver a message to a local agent by id; nothing leaves the environment.
@@ -857,14 +899,15 @@ namespace cam {
 							 const std::string& p_sender_environment = {}) const;
 
 		/**
-		 * Deliver a message to every local agent but the sender.
+		 * Deliver a message to every local agent but the sender, unless it asks for its own copy.
 		 * @param p_sender_id Id of the sending agent
 		 * @param p_sender_name Name of the sender; empty when unknown
 		 * @param p_content The content, copied for every receiver but the last, which takes it
+		 * @param p_include_sender If true, the sender receives it too
 		 * @param p_sender_environment Origin environment of a message received through the transport
 		 **/
 		void deliver_broadcast(const AgentId& p_sender_id, const std::string& p_sender_name, MessageContent p_content,
-							   const std::string& p_sender_environment = {}) const;
+							   bool p_include_sender, const std::string& p_sender_environment = {}) const;
 
 		/**
 		 * Build a message for a local queue.

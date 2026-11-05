@@ -217,6 +217,18 @@ namespace {
 		std::string m_label;
 	};
 
+	// Records at each action whether it may move to a target, to its own environment and to an unknown one.
+	struct Prober final : cam::Agent {
+		Prober(const std::string& p_name, std::string p_target) : Agent(p_name), m_target(std::move(p_target)) {}
+		void default_action() override {
+			g_recorder.record(get_name() + ":target:" + (can_move(m_target) ? "yes" : "no"));
+			g_recorder.record(get_name() + ":own:" + (can_move(get_environment()->get_id()) ? "yes" : "no"));
+			g_recorder.record(get_name() + ":unknown:" + (can_move("cccccccc-0000-4000-8000-000000000003") ? "yes" : "no"));
+		}
+	private:
+		std::string m_target;
+	};
+
 	std::shared_ptr<LoopbackTransport> open_loopback(LoopbackOptions p_options = {}, std::shared_ptr<const EnvelopeCodec> p_codec = nullptr) {
 		auto l_transport = std::make_shared<LoopbackTransport>(TransportConfig{}, std::move(p_options), std::move(p_codec));
 		REQUIRE(l_transport->open());
@@ -319,6 +331,27 @@ TEST_SUITE("loopback") {
 		REQUIRE(l_transport->open());
 		CHECK(l_env.connect(l_transport, named("reopened")));
 		CHECK(l_env.is_connected());
+	}
+
+	TEST_CASE("can_move: only to another environment known online, as CanMove of the C#") {
+		g_recorder.clear();
+		auto l_transport = open_loopback();
+		TestEnvironment l_a("A");
+		TestEnvironment l_b("B");
+		l_a.add<Prober>("p", l_b.get_id());
+		l_a.start();  // setup
+		l_a.start();  // offline: never
+		REQUIRE(l_b.connect(l_transport, named("B")));
+		REQUIRE(l_a.connect(l_transport, named("A")));
+		l_a.start();  // B is known online
+		REQUIRE(l_b.disconnect());
+		l_a.start();  // B has left
+		REQUIRE(l_a.disconnect());
+		CHECK(g_recorder.count_of("p:target:yes") == 1);
+		CHECK(g_recorder.count_of("p:target:no") == 2);
+		CHECK(g_recorder.count_of("p:own:no") == 3);
+		CHECK(g_recorder.count_of("p:unknown:no") == 3);
+		CHECK(g_recorder.count_of("A:left:B") == 1);  // the departure was applied before the last action
 	}
 
 	TEST_CASE("unicast by id across two environments, in memory") {

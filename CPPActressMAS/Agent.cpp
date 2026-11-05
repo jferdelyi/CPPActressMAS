@@ -17,9 +17,29 @@
 
 #include "Agent.h"
 
+#include <algorithm>
+#include <thread>
+
 #include "Environment.h"
 #include "util/Identifier.h"
 #include "util/RecyclingAllocator.hpp"
+
+namespace {
+
+	// Holds a lock for the time of a pointer copy: a short spin, never a sleep
+	struct SpinGuard final {
+		std::atomic_flag& m_flag;
+		explicit SpinGuard(std::atomic_flag& p_flag) : m_flag(p_flag) {
+			while (m_flag.test_and_set(std::memory_order_acquire)) {
+				std::this_thread::yield();
+			}
+		}
+		~SpinGuard() { m_flag.clear(std::memory_order_release); }
+		SpinGuard(const SpinGuard&) = delete;
+		SpinGuard& operator=(const SpinGuard&) = delete;
+	};
+
+} // namespace
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_id(AgentId::generate()),
@@ -38,11 +58,11 @@ void cam::Agent::run_turn(const bool p_run_setup_separately) {
 	run_phases(p_run_setup_separately);
 }
 
-void cam::Agent::run_parallel_turn() {
+void cam::Agent::run_parallel_turn(const bool p_run_setup_separately) {
 	if (is_in_transit()) {
 		return;
 	}
-	run_phases(true);
+	run_phases(p_run_setup_separately);
 }
 
 void cam::Agent::run_phases(const bool p_run_setup_separately) {
@@ -58,12 +78,33 @@ void cam::Agent::run_phases(const bool p_run_setup_separately) {
 		}
 
 	} else {
-		internal_setup();
+		// The setup shares the first turn of the agent: once, then see and the action, at every turn
+		if (!is_setup()) {
+			internal_setup();
+		}
 		if (is_using_observables()) {
 			internal_see();
 		}
 		internal_action();
 	}
+	// The agents that run later in a sequential turn see what this one wrote, as the C#
+	publish_observables();
+}
+
+cam::ObservablesPointer cam::Agent::published_observables() const {
+	const SpinGuard l_guard(m_published_lock);
+	return m_published;
+}
+
+void cam::Agent::publish_observables() {
+	// Only the thread that runs this agent, or the simulation thread while it does not run, replaces the copy: reading it
+	// here needs no lock. The former copy is released once the lock is free (l_copy outlives l_guard).
+	if (m_published ? *m_published == *m_observables : m_observables->empty()) {
+		return;
+	}
+	ObservablesPointer l_copy = m_observables->empty() ? nullptr : std::make_shared<const Observables>(*m_observables);
+	const SpinGuard l_guard(m_published_lock);
+	m_published.swap(l_copy);
 }
 
 void cam::Agent::internal_setup() {
@@ -234,6 +275,17 @@ cam::transport::Result<void> cam::Agent::move(const std::string& p_environment_i
 	return l_result;
 }
 
+bool cam::Agent::can_move(const std::string& p_environment_id) const {
+	const Environment* const l_environment = get_environment();
+	if (!l_environment->is_connected() || p_environment_id == l_environment->get_id()) {
+		return false;
+	}
+	const auto l_environments = l_environment->environments();
+	return std::any_of(l_environments.begin(), l_environments.end(), [&p_environment_id](const transport::EnvironmentInfo& p_info) {
+		return p_info.m_online && p_info.m_id == p_environment_id;
+	});
+}
+
 std::string cam::Agent::format(const MessagePointer& p_message) const {
 	const auto l_name = [this](const AgentId& p_id) { return get_agent_name(p_id).value_or(p_id.str()); };
 	// The sender as the message names it (the C# Message.Sender), even once it is removed or when it is remote
@@ -263,6 +315,10 @@ std::optional<std::string> cam::Agent::get_agent_name(const AgentId& p_id) const
 
 std::vector<cam::AgentId> cam::Agent::get_filtered_agents(const std::string& p_fragment_name, bool p_first_only) const {
 	return get_environment()->find_agents(p_fragment_name, true, p_first_only);
+}
+
+std::vector<cam::AgentId> cam::Agent::all_agents() const {
+	return get_environment()->list_agents();
 }
 
 bool cam::Agent::perception_filter(const ObservablesPointer&) const {

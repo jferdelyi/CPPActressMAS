@@ -31,7 +31,7 @@ namespace {
 		return l_cores == 0 ? 7 : l_cores - 1;
 	}
 
-	// Marks a turn as running for its lifetime, exceptions included (the Sequential modes let them through)
+	// Marks a turn as running for its lifetime, exceptions of the agents included
 	struct TurnGuard final {
 		std::atomic<bool>& m_running;
 		explicit TurnGuard(std::atomic<bool>& p_running) : m_running(p_running) { m_running.store(true, std::memory_order_relaxed); }
@@ -43,9 +43,10 @@ namespace {
 } // namespace
 
 cam::AgentCollection::AgentCollection(const EnvironmentMasMode& p_environment_mas_mode, const unsigned int p_seed,
-									   const RandomEngine p_random_engine) :
+									   const RandomEngine p_random_engine, const bool p_run_setup_separately) :
 		m_turn_pool(p_environment_mas_mode == EnvironmentMasMode::Parallel ? std::make_unique<TurnPool>(worker_count()) : nullptr),
 		m_environment_mas_mode(p_environment_mas_mode),
+		m_run_setup_separately(p_run_setup_separately),
 		m_seed(p_seed),
 		m_random_engine(p_random_engine),
 		m_mt19937(p_seed),
@@ -90,6 +91,8 @@ std::vector<cam::AgentPointer> cam::AgentCollection::pending_where(F p_keep) con
 }
 
 void cam::AgentCollection::add(const AgentPointer& p_agent) {
+	// What its constructor made observable is published before any other agent can see it
+	p_agent->publish_observables();
 	// Counted under the lock, after the push: a search that counts the agent finds it
 	PendingShard& l_shard = pending_shard();
 	const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
@@ -163,6 +166,7 @@ void cam::AgentCollection::insert(const AgentPointer& p_agent) {
 	m_agents.insert(std::make_pair(p_agent->get_id(), p_agent));
 	m_agents_by_name.insert(std::make_pair(p_agent->get_name(), p_agent->get_id()));
 	mark_inserted(*p_agent);
+	p_agent->publish_observables();  // an agent arrived by migration brings its observables
 }
 
 std::optional<cam::AgentId> cam::AgentCollection::random_agent() const {
@@ -252,7 +256,7 @@ void cam::AgentCollection::run_turn() {
 	// Sequential: an agent removed earlier in the turn is skipped by run_turn(), as the C# (ContainsKey)
 	if (m_environment_mas_mode == EnvironmentMasMode::Sequential) {
 		for (auto& [l_agent_id, l_agent]: m_agents) {
-			l_agent->run_turn();
+			l_agent->run_turn(m_run_setup_separately);
 		}
 
 		// Parallel: every agent alive at the start of the turn at once, without copy nor shuffle, as the C# does
@@ -264,7 +268,7 @@ void cam::AgentCollection::run_turn() {
 				m_turn_agents.push_back(l_agent.get());
 			}
 		}
-		m_turn_pool->run(m_turn_agents);
+		m_turn_pool->run(m_turn_agents, m_run_setup_separately);
 
 		// Sequential, in a random order drawn each turn
 	} else {
@@ -280,7 +284,7 @@ void cam::AgentCollection::run_turn() {
 		random_permutation(l_count, m_turn_order);
 		for (size_t l_index = 0; l_index < l_count; l_index++) {
 			if (AgentPointer l_agent = get(m_turn_ids[static_cast<size_t>(m_turn_order[l_index])]); l_agent) {
-				l_agent->run_turn();
+				l_agent->run_turn(m_run_setup_separately);
 			}
 		}
 	}
@@ -330,6 +334,7 @@ void cam::AgentCollection::insert_pending(BufferChanges& p_changes, const bool p
 		m_agents.insert(std::make_pair(l_agent->get_id(), l_agent));
 		m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
 		mark_inserted(*l_agent);
+		l_agent->publish_observables();  // what was written since its addition, before it runs
 		if (p_track_changes) {
 			p_changes.m_added.emplace_back(l_agent->get_id(), l_agent->get_name());
 		}
