@@ -111,6 +111,17 @@ namespace cam {
 		 **/
 		MPSCQueue<MessagePointer> m_messages;
 
+		/**
+		 * Copy of the observables published for the other agents (null: nothing to observe), replaced only when the
+		 * table has changed: a reader keeps the copy it holds, never a table being written.
+		 **/
+		ObservablesPointer m_published;
+
+		/**
+		 * Guards m_published for the time of a pointer copy.
+		 **/
+		mutable std::atomic_flag m_published_lock;
+
 	protected:
 
 		/**
@@ -119,7 +130,8 @@ namespace cam {
 		bool m_is_using_observables;
 
 		/**
-		 * List of observables.
+		 * Observable properties of this agent, written by the agent itself; the other agents see the copy published
+		 * after each of its turns.
 		 **/
 		std::shared_ptr<Observables> m_observables;
 
@@ -155,7 +167,8 @@ namespace cam {
 		[[nodiscard]] bool is_using_observables() const { return m_is_using_observables; }
 
 		/**
-		 * Get observables.
+		 * The observables of this agent, as it writes them, for the agent itself; the other agents see the copy
+		 * published after each of its turns, at its addition and at its insertion.
 		 * @return Observables
 		 **/
 		[[nodiscard]] ObservablesPointer get_observables() const { return m_observables; }
@@ -502,6 +515,18 @@ namespace cam {
 		 * began, as the C#; nothing if it is in transit.
 		 **/
 		void run_parallel_turn();
+
+		/**
+		 * Publish a copy of the observables for the other agents, when the table has changed since the last one.
+		 * Called by the thread that runs the agent, or by the simulation thread while the agent does not run.
+		 **/
+		void publish_observables();
+
+		/**
+		 * The copy of the observables published for the other agents.
+		 * @return The copy, or null when nothing is observable
+		 **/
+		[[nodiscard]] ObservablesPointer published_observables() const;
 
 		/**
 		 * Set environment.

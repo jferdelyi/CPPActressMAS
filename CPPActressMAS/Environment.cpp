@@ -502,19 +502,22 @@ const std::vector<cam::ObservablesPointer>
 cam::Environment::get_list_of_observable_agents(const Agent* p_perceiving_agent) const {
 	std::vector<cam::ObservablesPointer> l_observable_agent_list;
 
-	// Map id:agent
-	for (auto& [l_id, l_agent]: m_agent_collection.m_agents) {
-		if (l_agent->is_dead() || l_id == p_perceiving_agent->get_id()) {
-			continue;
+	// The filter and see() take the same published copy, never the table its owner writes; the agents added and not
+	// inserted yet are observable, as in the C#, and come last
+	const auto l_visit = [&](const Agent& p_agent) {
+		if (p_agent.is_dead() || p_agent.get_id() == p_perceiving_agent->get_id()) {
+			return;
 		}
-		const auto& l_observable = l_agent->get_observables();
-		if (l_observable->empty()) {
-			continue;
+		if (ObservablesPointer l_observables = p_agent.published_observables();
+			l_observables && p_perceiving_agent->perception_filter(l_observables)) {
+			l_observable_agent_list.push_back(std::move(l_observables));
 		}
-
-		if (p_perceiving_agent->perception_filter(l_observable)) {
-			l_observable_agent_list.push_back(l_agent->get_observables());
-		}
+	};
+	for (const auto& [l_id, l_agent]: m_agent_collection.m_agents) {
+		l_visit(*l_agent);
+	}
+	for (const auto& l_agent: m_agent_collection.pending_agents()) {
+		l_visit(*l_agent);
 	}
 	return l_observable_agent_list;
 }

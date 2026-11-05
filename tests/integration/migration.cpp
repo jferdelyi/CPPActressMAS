@@ -116,6 +116,19 @@ namespace {
 		int m_counter = 0;
 	};
 
+	// Uses observables and records the hops it sees, at each perception.
+	struct Spotter final : cam::Agent {
+		explicit Spotter(const std::string& p_name) : Agent(p_name, true) {}
+		[[nodiscard]] bool perception_filter(const cam::ObservablesPointer& p_observed) const override {
+			return p_observed->contains("hops");
+		}
+		void see(const std::vector<cam::ObservablesPointer>& p_observable_agents) override {
+			for (const auto& l_observed: p_observable_agents) {
+				g_recorder.record(get_name() + ":hops=" + l_observed->at("hops").dump());
+			}
+		}
+	};
+
 	// Moves once to a target, then records every turn it runs.
 	struct Hopper final : cam::Agent {
 		explicit Hopper(const std::string& p_name) : Agent(p_name) {}
@@ -325,6 +338,31 @@ TEST_SUITE("migration") {
 				"A:joined:B", "B:joined:A", "t:setup@A counter=0", "t:move:ok", "t:setup@B counter=1", "t:move:ok",
 				"t:setup@A counter=2", "t:done@A counter=3 hops=2"};
 		CHECK(l_entries == l_expected);
+		REQUIRE(l_a.disconnect());
+		REQUIRE(l_b.disconnect());
+	}
+
+	TEST_CASE("an agent that arrives is seen with the observables it brings, before its setup runs again") {
+		g_recorder.clear();
+		auto l_transport = open_loopback();
+		TestEnvironment l_a("A");
+		TestEnvironment l_b("B");
+		l_a.register_agent_type<Traveler>("Traveler");
+		l_b.register_agent_type<Traveler>("Traveler");
+		REQUIRE(l_b.connect(l_transport, config("B")));
+		REQUIRE(l_a.connect(l_transport, config("A")));
+		l_b.add<Spotter>("s");  // inserted before the traveler arrives: it runs first in each turn of B
+		l_a.add<Traveler>("t", l_a.get_id(), l_b.get_id());
+		l_b.start();  // the setup of the spotter
+		l_a.start();  // setup: hops 0 observable
+		l_a.start();  // move to B
+		l_b.start();  // offer: accept sent; nothing to see yet
+		l_a.start();  // accept: commit sent
+		l_b.start();  // commit: inserted with the hops it brings, seen at once; then its setup shows hops 1
+		CHECK(g_recorder.count_of("s:hops=0") == 1);
+		CHECK(g_recorder.count_of("s:hops=1") == 0);
+		l_b.start();
+		CHECK(g_recorder.count_of("s:hops=1") == 1);
 		REQUIRE(l_a.disconnect());
 		REQUIRE(l_b.disconnect());
 	}

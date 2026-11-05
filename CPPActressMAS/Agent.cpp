@@ -17,9 +17,28 @@
 
 #include "Agent.h"
 
+#include <thread>
+
 #include "Environment.h"
 #include "util/Identifier.h"
 #include "util/RecyclingAllocator.hpp"
+
+namespace {
+
+	// Holds a lock for the time of a pointer copy: a short spin, never a sleep
+	struct SpinGuard final {
+		std::atomic_flag& m_flag;
+		explicit SpinGuard(std::atomic_flag& p_flag) : m_flag(p_flag) {
+			while (m_flag.test_and_set(std::memory_order_acquire)) {
+				std::this_thread::yield();
+			}
+		}
+		~SpinGuard() { m_flag.clear(std::memory_order_release); }
+		SpinGuard(const SpinGuard&) = delete;
+		SpinGuard& operator=(const SpinGuard&) = delete;
+	};
+
+} // namespace
 
 cam::Agent::Agent(std::string p_name, const bool p_using_observables) :
 		m_id(AgentId::generate()),
@@ -64,6 +83,24 @@ void cam::Agent::run_phases(const bool p_run_setup_separately) {
 		}
 		internal_action();
 	}
+	// The agents that run later in a sequential turn see what this one wrote, as the C#
+	publish_observables();
+}
+
+cam::ObservablesPointer cam::Agent::published_observables() const {
+	const SpinGuard l_guard(m_published_lock);
+	return m_published;
+}
+
+void cam::Agent::publish_observables() {
+	// Only the thread that runs this agent, or the simulation thread while it does not run, replaces the copy: reading it
+	// here needs no lock. The former copy is released once the lock is free (l_copy outlives l_guard).
+	if (m_published ? *m_published == *m_observables : m_observables->empty()) {
+		return;
+	}
+	ObservablesPointer l_copy = m_observables->empty() ? nullptr : std::make_shared<const Observables>(*m_observables);
+	const SpinGuard l_guard(m_published_lock);
+	m_published.swap(l_copy);
 }
 
 void cam::Agent::internal_setup() {

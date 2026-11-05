@@ -90,6 +90,8 @@ std::vector<cam::AgentPointer> cam::AgentCollection::pending_where(F p_keep) con
 }
 
 void cam::AgentCollection::add(const AgentPointer& p_agent) {
+	// What its constructor made observable is published before any other agent can see it
+	p_agent->publish_observables();
 	// Counted under the lock, after the push: a search that counts the agent finds it
 	PendingShard& l_shard = pending_shard();
 	const std::lock_guard<std::mutex> l_lock(l_shard.m_mutex);
@@ -163,6 +165,7 @@ void cam::AgentCollection::insert(const AgentPointer& p_agent) {
 	m_agents.insert(std::make_pair(p_agent->get_id(), p_agent));
 	m_agents_by_name.insert(std::make_pair(p_agent->get_name(), p_agent->get_id()));
 	mark_inserted(*p_agent);
+	p_agent->publish_observables();  // an agent arrived by migration brings its observables
 }
 
 std::optional<cam::AgentId> cam::AgentCollection::random_agent() const {
@@ -330,6 +333,7 @@ void cam::AgentCollection::insert_pending(BufferChanges& p_changes, const bool p
 		m_agents.insert(std::make_pair(l_agent->get_id(), l_agent));
 		m_agents_by_name.insert(std::make_pair(l_agent->get_name(), l_agent->get_id()));
 		mark_inserted(*l_agent);
+		l_agent->publish_observables();  // what was written since its addition, before it runs
 		if (p_track_changes) {
 			p_changes.m_added.emplace_back(l_agent->get_id(), l_agent->get_name());
 		}

@@ -147,13 +147,13 @@ namespace {
 		}
 	};
 
-	void observables_parallel() {  // live observables written by their owner while the others read them in see()
+	void observables_parallel() {  // observables written by their owner while the others see them, in Parallel turns
 		cam::Environment l_env(50, Mode::Parallel);
 		for (int i = 0; i < 8; i++) {
 			l_env.add<Watcher>("o" + std::to_string(i));
 		}
 		l_env.start();
-		std::cout << "done (verdict: TSan reports)\n";
+		std::cout << "OK no crash (the others see the copy published by the owner)\n";
 	}
 
 	struct Victim final : cam::Agent {  // writes its dead flag while handling a message
@@ -326,7 +326,7 @@ namespace {
 			{"remove_buffered", "fixed", remove_buffered},
 			{"remove_then_send_by_name", "fixed", remove_then_send_by_name},
 			{"random_agent_bound", "fixed", random_agent_bound},
-			{"observables_parallel", "known (TSan)", observables_parallel},
+			{"observables_parallel", "fixed (TSan)", observables_parallel},
 			{"stop_and_send_parallel", "fixed (TSan)", stop_and_send_parallel},
 			{"remove_during_parallel_turn", "fixed (TSan, ASan)", remove_during_parallel_turn},
 			{"remove_during_sequential_turn", "fixed", remove_during_sequential_turn},
