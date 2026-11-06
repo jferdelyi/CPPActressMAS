@@ -99,12 +99,17 @@ namespace {
 		bool m_started = false;
 	};
 
-	// Opens the transport of one environment according to the settings; the loopback is shared.
+	// Opens the transport of one environment according to the settings; the loopback is shared. A network transport goes
+	// through a factory of the environment: exactly the transport of the URL, without the loopback of the process beside
+	// it, so that the two environments of this process talk through the network.
 	cam::transport::Result<void> connect(cam::Environment& p_environment, const Settings& p_settings, const std::string& p_url,
 										 const std::shared_ptr<cam::transport::Transport>& p_loopback) {
 		if (p_settings.m_transport == "loopback") {
 			return p_environment.connect(p_loopback);
 		}
+		p_environment.set_transport_factory([](const std::string& p_factory_url, cam::transport::TransportConfig p_factory_config) {
+			return cam::transport::open(p_factory_url, std::move(p_factory_config));
+		});
 		return p_environment.connect(p_url);
 	}
 

@@ -31,6 +31,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <random>
 #include <string>
 #include <thread>
@@ -248,11 +249,16 @@ namespace {
 		return s_suffix;
 	}
 
-	// One node per environment, in the namespace of the test.
+	// One node per environment, in the namespace of the test. Through a factory of the environment: exactly the transport
+	// of the URL, without the loopback of the process beside it, so that two environments of this process talk through
+	// the broker.
 	Result<void> connect(cam::Environment& p_environment, const std::string& p_name, const std::string& p_namespace,
 						 const std::string& p_query = {}) {
 		EndpointConfig l_config;
 		l_config.m_name = p_name;
+		p_environment.set_transport_factory([](const std::string& p_factory_url, TransportConfig p_factory_config) {
+			return cam::transport::open(p_factory_url, std::move(p_factory_config));
+		});
 		return p_environment.connect(g_url + "/" + p_namespace + "-" + process_suffix() + (p_query.empty() ? "" : "?" + p_query), l_config);
 	}
 
@@ -490,6 +496,54 @@ TEST_SUITE("mqtt") {
 		g_stop_keepers = true;
 		l_thread_a.join();
 		l_thread_b.join();
+		REQUIRE(l_env_a.disconnect());
+		REQUIRE(l_env_b.disconnect());
+	}
+
+	// Connected with connect(url), without a factory: the loopback of the process beside the broker.
+
+	TEST_CASE("a broadcast between two environments of this process on the broker arrives once") {
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");
+		TestEnvironment l_env_b("B");
+		const std::string l_url = g_url + "/cam-test-once-" + process_suffix();
+		REQUIRE(l_env_a.connect(l_url));
+		REQUIRE(l_env_b.connect(l_url));
+		l_env_b.add<Receiver>("receiver");
+		l_env_b.add<Keeper>("keeper-b");
+		l_env_a.add<Waver>("waver");
+		l_env_a.add<Keeper>("keeper-a");
+		// Once the wave arrived, one more second for a copy through the broker, which must be dropped
+		std::optional<std::chrono::steady_clock::time_point> l_first;
+		const bool l_delivered = run_until({&l_env_b, &l_env_a}, [&l_first] {
+			if (!g_recorder.contains("receiver:\"wave\"")) {
+				return false;
+			}
+			if (!l_first) {
+				l_first = std::chrono::steady_clock::now();
+			}
+			return std::chrono::steady_clock::now() - *l_first >= 1s;
+		}, 15s);
+		CHECK(l_delivered);
+		CHECK(g_recorder.count_of("receiver:\"wave\"") == 1);
+		REQUIRE(l_env_a.disconnect());
+		REQUIRE(l_env_b.disconnect());
+	}
+
+	TEST_CASE("two environments of this process on the broker in different namespaces stay isolated") {
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");
+		TestEnvironment l_env_b("B");
+		REQUIRE(l_env_a.connect(g_url + "/cam-test-ns-a-" + process_suffix()));
+		REQUIRE(l_env_b.connect(g_url + "/cam-test-ns-b-" + process_suffix()));
+		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
+		l_env_b.add<Watcher>("watcher");
+		l_env_a.add<RemoteSender>("sender", l_receiver);
+		l_env_a.add<Keeper>("keeper-a");
+		// Nothing can arrive: two seconds without the message nor any environment seen
+		const bool l_crossed = run_until({&l_env_b, &l_env_a}, [] { return recorded_prefix("sender:sent") || recorded_prefix("watcher:seen"); }, 2s);
+		CHECK_FALSE(l_crossed);
+		CHECK_FALSE(g_recorder.contains("receiver:\"hello from afar\""));
 		REQUIRE(l_env_a.disconnect());
 		REQUIRE(l_env_b.disconnect());
 	}

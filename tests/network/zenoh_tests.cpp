@@ -28,6 +28,7 @@
 #include <atomic>
 #include <chrono>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -233,9 +234,14 @@ namespace {
 		return "zenoh://127.0.0.1:" + std::to_string(p_port) + "/" + p_namespace;
 	}
 
+	// Through a factory of the environment: exactly the transport of the URL, without the loopback of the process beside
+	// it, so that two environments of this process talk through Zenoh.
 	Result<void> connect(cam::Environment& p_environment, const std::string& p_name, const std::string& p_url) {
 		EndpointConfig l_config;
 		l_config.m_name = p_name;
+		p_environment.set_transport_factory([](const std::string& p_factory_url, TransportConfig p_factory_config) {
+			return cam::transport::open(p_factory_url, std::move(p_factory_config));
+		});
 		return p_environment.connect(p_url, l_config);
 	}
 
@@ -481,6 +487,88 @@ TEST_SUITE("zenoh") {
 		CHECK(l_parsed.value().m_config.m_endpoint == "tcp/127.0.0.1:7447");
 		CHECK(l_parsed.value().m_config.m_namespace == "lab");
 		CHECK(l_parsed.value().m_options.size() == 2);
+	}
+
+	// Connected with connect(url), without a factory: the loopback of the process beside Zenoh.
+
+	TEST_CASE("two environments of this process on Zenoh reach each other through the loopback, even when their peers do not meet") {
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");
+		TestEnvironment l_env_b("B");
+		// Two listening peers, neither connected to the other: Zenoh cannot carry anything between them
+		REQUIRE(l_env_a.connect(listen_url(17461, "cam-test-beside")));
+		REQUIRE(l_env_b.connect(listen_url(17462, "cam-test-beside")));
+		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
+		l_env_b.add<Keeper>("keeper-b");
+		l_env_a.add<RemoteSender>("sender", l_receiver);
+		l_env_a.add<Keeper>("keeper-a");
+		const bool l_delivered = run_until({&l_env_b, &l_env_a}, [] { return g_recorder.contains("receiver:\"hello from afar\""); }, 15s);
+		CHECK(l_delivered);
+		CHECK(g_recorder.count_of("receiver:\"hello from afar\"") == 1);
+		const auto l_environments = l_env_a.environments();
+		CHECK(std::count_if(l_environments.begin(), l_environments.end(),
+							[&l_env_b](const EnvironmentInfo& p_info) { return p_info.m_id == l_env_b.get_id(); }) == 1);
+		REQUIRE(l_env_a.disconnect());
+		REQUIRE(l_env_b.disconnect());
+	}
+
+	TEST_CASE("a broadcast between two environments of this process linked by Zenoh arrives once") {
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");
+		TestEnvironment l_env_b("B");
+		REQUIRE(l_env_a.connect(listen_url(17463, "cam-test-once")));
+		REQUIRE(l_env_b.connect(connect_url(17463, "cam-test-once")));
+		l_env_b.add<Receiver>("receiver");
+		l_env_b.add<Keeper>("keeper-b");
+		l_env_a.add<Waver>("waver");
+		l_env_a.add<Keeper>("keeper-a");
+		// Once the wave arrived, one more second for a copy through Zenoh, which must be dropped
+		std::optional<std::chrono::steady_clock::time_point> l_first;
+		const bool l_delivered = run_until({&l_env_b, &l_env_a}, [&l_first] {
+			if (!g_recorder.contains("receiver:\"wave\"")) {
+				return false;
+			}
+			if (!l_first) {
+				l_first = std::chrono::steady_clock::now();
+			}
+			return std::chrono::steady_clock::now() - *l_first >= 1s;
+		}, 15s);
+		CHECK(l_delivered);
+		CHECK(g_recorder.count_of("receiver:\"wave\"") == 1);
+		REQUIRE(l_env_a.disconnect());
+		REQUIRE(l_env_b.disconnect());
+	}
+
+	TEST_CASE("an environment without configuration and one on Zenoh in the default namespace reach each other") {
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");  // no configuration: the loopback of the process, namespace "default"
+		TestEnvironment l_env_b("B");
+		REQUIRE(l_env_b.connect(listen_url(17464, "default")));
+		const cam::AgentId l_receiver = l_env_a.add<Receiver>("receiver");
+		l_env_a.add<Keeper>("keeper-a");
+		l_env_b.add<RemoteSender>("sender", l_receiver);
+		l_env_b.add<Keeper>("keeper-b");
+		const bool l_delivered = run_until({&l_env_a, &l_env_b}, [] { return g_recorder.contains("receiver:\"hello from afar\""); }, 15s);
+		CHECK(l_delivered);
+		REQUIRE(l_env_b.disconnect());
+	}
+
+	TEST_CASE("two environments of this process on Zenoh in different namespaces stay isolated") {
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");
+		TestEnvironment l_env_b("B");
+		REQUIRE(l_env_a.connect(listen_url(17465, "cam-test-ns-a")));
+		REQUIRE(l_env_b.connect(connect_url(17465, "cam-test-ns-b")));
+		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
+		l_env_b.add<Watcher>("watcher");
+		l_env_a.add<RemoteSender>("sender", l_receiver);
+		l_env_a.add<Keeper>("keeper-a");
+		// Nothing can arrive: two seconds without the message nor any environment seen
+		const bool l_crossed = run_until({&l_env_b, &l_env_a}, [] { return recorded_prefix("sender:sent") || recorded_prefix("watcher:seen"); }, 2s);
+		CHECK_FALSE(l_crossed);
+		CHECK_FALSE(g_recorder.contains("receiver:\"hello from afar\""));
+		REQUIRE(l_env_a.disconnect());
+		REQUIRE(l_env_b.disconnect());
 	}
 }
 

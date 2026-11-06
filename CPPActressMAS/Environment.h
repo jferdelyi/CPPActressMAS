@@ -256,6 +256,12 @@ namespace cam {
 		std::unique_ptr<transport::Endpoint> m_endpoint;
 
 		/**
+		 * Loopback of the process next to a network transport opened from a URL (same namespace): the environments of the
+		 * process are reached through it, the network serves the others; null otherwise.
+		 **/
+		std::unique_ptr<transport::Endpoint> m_loopback_endpoint;
+
+		/**
 		 * Transport URL of this environment (empty: none).
 		 **/
 		std::string m_transport_url;
@@ -803,8 +809,9 @@ namespace cam {
 		/**
 		 * Apply one envelope received from the transport.
 		 * @param p_envelope The envelope
+		 * @param p_from The endpoint it came through (its presences and directory events update that one)
 		 **/
-		void apply_incoming(transport::Envelope&& p_envelope);
+		void apply_incoming(transport::Envelope&& p_envelope, transport::Endpoint& p_from);
 
 		/**
 		 * Send a message of an agent by id (see the public send_content): the message keeps the name of its sender.
@@ -1002,10 +1009,17 @@ namespace cam {
 		void apply_agent_control(const transport::Envelope& p_envelope);
 
 		/**
-		 * Queue the presence of this environment (online or offline) for the end of the turn.
+		 * Queue the presence of this environment (online or offline) for the end of the turn, on every endpoint.
 		 * @param p_online True if present
 		 **/
 		void announce_presence(bool p_online);
+
+		/**
+		 * Queue the presence of this environment (online or offline) for the end of the turn, on one endpoint.
+		 * @param p_endpoint The endpoint
+		 * @param p_online True if present
+		 **/
+		void announce_presence(transport::Endpoint& p_endpoint, bool p_online);
 
 		/**
 		 * Queue a directory event about a local agent for the end of the turn.
@@ -1014,6 +1028,34 @@ namespace cam {
 		 * @param p_agent_name Its name
 		 **/
 		void announce_agent(transport::DirectoryEventKind p_event, const AgentId& p_agent_id, const std::string& p_agent_name);
+
+		/**
+		 * Queue a directory event for the end of the turn, on every endpoint.
+		 * @param p_event The event
+		 **/
+		void publish_directory(const transport::DirectoryEvent& p_event);
+
+		/**
+		 * The endpoint that reaches an environment: the loopback of the process when it knows it, the transport otherwise.
+		 * @param p_environment_id The environment
+		 * @return The endpoint
+		 **/
+		[[nodiscard]] transport::Endpoint& endpoint_for(const std::string& p_environment_id) const;
+
+		/**
+		 * True if an endpoint of this environment knows that environment.
+		 * @param p_environment_id The environment
+		 * @return True if known
+		 **/
+		[[nodiscard]] bool knows_environment(const std::string& p_environment_id) const;
+
+		/**
+		 * Join, next to a network transport opened from a URL, the loopback of the namespace of that URL, hidden; without
+		 * it, the environment keeps its network transport alone.
+		 * @param p_url The URL of the network transport
+		 * @param p_config The endpoint configuration of that connection
+		 **/
+		void join_loopback_beside(const std::string& p_url, const transport::EndpointConfig& p_config);
 
 		/**
 		 * True if the changes of the agents are announced: on a transport, or on the loopback joined without
@@ -1054,6 +1096,7 @@ namespace cam {
 
 		/**
 		 * Queue a message envelope carrying already encoded bytes.
+		 * @param p_endpoint The endpoint that sends it
 		 * @param p_address The destination
 		 * @param p_target_kind Kind of target
 		 * @param p_target_id Id of the target agent (TargetKind::Id)
@@ -1067,7 +1110,7 @@ namespace cam {
 		 * @param p_origin_environment Environment whose agent emitted the message, when this one forwards it
 		 * @return Success, OutboxFull or NotAttached
 		 **/
-		transport::Result<void> enqueue_message(const transport::Address& p_address, transport::TargetKind p_target_kind,
+		transport::Result<void> enqueue_message(transport::Endpoint& p_endpoint, const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
 												const std::string& p_sender_id, const std::string& p_sender_name, std::vector<std::uint8_t> p_content,
 												ContentEncoding p_content_encoding, const transport::SendOptions& p_options,
@@ -1075,6 +1118,7 @@ namespace cam {
 
 		/**
 		 * Encode a content for the wire and queue its envelope.
+		 * @param p_endpoint The endpoint that sends it
 		 * @param p_address The destination
 		 * @param p_target_kind Kind of target
 		 * @param p_target_id Id of the target agent (TargetKind::Id)
@@ -1087,7 +1131,7 @@ namespace cam {
 		 * @param p_origin_environment Environment whose agent emitted the message, when this one forwards it
 		 * @return Success, a validation error of the content, OutboxFull or NotAttached
 		 **/
-		transport::Result<void> enqueue_content(const transport::Address& p_address, transport::TargetKind p_target_kind,
+		transport::Result<void> enqueue_content(transport::Endpoint& p_endpoint, const transport::Address& p_address, transport::TargetKind p_target_kind,
 												const std::string& p_target_id, const std::string& p_target_name, bool p_first_only,
 												const std::string& p_sender_id, const std::string& p_sender_name, const MessageContent& p_content,
 												const transport::SendOptions& p_options, const std::string& p_origin_environment = {}) const;
