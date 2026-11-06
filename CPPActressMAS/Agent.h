@@ -357,8 +357,9 @@ namespace cam {
 		transport::Result<void> move(const std::string& p_environment_id, const transport::SendOptions& p_options = {});
 
 		/**
-		 * True if this agent may move to that environment, as CanMove of the C#: its environment is connected, the
-		 * destination is another environment, and it is online among those known through the transport.
+		 * True if this agent may move to that environment, as CanMove of the C#: its environment is connected (the
+		 * loopback joined without configuration included), the destination is another environment, and it is online
+		 * among those known through the transport.
 		 * @param p_environment_id Destination environment id
 		 * @return True if a move there may start
 		 **/

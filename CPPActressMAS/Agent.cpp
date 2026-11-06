@@ -277,7 +277,7 @@ cam::transport::Result<void> cam::Agent::move(const std::string& p_environment_i
 
 bool cam::Agent::can_move(const std::string& p_environment_id) const {
 	const Environment* const l_environment = get_environment();
-	if (!l_environment->is_connected() || p_environment_id == l_environment->get_id()) {
+	if (!l_environment->has_endpoint() || p_environment_id == l_environment->get_id()) {
 		return false;
 	}
 	const auto l_environments = l_environment->environments();

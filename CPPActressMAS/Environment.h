@@ -272,6 +272,18 @@ namespace cam {
 		bool m_connect_on_start = false;
 
 		/**
+		 * True while the endpoint is the loopback joined by start() without configuration: hidden from is_connected() and
+		 * statistics(), replaced by any explicit connection.
+		 **/
+		bool m_implicit_loopback = false;
+
+		/**
+		 * The loopback of the process is joined by start() when nothing is configured; dropped after an explicit
+		 * disconnect().
+		 **/
+		bool m_join_loopback_on_start = true;
+
+		/**
 		 * Endpoint configuration of that connection.
 		 **/
 		transport::EndpointConfig m_endpoint_config;
@@ -594,8 +606,10 @@ namespace cam {
 		void set_transport_factory(TransportFactory p_factory) { m_transport_factory = std::move(p_factory); }
 
 		/**
-		 * Connect the environment through its transport URL (set_transport_url). An environment stays
-		 * offline until this is called; without URL it refuses (InvalidConfiguration).
+		 * Connect the environment through its transport URL (set_transport_url). Without any configuration, start()
+		 * joins the loopback of the process (namespace "default"), as with loopback://: the environments of the process
+		 * reach each other without a URL; an explicit connection replaces it. Without URL this call refuses
+		 * (InvalidConfiguration).
 		 * @return Success, or an error (no URL, unknown scheme, transport not compiled in, broker unreachable...)
 		 **/
 		transport::Result<void> connect();
@@ -622,26 +636,28 @@ namespace cam {
 
 		/**
 		 * Disconnect from the transport: flush the pending envelopes, announce the
-		 * departure and detach. Called by the simulation thread, outside a turn.
+		 * departure and detach. Called by the simulation thread, outside a turn. The loopback joined without
+		 * configuration is left too, and not joined again.
 		 * @return Success, or NotConnected
 		 **/
 		transport::Result<void> disconnect();
 
 		/**
-		 * True if connected to a transport.
+		 * True if connected to a transport (not the loopback joined without configuration).
 		 * @return True if connected
 		 **/
-		[[nodiscard]] bool is_connected() const { return m_endpoint != nullptr; }
+		[[nodiscard]] bool is_connected() const { return m_endpoint != nullptr && !m_implicit_loopback; }
 
 		/**
-		 * The other environments known through the transport (snapshot of values).
+		 * The other environments known through the transport, or through the loopback joined without configuration
+		 * (snapshot of values).
 		 * @return The environments, empty offline
 		 **/
 		[[nodiscard]] std::vector<transport::EnvironmentInfo> environments() const;
 
 		/**
 		 * Counters of the transport side of this environment.
-		 * @return The statistics, zero offline
+		 * @return The statistics, zero offline and on the loopback joined without configuration
 		 **/
 		[[nodiscard]] transport::Statistics statistics() const;
 
@@ -998,6 +1014,38 @@ namespace cam {
 		 * @param p_agent_name Its name
 		 **/
 		void announce_agent(transport::DirectoryEventKind p_event, const AgentId& p_agent_id, const std::string& p_agent_name);
+
+		/**
+		 * True if the changes of the agents are announced: on a transport, or on the loopback joined without
+		 * configuration once another environment is there (a newcomer learns the agents from the presence answered to it).
+		 * @return True if announced
+		 **/
+		[[nodiscard]] bool announces_agents() const;
+
+		/**
+		 * Join the loopback of the process (namespace "default") without configuration, hidden; an environment that cannot
+		 * join stays alone, as offline.
+		 **/
+		void join_loopback();
+
+		/**
+		 * Leave the transport: migrations given up, departure announced, endpoint detached.
+		 * @return Success, or the error of the detach
+		 **/
+		transport::Result<void> detach_endpoint();
+
+		/**
+		 * True if the environment has an endpoint, the loopback joined without configuration included.
+		 * @return True if it has one
+		 **/
+		[[nodiscard]] bool has_endpoint() const { return m_endpoint != nullptr; }
+
+		/**
+		 * True offline: no endpoint, or alone on the loopback joined without configuration, which then answers as
+		 * offline (NotConnected for the network scope and a move).
+		 * @return True if offline
+		 **/
+		[[nodiscard]] bool is_offline() const;
 
 		/**
 		 * Publish the queued envelopes and report the failures to on_delivery_failure().

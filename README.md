@@ -117,7 +117,7 @@ The full documentation of each class is in its header: [`Environment.h`](CPPActr
 
 ## Network
 
-An environment stays offline until it is connected to a transport. It owns its transport URL: the scheme selects the transport among those compiled in the library (`loopback://` always, `zenoh://` with `CAM_TRANSPORT_ZENOH`, `mqtt://` and `mqtts://` with `CAM_TRANSPORT_MQTT`, `actressmas://` with `CAM_TRANSPORT_ACTRESSMAS`). Without a URL, `connect()` refuses. Zenoh is the recommended network transport: peers talk to each other without a broker, one of them listens and the others connect to it (or to a `zenohd` router):
+An environment opens no network until it is connected to a transport. Without any configuration, the environments of one process reach each other through the in-process loopback once started (namespace `default`, as with `loopback://`; `is_connected()` stays false); alone there, an environment answers as offline. It owns its transport URL: the scheme selects the transport among those compiled in the library (`loopback://` always, `zenoh://` with `CAM_TRANSPORT_ZENOH`, `mqtt://` and `mqtts://` with `CAM_TRANSPORT_MQTT`, `actressmas://` with `CAM_TRANSPORT_ACTRESSMAS`). Without a URL, `connect()` refuses. Zenoh is the recommended network transport: peers talk to each other without a broker, one of them listens and the others connect to it (or to a `zenohd` router):
 ``` cpp
 CAM_AGENT_TYPE(MyMobileAgent);  // after the class, at global scope: its wire name, for programs that only receive it
 
@@ -127,7 +127,7 @@ l_environment.add<MyMobileAgent>("traveller");  // add<T>() also names the type 
 l_environment.start();                           // throws cam::transport::TransportError if the URL does not connect
 // other peers: {.m_url = "zenoh://127.0.0.1:7447/my-simulation"}
 // MQTT broker instead: {.m_url = "mqtt://127.0.0.1:1883/my-simulation"}
-// several environments of one process: {.m_url = "loopback://my-simulation"} for each
+// several environments of one process: nothing to configure; {.m_url = "loopback://my-simulation"} isolates them
 // to connect earlier and get a Result instead: if (const auto l_result = l_environment.connect(); !l_result) { ... }
 ```
 Migration needs the wire name of the agent type in both programs: `add<T>()` gives a type of a named namespace its qualified C++ name, `CAM_AGENT_TYPE(T)` fixes it for a program that only receives `T`, and `EnvironmentConfig::m_accepted_agent_types` restricts what an environment accepts.

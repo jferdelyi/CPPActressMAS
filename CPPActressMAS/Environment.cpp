@@ -121,7 +121,7 @@ void cam::Environment::remove(const AgentPointer& p_agent) {
 		retire(*p_agent);
 		return;
 	}
-	if (m_endpoint) {
+	if (announces_agents()) {
 		announce_agent(transport::DirectoryEventKind::AgentRemoved, l_id, p_agent->get_name());
 	}
 }
@@ -317,7 +317,7 @@ cam::Environment::send_content_by_name(const AgentId& p_sender_id, const std::st
 		return {};
 	}
 	deliver_by_name(p_sender_id, p_sender_name, p_receiver_name, p_content, p_is_fragment, p_first_only);
-	if (!m_endpoint) {
+	if (is_offline()) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "network scope asked while offline");
 	}
 	return enqueue_content(m_endpoint->address(transport::AddressKind::AllIn),
@@ -347,7 +347,7 @@ cam::Environment::broadcast_content(const AgentId& p_sender_id, const std::strin
 		return {};
 	}
 	deliver_broadcast(p_sender_id, p_sender_name, p_content, p_options.m_include_sender);
-	if (!m_endpoint) {
+	if (is_offline()) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "network scope asked while offline");
 	}
 	return enqueue_content(m_endpoint->address(transport::AddressKind::AllIn), transport::TargetKind::Broadcast,
@@ -400,11 +400,14 @@ cam::Environment::enqueue_content(const transport::Address& p_address, const tra
 }
 
 void cam::Environment::start() {
-	// The URL of the configuration connects at the first start(), before any turn; a failure is retried at the next one
+	// The URL of the configuration connects at the first start(), before any turn; a failure is retried at the next one.
+	// Without configuration, the loopback of the process
 	if (m_connect_on_start && !m_endpoint) {
 		if (const auto l_result = connect(m_transport_url, m_endpoint_config); !l_result) {
 			throw transport::TransportError(l_result.error());
 		}
+	} else if (m_join_loopback_on_start && !m_endpoint) {
+		join_loopback();
 	}
 	run_turns(m_no_turns);
 }
@@ -633,7 +636,7 @@ void cam::Environment::process_buffers() {
 		apply_incoming(std::move(l_envelope));
 	}
 	expire_migrations();
-	const auto l_changes = m_agent_collection.process_buffers(true);
+	const auto l_changes = m_agent_collection.process_buffers(announces_agents());
 	for (const auto& [l_id, l_name]: l_changes.m_removed) {
 		announce_agent(transport::DirectoryEventKind::AgentRemoved, l_id, l_name);
 	}
@@ -654,7 +657,7 @@ cam::transport::Result<void> cam::Environment::connect() {
 }
 
 cam::transport::Result<void> cam::Environment::connect(const std::string& p_url, transport::EndpointConfig p_config) {
-	if (m_endpoint) {
+	if (m_endpoint && !m_implicit_loopback) {
 		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment already connected");
 	}
 	m_transport_url = p_url;
@@ -667,14 +670,22 @@ cam::transport::Result<void> cam::Environment::connect(const std::string& p_url,
 
 cam::transport::Result<void>
 cam::Environment::connect(std::shared_ptr<transport::Transport> p_transport, transport::EndpointConfig p_config) {
-	if (m_endpoint) {
+	if (m_endpoint && !m_implicit_loopback) {
 		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment already connected");
 	}
 	if (!p_transport) {
 		return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "null transport");
 	}
+	// An explicit connection replaces the loopback joined without configuration, which comes back if it fails
+	const bool l_was_implicit = m_implicit_loopback;
+	if (l_was_implicit) {
+		(void) detach_endpoint();
+	}
 	auto l_endpoint = std::make_unique<transport::Endpoint>(m_id, std::move(p_config));
 	if (const auto l_result = l_endpoint->attach(std::move(p_transport)); !l_result) {
+		if (l_was_implicit) {
+			join_loopback();
+		}
 		return l_result;
 	}
 	m_endpoint = std::move(l_endpoint);
@@ -689,10 +700,32 @@ cam::Environment::connect(std::shared_ptr<transport::Transport> p_transport, tra
 }
 
 cam::transport::Result<void> cam::Environment::disconnect() {
-	m_connect_on_start = false;  // never reconnected by start() after an explicit disconnect
+	// Never reconnected by start() after an explicit disconnect, nor joined to the loopback of the process
+	m_connect_on_start = false;
+	m_join_loopback_on_start = false;
 	if (!m_endpoint) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "environment not connected");
 	}
+	if (m_implicit_loopback) {
+		(void) detach_endpoint();
+		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "environment not connected");
+	}
+	return detach_endpoint();
+}
+
+void cam::Environment::join_loopback() {
+	// Without configuration the environments of the process reach each other through the loopback of the default
+	// namespace, as with loopback://; one that cannot join (namespace taken with another codec) stays alone, as offline
+	auto l_transport = transport::open("loopback://");
+	if (!l_transport) {
+		return;
+	}
+	if (connect(std::move(l_transport.value()), m_endpoint_config)) {
+		m_implicit_loopback = true;
+	}
+}
+
+cam::transport::Result<void> cam::Environment::detach_endpoint() {
 	// Migrations cannot survive the transport: agents leaving resume here, agents arriving are dropped.
 	{
 		const std::lock_guard<std::mutex> l_lock(m_move_mutex);
@@ -715,6 +748,7 @@ cam::transport::Result<void> cam::Environment::disconnect() {
 	flush_outbox();
 	const auto l_result = m_endpoint->detach();
 	m_endpoint.reset();
+	m_implicit_loopback = false;
 	return l_result;
 }
 
@@ -726,10 +760,18 @@ std::vector<cam::transport::EnvironmentInfo> cam::Environment::environments() co
 }
 
 cam::transport::Statistics cam::Environment::statistics() const {
-	if (!m_endpoint) {
+	if (!m_endpoint || m_implicit_loopback) {
 		return {};
 	}
 	return m_endpoint->statistics();
+}
+
+bool cam::Environment::announces_agents() const {
+	return m_endpoint && (!m_implicit_loopback || !m_endpoint->environments().empty());
+}
+
+bool cam::Environment::is_offline() const {
+	return !m_endpoint || (m_implicit_loopback && m_endpoint->environments().empty());
 }
 
 void cam::Environment::flush_outbox() {
@@ -908,7 +950,7 @@ void cam::Environment::apply_incoming(transport::Envelope&& p_envelope) {
 
 cam::transport::Result<void> cam::Environment::request_move(const Agent& p_agent, const std::string& p_environment_id,
 															const transport::SendOptions& p_options) {
-	if (!m_endpoint) {
+	if (is_offline()) {
 		return make_error(ErrorCategory::State, ErrorCode::NotConnected, "move needs a transport");
 	}
 	if (p_agent.is_in_transit()) {
