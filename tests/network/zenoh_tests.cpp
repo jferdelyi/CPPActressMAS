@@ -15,8 +15,8 @@
  *                                                                        *
  **************************************************************************/
 
-// Network behaviour through the Zenoh transport: two peers of this process on 127.0.0.1 with explicit
-// endpoints (one listens, the other connects), no multicast scouting, no router. Delivery to a remote
+// Network behaviour through the Zenoh transport: two peers of this process on the same meeting point of 127.0.0.1
+// (the first listens on it, the other connects to it), no multicast scouting, no router. Delivery to a remote
 // agent, discovery and presence by liveliness, a late joiner that learns the agents at once, migration
 // there and back, isolation of two namespaces, clean departure. Skips with exit code 77 when this build
 // has no Zenoh transport (CTest SKIP_RETURN_CODE). Every wait is a condition with a deadline.
@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -215,7 +216,9 @@ namespace {
 
 	// Environment recording its transport hooks (simulation thread).
 	struct TestEnvironment final : cam::Environment {
-		explicit TestEnvironment(std::string p_label) : Environment(0, Mode::Sequential, TURN_DELAY_MS), m_label(std::move(p_label)) {}
+		explicit TestEnvironment(std::string p_label) :
+			Environment({.m_turns = 0, .m_mode = Mode::Sequential, .m_delay_after_turn = TURN_DELAY_MS, .m_endpoint = {.m_name = p_label}}),
+			m_label(std::move(p_label)) {}
 	protected:
 		void on_transport_event(const TransportEvent p_event) override { g_recorder.record(m_label + ":transport:" + to_string(p_event)); }
 		void on_environment_joined(const EnvironmentInfo& p_info) override { g_recorder.record(m_label + ":joined:" + p_info.m_name); }
@@ -225,24 +228,30 @@ namespace {
 		std::string m_label;
 	};
 
-	// One peer per environment: the first listens on a port of 127.0.0.1, the others connect to it.
-	std::string listen_url(const int p_port, const std::string& p_namespace) {
-		return "zenoh://?listen=tcp/127.0.0.1:" + std::to_string(p_port) + "&ns=" + p_namespace;
+	// One peer per environment on a port of 127.0.0.1: the first listens on it, the others connect to it.
+	cam::NetworkConfig zenoh(const std::uint16_t p_port, const std::string& p_namespace = "default",
+							 const cam::Codec p_codec = cam::Codec::Protobuf) {
+		return {.m_protocol = cam::Protocol::Zenoh, .m_port = p_port, .m_namespace = p_namespace, .m_codec = p_codec};
 	}
 
-	std::string connect_url(const int p_port, const std::string& p_namespace) {
-		return "zenoh://127.0.0.1:" + std::to_string(p_port) + "/" + p_namespace;
-	}
-
-	// Through a factory of the environment: exactly the transport of the URL, without the loopback of the process beside
-	// it, so that two environments of this process talk through Zenoh.
-	Result<void> connect(cam::Environment& p_environment, const std::string& p_name, const std::string& p_url) {
-		EndpointConfig l_config;
-		l_config.m_name = p_name;
-		p_environment.set_transport_factory([](const std::string& p_factory_url, TransportConfig p_factory_config) {
-			return cam::transport::open(p_factory_url, std::move(p_factory_config));
+	// Through a factory of the environment: Zenoh alone, without the loopback of the process beside it, so that two
+	// environments of this process talk through Zenoh.
+	Result<void> connect(cam::Environment& p_environment, cam::NetworkConfig p_network) {
+		p_environment.set_transport_factory([](const std::string& p_url, TransportConfig p_config) {
+			return cam::transport::open(p_url, std::move(p_config));
 		});
-		return p_environment.connect(p_url, l_config);
+		if (auto l_result = p_environment.set_network(std::move(p_network)); !l_result) {
+			return l_result;
+		}
+		return p_environment.connect();
+	}
+
+	// Without a factory: Zenoh, and the loopback of the process beside it.
+	Result<void> connect_beside(cam::Environment& p_environment, cam::NetworkConfig p_network) {
+		if (auto l_result = p_environment.set_network(std::move(p_network)); !l_result) {
+			return l_result;
+		}
+		return p_environment.connect();
 	}
 
 	// Runs the environments in threads until the condition holds or the deadline passes.
@@ -284,16 +293,16 @@ namespace {
 
 TEST_SUITE("zenoh") {
 
-	TEST_CASE("the envelope codec is chosen by the URL, per namespace") {
-		int l_port = 17452;
-		for (const std::string l_codec: {"compact", "json"}) {
-			CAPTURE(l_codec);
+	TEST_CASE("the envelope codec is chosen by the network, per namespace") {
+		std::uint16_t l_port = 17452;
+		for (const auto& [l_name, l_codec]: {std::pair{"compact", cam::Codec::Compact}, std::pair{"json", cam::Codec::Json}}) {
+			CAPTURE(l_name);
 			g_recorder.clear();
 			TestEnvironment l_env_a("A");
 			TestEnvironment l_env_b("B");
-			const std::string l_namespace = "cam-test-codec-" + l_codec;
-			REQUIRE(connect(l_env_a, "A", listen_url(l_port, l_namespace) + "&codec=" + l_codec));
-			REQUIRE(connect(l_env_b, "B", connect_url(l_port, l_namespace) + "?codec=" + l_codec));
+			const std::string l_namespace = std::string("cam-test-codec-") + l_name;
+			REQUIRE(connect(l_env_a, zenoh(l_port, l_namespace, l_codec)));
+			REQUIRE(connect(l_env_b, zenoh(l_port, l_namespace, l_codec)));
 			const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 			l_env_b.add<Keeper>("keeper-b");
 			l_env_a.add<RemoteSender>("sender", l_receiver);
@@ -305,9 +314,8 @@ TEST_SUITE("zenoh") {
 			REQUIRE(l_env_b.disconnect());
 			l_port++;
 		}
-		// An unknown codec is refused before anything opens.
-		TestEnvironment l_env_c("C");
-		const auto l_unknown = connect(l_env_c, "C", listen_url(17454, "cam-test-codec") + "&codec=cbor");
+		// An unknown codec, named in a URL of the facade, is refused before anything opens.
+		const auto l_unknown = cam::transport::open("zenoh://?listen=tcp/127.0.0.1:17454&ns=cam-test-codec&codec=cbor");
 		REQUIRE_FALSE(l_unknown);
 		CHECK(l_unknown.error().m_code == ErrorCode::UnsupportedCodec);
 	}
@@ -316,8 +324,8 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(connect(l_env_a, "A", listen_url(17447, "cam-test-delivery")));
-		REQUIRE(connect(l_env_b, "B", connect_url(17447, "cam-test-delivery")));
+		REQUIRE(connect(l_env_a, zenoh(17447, "cam-test-delivery")));
+		REQUIRE(connect(l_env_b, zenoh(17447, "cam-test-delivery")));
 
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
@@ -340,8 +348,8 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(connect(l_env_a, "A", listen_url(17460, "cam-test-order")));
-		REQUIRE(connect(l_env_b, "B", connect_url(17460, "cam-test-order")));
+		REQUIRE(connect(l_env_a, zenoh(17460, "cam-test-order")));
+		REQUIRE(connect(l_env_b, zenoh(17460, "cam-test-order")));
 
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
@@ -363,8 +371,8 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(connect(l_env_a, "A", listen_url(17448, "cam-test-discovery")));
-		REQUIRE(connect(l_env_b, "B", connect_url(17448, "cam-test-discovery")));
+		REQUIRE(connect(l_env_a, zenoh(17448, "cam-test-discovery")));
+		REQUIRE(connect(l_env_b, zenoh(17448, "cam-test-discovery")));
 		l_env_a.add<Watcher>("watcher-a");
 		l_env_b.add<Watcher>("watcher-b");
 
@@ -384,7 +392,7 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_c("C");
-		REQUIRE(connect(l_env_a, "A", listen_url(17449, "cam-test-late")));
+		REQUIRE(connect(l_env_a, zenoh(17449, "cam-test-late")));
 		const cam::AgentId l_receiver = l_env_a.add<Receiver>("receiver");
 		l_env_a.add<Beacon>("beacon");
 		// A runs alone first: its presence, with the receiver, is what the newcomer must get.
@@ -393,7 +401,7 @@ TEST_SUITE("zenoh") {
 		const bool l_alone = cam::test::wait_until([] { return g_recorder.contains("beacon:ready"); }, 5s);
 		CHECK(l_alone);
 
-		REQUIRE(connect(l_env_c, "C", connect_url(17449, "cam-test-late")));
+		REQUIRE(connect(l_env_c, zenoh(17449, "cam-test-late")));
 		l_env_c.add<RemoteSender>("sender", l_receiver);
 		l_env_c.add<Keeper>("keeper-c");
 		std::thread l_thread_c(&cam::Environment::start, &l_env_c);
@@ -416,8 +424,8 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_c("C");
-		REQUIRE(connect(l_env_a, "A", listen_url(17455, "cam-test-idle")));
-		REQUIRE(connect(l_env_c, "C", connect_url(17455, "cam-test-idle")));
+		REQUIRE(connect(l_env_a, zenoh(17455, "cam-test-idle")));
+		REQUIRE(connect(l_env_c, zenoh(17455, "cam-test-idle")));
 		l_env_c.add<Keeper>("keeper-c");
 		const bool l_seen = run_until({&l_env_c}, [] { return g_recorder.contains("C:joined:A"); }, 10s);
 		CHECK(l_seen);
@@ -431,8 +439,8 @@ TEST_SUITE("zenoh") {
 		TestEnvironment l_away("away");
 		l_home.register_agent_type<Traveler>("Traveler");
 		l_away.register_agent_type<Traveler>("Traveler");
-		REQUIRE(connect(l_home, "home", listen_url(17450, "cam-test-migration")));
-		REQUIRE(connect(l_away, "away", connect_url(17450, "cam-test-migration")));
+		REQUIRE(connect(l_home, zenoh(17450, "cam-test-migration")));
+		REQUIRE(connect(l_away, zenoh(17450, "cam-test-migration")));
 
 		l_home.add<Traveler>("traveler", l_home.get_id(), l_away.get_id());
 		l_home.add<Keeper>("keeper-home");
@@ -456,9 +464,9 @@ TEST_SUITE("zenoh") {
 		TestEnvironment l_one_b("one-b");
 		TestEnvironment l_two("two");
 		// Three sessions: one-a listens, the two others connect to it; "two" shares the links, not the namespace.
-		REQUIRE(connect(l_one_a, "one-a", listen_url(17451, "cam-test-ns-one")));
-		REQUIRE(connect(l_one_b, "one-b", connect_url(17451, "cam-test-ns-one")));
-		REQUIRE(connect(l_two, "two", connect_url(17451, "cam-test-ns-two")));
+		REQUIRE(connect(l_one_a, zenoh(17451, "cam-test-ns-one")));
+		REQUIRE(connect(l_one_b, zenoh(17451, "cam-test-ns-one")));
+		REQUIRE(connect(l_two, zenoh(17451, "cam-test-ns-two")));
 		l_one_a.add<Waver>("waver");
 		l_one_a.add<Keeper>("keeper-1a");
 		l_one_b.add<Receiver>("receiver-one");
@@ -493,15 +501,8 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		for (TestEnvironment* const l_environment: {&l_env_a, &l_env_b}) {
-			// A factory of the environment keeps the two of them on Zenoh (no loopback of the process beside it)
-			l_environment->set_transport_factory([](const std::string& p_url, TransportConfig p_config) {
-				return cam::transport::open(p_url, std::move(p_config));
-			});
-			REQUIRE(l_environment->set_network({.m_protocol = cam::Protocol::Zenoh, .m_port = 17466, .m_namespace = "cam-test-role"}));
-		}
-		REQUIRE(l_env_a.connect());  // listens on 127.0.0.1:17466
-		REQUIRE(l_env_b.connect());  // the port is taken: connects to A
+		REQUIRE(connect(l_env_a, zenoh(17466, "cam-test-role")));  // listens on 127.0.0.1:17466
+		REQUIRE(connect(l_env_b, zenoh(17466, "cam-test-role")));  // the port is taken: connects to A
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
 		l_env_a.add<RemoteSender>("sender", l_receiver);
@@ -512,15 +513,15 @@ TEST_SUITE("zenoh") {
 		REQUIRE(l_env_b.disconnect());
 	}
 
-	// Connected with connect(url), without a factory: the loopback of the process beside Zenoh.
+	// Connected without a factory: the loopback of the process beside Zenoh.
 
 	TEST_CASE("two environments of this process on Zenoh reach each other through the loopback, even when their peers do not meet") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
 		// Two listening peers, neither connected to the other: Zenoh cannot carry anything between them
-		REQUIRE(l_env_a.connect(listen_url(17461, "cam-test-beside")));
-		REQUIRE(l_env_b.connect(listen_url(17462, "cam-test-beside")));
+		REQUIRE(connect_beside(l_env_a, zenoh(17461, "cam-test-beside")));
+		REQUIRE(connect_beside(l_env_b, zenoh(17462, "cam-test-beside")));
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
 		l_env_a.add<RemoteSender>("sender", l_receiver);
@@ -539,8 +540,8 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(l_env_a.connect(listen_url(17463, "cam-test-once")));
-		REQUIRE(l_env_b.connect(connect_url(17463, "cam-test-once")));
+		REQUIRE(connect_beside(l_env_a, zenoh(17463, "cam-test-once")));
+		REQUIRE(connect_beside(l_env_b, zenoh(17463, "cam-test-once")));
 		l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
 		l_env_a.add<Waver>("waver");
@@ -566,7 +567,7 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");  // no configuration: the loopback of the process, namespace "default"
 		TestEnvironment l_env_b("B");
-		REQUIRE(l_env_b.connect(listen_url(17464, "default")));
+		REQUIRE(connect_beside(l_env_b, zenoh(17464)));
 		const cam::AgentId l_receiver = l_env_a.add<Receiver>("receiver");
 		l_env_a.add<Keeper>("keeper-a");
 		l_env_b.add<RemoteSender>("sender", l_receiver);
@@ -580,8 +581,8 @@ TEST_SUITE("zenoh") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(l_env_a.connect(listen_url(17465, "cam-test-ns-a")));
-		REQUIRE(l_env_b.connect(connect_url(17465, "cam-test-ns-b")));
+		REQUIRE(connect_beside(l_env_a, zenoh(17465, "cam-test-ns-a")));
+		REQUIRE(connect_beside(l_env_b, zenoh(17465, "cam-test-ns-b")));
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Watcher>("watcher");
 		l_env_a.add<RemoteSender>("sender", l_receiver);

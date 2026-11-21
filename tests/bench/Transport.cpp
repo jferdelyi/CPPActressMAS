@@ -19,11 +19,13 @@
 // pong agent in environment B, each environment its own node of the transport, exchange round trips by
 // id through the directory. A round trip takes at least two turns (a remote message reaches its agent at
 // the turn after its reception), so the figure measures the transport path, not the local one.
-// Usage: bench_Transport [--transport loopback|mqtt|zenoh] [--url-a URL] [--url-b URL] [--pings N] [--trials N]
-// Exit code 77 when the transport is not compiled in or the broker does not answer (skipped).
+// Usage: bench_Transport [--transport loopback|mqtt|zenoh] [--host HOST] [--port PORT] [--pings N] [--trials N]
+// The host and the port of the meeting point: 127.0.0.1 and, for MQTT, CAM_MQTT_HOST and CAM_MQTT_PORT or 1883, for
+// Zenoh 17460 (A listens on it, B connects to it). Exit code 77 when the transport is not compiled in or the broker does not answer (skipped).
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -41,8 +43,8 @@ namespace {
 
 	struct Settings {
 		std::string m_transport = "loopback";
-		std::string m_url_a;
-		std::string m_url_b;
+		std::string m_host;       // empty: CAM_MQTT_HOST for MQTT, otherwise 127.0.0.1
+		std::uint16_t m_port = 0;  // 0: the port of the benchmark for the transport
 		long m_pings = 2000;
 		int m_trials = 5;
 	};
@@ -100,17 +102,24 @@ namespace {
 	};
 
 	// Opens the transport of one environment according to the settings; the loopback is shared. A network transport goes
-	// through a factory of the environment: exactly the transport of the URL, without the loopback of the process beside
-	// it, so that the two environments of this process talk through the network.
-	cam::transport::Result<void> connect(cam::Environment& p_environment, const Settings& p_settings, const std::string& p_url,
+	// through a factory of the environment: the transport alone, without the loopback of the process beside it, so that
+	// the two environments of this process talk through the network.
+	cam::transport::Result<void> connect(cam::Environment& p_environment, const Settings& p_settings,
 										 const std::shared_ptr<cam::transport::Transport>& p_loopback) {
 		if (p_settings.m_transport == "loopback") {
 			return p_environment.connect(p_loopback);
 		}
-		p_environment.set_transport_factory([](const std::string& p_factory_url, cam::transport::TransportConfig p_factory_config) {
-			return cam::transport::open(p_factory_url, std::move(p_factory_config));
+		p_environment.set_transport_factory([](const std::string& p_url, cam::transport::TransportConfig p_config) {
+			return cam::transport::open(p_url, std::move(p_config));
 		});
-		return p_environment.connect(p_url);
+		const cam::NetworkConfig l_network{.m_protocol = p_settings.m_transport == "mqtt" ? cam::Protocol::Mqtt : cam::Protocol::Zenoh,
+										   .m_host = p_settings.m_host,
+										   .m_port = p_settings.m_port,
+										   .m_namespace = "cam-bench"};
+		if (const auto l_result = p_environment.set_network(l_network); !l_result) {
+			return l_result;
+		}
+		return p_environment.connect();
 	}
 
 	bool has_scheme(const std::string& p_scheme) {
@@ -131,31 +140,38 @@ int main(int argc, char** argv) {
 		const char* l_value = i + 1 < argc ? argv[i + 1] : nullptr;
 		if (l_argument == "--transport" && l_value) {
 			l_settings.m_transport = argv[++i];
-		} else if (l_argument == "--url-a" && l_value) {
-			l_settings.m_url_a = argv[++i];
-		} else if (l_argument == "--url-b" && l_value) {
-			l_settings.m_url_b = argv[++i];
+		} else if (l_argument == "--host" && l_value) {
+			l_settings.m_host = argv[++i];
+		} else if (l_argument == "--port" && l_value) {
+			l_settings.m_port = static_cast<std::uint16_t>(std::atoi(argv[++i]));
 		} else if (l_argument == "--pings" && l_value) {
 			l_settings.m_pings = std::atol(argv[++i]);
 		} else if (l_argument == "--trials" && l_value) {
 			l_settings.m_trials = std::atoi(argv[++i]);
 		} else {
-			std::cerr << "usage: bench_Transport [--transport loopback|mqtt|zenoh] [--url-a URL] [--url-b URL] [--pings N] [--trials N]\n";
+			std::cerr << "usage: bench_Transport [--transport loopback|mqtt|zenoh] [--host HOST] [--port PORT] [--pings N] [--trials N]\n";
 			return 2;
 		}
 	}
-	if (l_settings.m_transport == "mqtt" && l_settings.m_url_a.empty()) {
+	if (l_settings.m_transport != "loopback" && l_settings.m_transport != "mqtt" && l_settings.m_transport != "zenoh") {
+		std::cerr << "usage: bench_Transport [--transport loopback|mqtt|zenoh] [--host HOST] [--port PORT] [--pings N] [--trials N]\n";
+		return 2;
+	}
+	if (l_settings.m_transport == "mqtt") {
 		const char* l_host = std::getenv("CAM_MQTT_HOST");
 		const char* l_port = std::getenv("CAM_MQTT_PORT");
-		l_settings.m_url_a = std::string("mqtt://") + (l_host ? l_host : "127.0.0.1") + ":" + (l_port ? l_port : "1883") + "/cam-bench";
-		l_settings.m_url_b = l_settings.m_url_a;
+		if (l_settings.m_host.empty() && l_host) {
+			l_settings.m_host = l_host;
+		}
+		if (l_settings.m_port == 0) {
+			l_settings.m_port = static_cast<std::uint16_t>(l_port ? std::atoi(l_port) : 1883);
+		}
 	}
-	if (l_settings.m_transport == "zenoh" && l_settings.m_url_a.empty()) {
-		l_settings.m_url_a = "zenoh://?listen=tcp/127.0.0.1:17460&ns=cam-bench";
-		l_settings.m_url_b = "zenoh://127.0.0.1:17460/cam-bench";
+	if (l_settings.m_transport == "zenoh" && l_settings.m_port == 0) {
+		l_settings.m_port = 17460;
 	}
-	if (l_settings.m_url_b.empty()) {
-		l_settings.m_url_b = l_settings.m_url_a;
+	if (l_settings.m_host.empty()) {
+		l_settings.m_host = "127.0.0.1";
 	}
 	if (l_settings.m_transport != "loopback" && !has_scheme(l_settings.m_transport)) {
 		std::cout << "skipped: this build has no " << l_settings.m_transport << " transport\n";
@@ -180,11 +196,11 @@ int main(int argc, char** argv) {
 		cam::Environment l_environment_a(0, cam::EnvironmentMasMode::Sequential);
 		cam::Environment l_environment_b(0, cam::EnvironmentMasMode::Sequential);
 		// A first: with Zenoh it is the listening peer B connects to.
-		if (const auto l_result = connect(l_environment_a, l_settings, l_settings.m_url_a, l_loopback); !l_result) {
+		if (const auto l_result = connect(l_environment_a, l_settings, l_loopback); !l_result) {
 			std::cout << "skipped: " << l_result.error().m_message << std::endl;
 			return 77;
 		}
-		if (const auto l_result = connect(l_environment_b, l_settings, l_settings.m_url_b, l_loopback); !l_result) {
+		if (const auto l_result = connect(l_environment_b, l_settings, l_loopback); !l_result) {
 			std::cout << "skipped: " << l_result.error().m_message << std::endl;
 			return 77;
 		}

@@ -164,7 +164,7 @@ if (CAM_TRANSPORT_ACTRESSMAS)
 	target_link_libraries(cam_actressmas_relay cam_test_support ${CAM_TEST_LIBRARY})
 	add_test(NAME iso.RemoteMessages.actressmas
 		COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/rules/RemoteMessages.actressmas.rules ${CMAKE_CURRENT_LIST_DIR}/oracles/RemoteMessages.txt
-			-- $<TARGET_FILE:cam_actressmas_relay> -- $<TARGET_FILE:iso_RemoteMessages> 0 actressmas://127.0.0.1:{port}
+			-- $<TARGET_FILE:cam_actressmas_relay> -- $<TARGET_FILE:iso_RemoteMessages> 0 actressmas 127.0.0.1 {port}
 		WORKING_DIRECTORY $<TARGET_FILE_DIR:iso_RemoteMessages>)
 	set_tests_properties(iso.RemoteMessages.actressmas PROPERTIES LABELS iso TIMEOUT 300)
 	cam_apply_tsan_suppressions(iso.RemoteMessages.actressmas)
@@ -172,7 +172,7 @@ if (CAM_TRANSPORT_ACTRESSMAS)
 	# do: the scenario waits for both answers, whatever their order
 	add_test(NAME iso.RemoteMessages.actressmas.unordered
 		COMMAND cam_iso_check ${CMAKE_CURRENT_LIST_DIR}/rules/RemoteMessages.actressmas.unordered.rules ${CMAKE_CURRENT_LIST_DIR}/oracles/RemoteMessages.txt
-			-- $<TARGET_FILE:cam_actressmas_relay> --swap 300 -- $<TARGET_FILE:iso_RemoteMessages> 0 actressmas://127.0.0.1:{port}
+			-- $<TARGET_FILE:cam_actressmas_relay> --swap 300 -- $<TARGET_FILE:iso_RemoteMessages> 0 actressmas 127.0.0.1 {port}
 		WORKING_DIRECTORY $<TARGET_FILE_DIR:iso_RemoteMessages>)
 	set_tests_properties(iso.RemoteMessages.actressmas.unordered PROPERTIES LABELS iso TIMEOUT 300)
 	cam_apply_tsan_suppressions(iso.RemoteMessages.actressmas.unordered)

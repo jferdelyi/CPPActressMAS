@@ -15,18 +15,22 @@
  *                                                                        *
  **************************************************************************/
 
-// C++ feature example (no C# original): round trips between two environments through a transport chosen by its URL.
+// C++ feature example (no C# original): round trips between two environments of this process.
 // A ping agent of environment A and a pong agent of environment B exchange messages by id; the directory of the
-// transport tells A where the pong agent lives. Without argument both environments share the in-process loopback;
-// with URLs they go through the network, for instance:
-//   TransportRoundTrip "zenoh://?listen=tcp/127.0.0.1:17449&ns=roundtrip" "zenoh://127.0.0.1:17449/roundtrip"
-//   TransportRoundTrip "mqtt://127.0.0.1:1883/roundtrip"
-// A third argument sets the number of round trips (1000 by default).
+// transport tells A where the pong agent lives. TransportRoundTrip [round trips [protocol [host [port]]]]: 1000 round
+// trips by default; without protocol both environments meet on the loopback of the process, without configuration;
+// with one they also connect to that network, for instance:
+//   TransportRoundTrip 1000 zenoh 127.0.0.1 17449
+//   TransportRoundTrip 1000 mqtt 127.0.0.1 1883
+// Between the environments of this process, the traffic stays on the loopback: the network is crossed by two
+// processes.
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -85,26 +89,57 @@ namespace {
 			}
 	};
 
+	// The network named on the command line: <protocol> [host] [port], from p_first; none without protocol.
+	std::optional<cam::NetworkConfig> network_of(const int p_argc, char** p_argv, const int p_first, const std::string& p_namespace) {
+		cam::NetworkConfig l_network{.m_namespace = p_namespace};
+		if (p_argc <= p_first) {
+			return l_network;
+		}
+		const std::string l_protocol = p_argv[p_first];
+		for (const auto& [l_name, l_value]: {std::pair{"loopback", cam::Protocol::Loopback}, std::pair{"zenoh", cam::Protocol::Zenoh},
+											  std::pair{"mqtt", cam::Protocol::Mqtt}, std::pair{"mqtts", cam::Protocol::Mqtts}}) {
+			if (l_protocol == l_name) {
+				l_network.m_protocol = l_value;
+			}
+		}
+		if (l_network.m_protocol == cam::Protocol::None) {
+			std::cerr << "Unknown protocol " << l_protocol << ": loopback, zenoh, mqtt or mqtts" << std::endl;
+			return std::nullopt;
+		}
+		if (p_argc > p_first + 1) {
+			l_network.m_host = p_argv[p_first + 1];
+		}
+		if (p_argc > p_first + 2) {
+			l_network.m_port = static_cast<std::uint16_t>(std::atoi(p_argv[p_first + 2]));
+		}
+		return l_network;
+	}
+
 } // namespace
 
 int main(int argc, char** argv) {
-	const std::string l_url_a = argc > 1 ? argv[1] : "loopback://roundtrip";
-	const std::string l_url_b = argc > 2 ? argv[2] : l_url_a;
-	const long l_round_trips = argc > 3 ? std::atol(argv[3]) : 1000;
+	const long l_round_trips = argc > 1 ? std::atol(argv[1]) : 1000;
+	const auto l_network = network_of(argc, argv, 2, "roundtrip");
+	if (!l_network) {
+		return 1;
+	}
 
-	cam::Environment l_environment_a({.m_mode = cam::EnvironmentMasMode::Sequential, .m_url = l_url_a, .m_endpoint = {.m_name = "A"}});
-	cam::Environment l_environment_b({.m_mode = cam::EnvironmentMasMode::Sequential, .m_url = l_url_b, .m_endpoint = {.m_name = "B"}});
-	// Connected before their threads start (A first: with Zenoh it is the peer that listens)
-	for (auto* const l_environment: {&l_environment_a, &l_environment_b}) {
-		if (const auto l_result = l_environment->connect(); !l_result) {
-			std::cerr << "Cannot connect to " << l_environment->transport_url() << ": " << l_result.error().m_message << std::endl;
-			return 1;
+	cam::Environment l_environment_a({.m_mode = cam::EnvironmentMasMode::Sequential, .m_network = *l_network, .m_endpoint = {.m_name = "A"}});
+	cam::Environment l_environment_b({.m_mode = cam::EnvironmentMasMode::Sequential, .m_network = *l_network, .m_endpoint = {.m_name = "B"}});
+	// Connected before their threads start (A first: with Zenoh it is the peer that listens); without protocol, each
+	// joins the loopback at its start, and the ping agent waits for the directory to know the pong agent
+	if (l_network->m_protocol != cam::Protocol::None) {
+		for (auto* const l_environment: {&l_environment_a, &l_environment_b}) {
+			if (const auto l_result = l_environment->connect(); !l_result) {
+				std::cerr << "Cannot connect: " << l_result.error().m_message << std::endl;
+				return 1;
+			}
 		}
 	}
 
 	const cam::AgentId l_pong = l_environment_b.add<PongAgent>("pong");
 	l_environment_a.add<PingAgent>("ping", l_pong, l_round_trips);
-	std::cout << "Round trips between two environments through " << l_url_a << std::endl;
+	std::cout << "Round trips between two environments through the loopback of the process" << std::endl;
 	std::thread l_thread_b(&cam::Environment::start, &l_environment_b);
 	std::thread l_thread_a(&cam::Environment::start, &l_environment_a);
 	l_thread_a.join();

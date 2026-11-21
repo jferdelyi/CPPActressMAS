@@ -249,7 +249,7 @@ do_e20cpp() {  # E20 RemoteMessages with C++ containers (the port of tests/iso o
   e20 bash -c "timeout 25 dotnet ServerConsole/bin/Release/$E20_TFM/ServerConsole.dll 5000 3000 20 > /w/logs/e20cpp/server-a.txt 2>&1" &
   local server=$!
   sleep 4
-  cpp timeout 20 "$bin" 0 actressmas://127.0.0.1:5000 > "$L/actual-a.txt" 2>&1 || true
+  cpp timeout 20 "$bin" 0 actressmas 127.0.0.1 5000 > "$L/actual-a.txt" 2>&1 || true
   wait "$server" || true
   # (b) Container2 in C#, Container1 in C++
   e20 bash -c "B=bin/Release/$E20_TFM; L=/w/logs/e20cpp
@@ -259,7 +259,7 @@ do_e20cpp() {  # E20 RemoteMessages with C++ containers (the port of tests/iso o
     wait" &
   local csharp=$!
   sleep 8
-  cpp timeout 20 "$bin" 0 actressmas://127.0.0.1:5000 Container1 > "$L/container1-b.txt" 2>&1 || true
+  cpp timeout 20 "$bin" 0 actressmas 127.0.0.1 5000 Container1 > "$L/container1-b.txt" 2>&1 || true
   wait "$csharp" || true
   cat "$L/container1-b.txt" "$L/container2-b.txt" > "$L/actual-b.txt"
   # Both runs are checked, whatever the first one gives

@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
@@ -50,7 +51,9 @@ namespace {
 	using namespace cam::transport;
 	using Mode = cam::EnvironmentMasMode;
 
-	std::string g_url;  // mqtt://host:port
+	std::string g_url;  // mqtt://host:port, for the facade
+	std::string g_host;
+	std::uint16_t g_port = 0;
 	std::string g_broker_control;
 	cam::test::Recorder g_recorder;
 
@@ -229,7 +232,9 @@ namespace {
 
 	// Environment recording its transport hooks (simulation thread).
 	struct TestEnvironment final : cam::Environment {
-		explicit TestEnvironment(std::string p_label) : Environment(0, Mode::Sequential, TURN_DELAY_MS), m_label(std::move(p_label)) {}
+		explicit TestEnvironment(std::string p_label) :
+			Environment({.m_turns = 0, .m_mode = Mode::Sequential, .m_delay_after_turn = TURN_DELAY_MS, .m_endpoint = {.m_name = p_label}}),
+			m_label(std::move(p_label)) {}
 	protected:
 		void on_transport_event(const TransportEvent p_event) override { g_recorder.record(m_label + ":transport:" + to_string(p_event)); }
 		void on_environment_joined(const EnvironmentInfo& p_info) override { g_recorder.record(m_label + ":joined:" + p_info.m_name); }
@@ -249,17 +254,30 @@ namespace {
 		return s_suffix;
 	}
 
-	// One node per environment, in the namespace of the test. Through a factory of the environment: exactly the transport
-	// of the URL, without the loopback of the process beside it, so that two environments of this process talk through
-	// the broker.
-	Result<void> connect(cam::Environment& p_environment, const std::string& p_name, const std::string& p_namespace,
-						 const std::string& p_query = {}) {
-		EndpointConfig l_config;
-		l_config.m_name = p_name;
-		p_environment.set_transport_factory([](const std::string& p_factory_url, TransportConfig p_factory_config) {
-			return cam::transport::open(p_factory_url, std::move(p_factory_config));
+	// One node per environment on the broker, in the namespace of the test.
+	cam::NetworkConfig mqtt(const std::string& p_namespace, const cam::Codec p_codec = cam::Codec::Protobuf) {
+		return {.m_protocol = cam::Protocol::Mqtt, .m_host = g_host, .m_port = g_port, .m_namespace = p_namespace + "-" + process_suffix(),
+				.m_codec = p_codec};
+	}
+
+	// Through a factory of the environment: MQTT alone, without the loopback of the process beside it, so that two
+	// environments of this process talk through the broker.
+	Result<void> connect(cam::Environment& p_environment, cam::NetworkConfig p_network) {
+		p_environment.set_transport_factory([](const std::string& p_url, TransportConfig p_config) {
+			return cam::transport::open(p_url, std::move(p_config));
 		});
-		return p_environment.connect(g_url + "/" + p_namespace + "-" + process_suffix() + (p_query.empty() ? "" : "?" + p_query), l_config);
+		if (auto l_result = p_environment.set_network(std::move(p_network)); !l_result) {
+			return l_result;
+		}
+		return p_environment.connect();
+	}
+
+	// Without a factory: MQTT, and the loopback of the process beside it.
+	Result<void> connect_beside(cam::Environment& p_environment, cam::NetworkConfig p_network) {
+		if (auto l_result = p_environment.set_network(std::move(p_network)); !l_result) {
+			return l_result;
+		}
+		return p_environment.connect();
 	}
 
 	// Runs the environments in threads until the condition holds or the deadline passes.
@@ -295,8 +313,8 @@ TEST_SUITE("mqtt") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(connect(l_env_a, "A", "cam-test-delivery"));
-		REQUIRE(connect(l_env_b, "B", "cam-test-delivery"));
+		REQUIRE(connect(l_env_a, mqtt("cam-test-delivery")));
+		REQUIRE(connect(l_env_b, mqtt("cam-test-delivery")));
 
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
@@ -319,8 +337,8 @@ TEST_SUITE("mqtt") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(connect(l_env_a, "A", "cam-test-order"));
-		REQUIRE(connect(l_env_b, "B", "cam-test-order"));
+		REQUIRE(connect(l_env_a, mqtt("cam-test-order")));
+		REQUIRE(connect(l_env_b, mqtt("cam-test-order")));
 
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
@@ -350,14 +368,14 @@ TEST_SUITE("mqtt") {
 		CHECK_FALSE(l_refused);
 	}
 
-	TEST_CASE("the envelope codec is chosen by the URL, per namespace") {
-		for (const std::string l_codec: {"compact", "json"}) {
-			CAPTURE(l_codec);
+	TEST_CASE("the envelope codec is chosen by the network, per namespace") {
+		for (const auto& [l_name, l_codec]: {std::pair{"compact", cam::Codec::Compact}, std::pair{"json", cam::Codec::Json}}) {
+			CAPTURE(l_name);
 			g_recorder.clear();
 			TestEnvironment l_env_a("A");
 			TestEnvironment l_env_b("B");
-			REQUIRE(connect(l_env_a, "A", "cam-test-codec-" + l_codec, "codec=" + l_codec));
-			REQUIRE(connect(l_env_b, "B", "cam-test-codec-" + l_codec, "codec=" + l_codec));
+			REQUIRE(connect(l_env_a, mqtt(std::string("cam-test-codec-") + l_name, l_codec)));
+			REQUIRE(connect(l_env_b, mqtt(std::string("cam-test-codec-") + l_name, l_codec)));
 			const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 			l_env_b.add<Keeper>("keeper-b");
 			l_env_a.add<RemoteSender>("sender", l_receiver);
@@ -374,8 +392,8 @@ TEST_SUITE("mqtt") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(connect(l_env_a, "A", "cam-test-discovery"));
-		REQUIRE(connect(l_env_b, "B", "cam-test-discovery"));
+		REQUIRE(connect(l_env_a, mqtt("cam-test-discovery")));
+		REQUIRE(connect(l_env_b, mqtt("cam-test-discovery")));
 		l_env_a.add<Watcher>("watcher-a");
 		l_env_b.add<Watcher>("watcher-b");
 
@@ -399,8 +417,8 @@ TEST_SUITE("mqtt") {
 		TestEnvironment l_away("away");
 		l_home.register_agent_type<Traveler>("Traveler");
 		l_away.register_agent_type<Traveler>("Traveler");
-		REQUIRE(connect(l_home, "home", "cam-test-migration"));
-		REQUIRE(connect(l_away, "away", "cam-test-migration"));
+		REQUIRE(connect(l_home, mqtt("cam-test-migration")));
+		REQUIRE(connect(l_away, mqtt("cam-test-migration")));
 
 		l_home.add<Traveler>("traveler", l_home.get_id(), l_away.get_id());
 		l_home.add<Keeper>("keeper-home");
@@ -423,9 +441,9 @@ TEST_SUITE("mqtt") {
 		TestEnvironment l_one_a("one-a");
 		TestEnvironment l_one_b("one-b");
 		TestEnvironment l_two("two");
-		REQUIRE(connect(l_one_a, "one-a", "cam-test-ns-one"));
-		REQUIRE(connect(l_one_b, "one-b", "cam-test-ns-one"));
-		REQUIRE(connect(l_two, "two", "cam-test-ns-two"));
+		REQUIRE(connect(l_one_a, mqtt("cam-test-ns-one")));
+		REQUIRE(connect(l_one_b, mqtt("cam-test-ns-one")));
+		REQUIRE(connect(l_two, mqtt("cam-test-ns-two")));
 		l_one_a.add<Waver>("waver");
 		l_one_a.add<Keeper>("keeper-1a");
 		l_one_b.add<Receiver>("receiver-one");
@@ -456,8 +474,8 @@ TEST_SUITE("mqtt") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(connect(l_env_a, "A", "cam-test-reconnect"));
-		REQUIRE(connect(l_env_b, "B", "cam-test-reconnect"));
+		REQUIRE(connect(l_env_a, mqtt("cam-test-reconnect")));
+		REQUIRE(connect(l_env_b, mqtt("cam-test-reconnect")));
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
 		l_env_a.add<Pinger>("pinger", l_receiver);
@@ -500,15 +518,14 @@ TEST_SUITE("mqtt") {
 		REQUIRE(l_env_b.disconnect());
 	}
 
-	// Connected with connect(url), without a factory: the loopback of the process beside the broker.
+	// Connected without a factory: the loopback of the process beside the broker.
 
 	TEST_CASE("a broadcast between two environments of this process on the broker arrives once") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		const std::string l_url = g_url + "/cam-test-once-" + process_suffix();
-		REQUIRE(l_env_a.connect(l_url));
-		REQUIRE(l_env_b.connect(l_url));
+		REQUIRE(connect_beside(l_env_a, mqtt("cam-test-once")));
+		REQUIRE(connect_beside(l_env_b, mqtt("cam-test-once")));
 		l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Keeper>("keeper-b");
 		l_env_a.add<Waver>("waver");
@@ -534,8 +551,8 @@ TEST_SUITE("mqtt") {
 		g_recorder.clear();
 		TestEnvironment l_env_a("A");
 		TestEnvironment l_env_b("B");
-		REQUIRE(l_env_a.connect(g_url + "/cam-test-ns-a-" + process_suffix()));
-		REQUIRE(l_env_b.connect(g_url + "/cam-test-ns-b-" + process_suffix()));
+		REQUIRE(connect_beside(l_env_a, mqtt("cam-test-ns-a")));
+		REQUIRE(connect_beside(l_env_b, mqtt("cam-test-ns-b")));
 		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
 		l_env_b.add<Watcher>("watcher");
 		l_env_a.add<RemoteSender>("sender", l_receiver);
@@ -566,6 +583,8 @@ int main(int argc, char** argv) {
 		return 77;
 	}
 	g_url = std::string("mqtt://") + l_host + ":" + l_port;
+	g_host = l_host;
+	g_port = static_cast<std::uint16_t>(std::atoi(l_port));
 	if (const char* l_control = std::getenv("CAM_MQTT_BROKER_CONTROL"); l_control) {
 		g_broker_control = l_control;
 	}

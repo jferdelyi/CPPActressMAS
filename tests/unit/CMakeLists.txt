@@ -18,8 +18,8 @@ if (CAM_TRANSPORT_ACTRESSMAS)
 	cam_add_doctest(actressmas_transport cam_actressmas_transport_tests actressmas_transport.cpp)
 endif()
 
-# Environment::connect(url): the URL kept by the environment, the default factory over the schemes compiled in, a
-# custom factory, and the shared loopback of a namespace.
+# Environment::connect(): the network kept by the environment, the transports compiled in, a custom factory, the shared
+# loopback of a namespace, and the URLs the facade still reads.
 cam_add_doctest(connect cam_connect_tests connect.cpp)
 
 # The network of an environment: defaults, the URL and the configuration of each protocol, the role of Zenoh, refusals.

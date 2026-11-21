@@ -4,10 +4,11 @@ The network transports, label `network` plus the transport (`mqtt` or `zenoh`). 
 (reported as skipped by CTest) when its transport is not compiled in or its server is missing; `-LE network` keeps a
 run off the network.
 
-The helpers connect each environment through a factory (`set_transport_factory`): exactly the transport of the URL, so two
-environments of one process talk through the protocol. The cases at the end connect with `connect(url)` alone: two
-environments of the process in the same namespace then talk through the loopback of the process, the network copies of
-their traffic are dropped, and two namespaces stay isolated.
+The helpers give each environment its network (`set_network`: protocol, host, port, namespace) and connect it through a
+factory (`set_transport_factory`): the transport alone, so two environments of one process talk through the protocol.
+With Zenoh, the two environments of a test share the same meeting point: the first listens on it, the second connects to
+it. The cases at the end connect without a factory: two environments of the process in the same namespace then talk
+through the loopback of the process, the network copies of their traffic are dropped, and two namespaces stay isolated.
 
 | Test | File | Needs |
 |---|---|---|

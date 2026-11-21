@@ -23,16 +23,18 @@
 // containers are two environments of this process on the loopback transport, each named after its container, and
 // their consoles are printed one after the other at the end. The C# containers never stop: they are stopped once the
 // ping agent has its answers, as the processes of the oracle were.
-// Arguments: [pause after each turn in ms] [transport URL] [container], by default 0 as the C#, the loopback transport
-// and both containers. With an actressmas:// URL (a server, without container name), each container connects under its
-// own name, as the C# containers do; a container named alone runs alone, against containers of other processes.
+// Arguments: [pause after each turn in ms] [protocol [host [port [container]]]], by default 0 as the C#, the loopback
+// transport and both containers. With actressmas (a server), each container connects under its own name, as the C#
+// containers do; a container named alone runs alone, against containers of other processes.
 
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -51,10 +53,10 @@ class Container final : public cam::Environment {
 		// Set once the scenario is over: the processes of the oracle are stopped from outside
 		static inline std::atomic<bool> s_stop = false;
 
-		Container(const std::string& p_name, const int p_pause, const std::string& p_url) :
+		Container(const std::string& p_name, const int p_pause, const cam::NetworkConfig& p_network) :
 				Environment({.m_mode = cam::EnvironmentMasMode::Parallel,
 							 .m_delay_after_turn = p_pause,
-							 .m_url = p_url,
+							 .m_network = p_network,
 							 .m_endpoint = {.m_name = p_name}}),
 				m_name(p_name) {}
 
@@ -160,18 +162,47 @@ void configure(Container& p_env, const std::string& p_home) {
 	}
 }
 
-// The URL of a container: an ActressMAS server takes the name of the container, as the C# Container does
-std::string url_of(const std::string& p_url, const std::string& p_container) {
-	return p_url.rfind("actressmas://", 0) == 0 ? p_url + "/" + p_container : p_url;
+// The protocol named on the command line
+std::optional<cam::Protocol> protocol_of(const std::string& p_name) {
+	for (const auto& [l_name, l_protocol]: {std::pair{"loopback", cam::Protocol::Loopback}, std::pair{"zenoh", cam::Protocol::Zenoh},
+											 std::pair{"mqtt", cam::Protocol::Mqtt}, std::pair{"mqtts", cam::Protocol::Mqtts},
+											 std::pair{"actressmas", cam::Protocol::ActressMas}}) {
+		if (p_name == l_name) {
+			return l_protocol;
+		}
+	}
+	return std::nullopt;
+}
+
+// The network of a container: an ActressMAS server takes the name of the container, as the C# Container does
+cam::NetworkConfig network_of(cam::NetworkConfig p_network, const std::string& p_container) {
+	if (p_network.m_protocol == cam::Protocol::ActressMas) {
+		p_network.m_container = p_container;
+	}
+	return p_network;
 }
 
 int main(int argc, char** argv) {
 	const int l_pause = argc > 1 ? std::atoi(argv[1]) : 0;
-	const std::string l_url = argc > 2 ? argv[2] : "loopback://remote-messages";
-	const std::string l_only = argc > 3 ? argv[3] : "";
+	cam::NetworkConfig l_network{.m_protocol = cam::Protocol::Loopback, .m_namespace = "remote-messages"};
+	if (argc > 2) {
+		const auto l_protocol = protocol_of(argv[2]);
+		if (!l_protocol) {
+			cam::dotnet::write_line(std::string("Unknown protocol ") + argv[2] + ": loopback, zenoh, mqtt, mqtts or actressmas");
+			return 1;
+		}
+		l_network.m_protocol = *l_protocol;
+	}
+	if (argc > 3) {
+		l_network.m_host = argv[3];
+	}
+	if (argc > 4) {
+		l_network.m_port = static_cast<std::uint16_t>(std::atoi(argv[4]));
+	}
+	const std::string l_only = argc > 5 ? argv[5] : "";
 
-	Container l_container1("Container1", l_pause, url_of(l_url, "Container1"));
-	Container l_container2("Container2", l_pause, url_of(l_url, "Container2"));
+	Container l_container1("Container1", l_pause, network_of(l_network, "Container1"));
+	Container l_container2("Container2", l_pause, network_of(l_network, "Container2"));
 	std::vector<Container*> l_running;  // Container2 first, as in the oracle
 	for (Container* const l_container: {&l_container2, &l_container1}) {
 		if (l_only.empty() || l_only == l_container->container_name()) {

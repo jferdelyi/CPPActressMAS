@@ -55,7 +55,7 @@ class Container final : public cam::Environment {
 		Container(const std::string& p_name, const int p_pause) :
 				Environment({.m_mode = cam::EnvironmentMasMode::Parallel,
 							 .m_delay_after_turn = p_pause,
-							 .m_url = "loopback://mas-mobile",
+							 .m_network = {.m_protocol = cam::Protocol::Loopback, .m_namespace = "mas-mobile"},
 							 .m_endpoint = {.m_name = p_name}}),
 				m_name(p_name) {}
 

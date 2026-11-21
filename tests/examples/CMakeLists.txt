@@ -75,11 +75,14 @@ endif()
 # ---------------------------------------------------------------- features of the C++ port
 # The examples without a C# original (Examples/Features) run and report what they measure.
 if (TARGET TransportRoundTrip)
-	add_test(NAME examples.TransportRoundTrip COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:TransportRoundTrip> loopback://smoke-roundtrip
-		loopback://smoke-roundtrip 50)
-	set_tests_properties(examples.TransportRoundTrip PROPERTIES LABELS examples PASS_REGULAR_EXPRESSION "50 round trips in" TIMEOUT 120)
-	cam_apply_tsan_suppressions(examples.TransportRoundTrip)
-	cam_fail_on_sanitizer_report(examples.TransportRoundTrip)
+	# Without protocol (the loopback of the process, without configuration), then with the loopback named
+	add_test(NAME examples.TransportRoundTrip COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:TransportRoundTrip> 50)
+	add_test(NAME examples.TransportRoundTrip.loopback COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:TransportRoundTrip> 50 loopback)
+	foreach (l_test examples.TransportRoundTrip examples.TransportRoundTrip.loopback)
+		set_tests_properties(${l_test} PROPERTIES LABELS examples PASS_REGULAR_EXPRESSION "50 round trips in" TIMEOUT 120)
+		cam_apply_tsan_suppressions(${l_test})
+		cam_fail_on_sanitizer_report(${l_test})
+	endforeach()
 endif()
 if (TARGET SharedText)
 	add_test(NAME examples.SharedText COMMAND ${CAM_RUN_CHECKED} $<TARGET_FILE:SharedText> 10 4)

@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <thread>
@@ -121,14 +122,14 @@ namespace {
 		std::string m_label;
 	};
 
-	std::string url_of(const cam::test::ActressMasRelay& p_relay, const std::string& p_container) {
-		return "actressmas://127.0.0.1:" + std::to_string(p_relay.port()) + "/" + p_container;
-	}
-
+	// A container of this process on the relay
 	Result<void> connect(cam::Environment& p_environment, const cam::test::ActressMasRelay& p_relay, const std::string& p_container) {
-		EndpointConfig l_config;
-		l_config.m_name = p_container;
-		return p_environment.connect(url_of(p_relay, p_container), l_config);
+		const cam::NetworkConfig l_network{.m_protocol = cam::Protocol::ActressMas, .m_port = static_cast<std::uint16_t>(p_relay.port()),
+										   .m_container = p_container};
+		if (auto l_result = p_environment.set_network(l_network); !l_result) {
+			return l_result;
+		}
+		return p_environment.connect();
 	}
 
 	// A transport of its own, with no environment, on the relay
@@ -294,11 +295,15 @@ TEST_SUITE("actressmas") {
 		REQUIRE(l_env_1.disconnect());
 	}
 
-	TEST_CASE("a URL without a container name is refused before anything opens") {
+	TEST_CASE("a network or a URL without a container name is refused before anything opens") {
 		TestEnvironment l_env("C");
-		const auto l_result = l_env.connect("actressmas://127.0.0.1:5000");
+		REQUIRE(l_env.set_network({.m_protocol = cam::Protocol::ActressMas}));
+		const auto l_result = l_env.connect();
 		REQUIRE_FALSE(l_result);
 		CHECK(l_result.error().m_code == ErrorCode::InvalidConfiguration);
+		const auto l_url = cam::transport::open("actressmas://127.0.0.1:5000");
+		REQUIRE_FALSE(l_url);
+		CHECK(l_url.error().m_code == ErrorCode::InvalidConfiguration);
 	}
 
 	TEST_CASE("the loss of the server disconnects the container, and the publications that follow are refused") {

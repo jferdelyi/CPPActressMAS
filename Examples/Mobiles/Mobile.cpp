@@ -15,7 +15,10 @@
  *                                                                        *
  **************************************************************************/
 
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <queue>
 #include <thread>
 
@@ -23,9 +26,9 @@
 #include <transport/Facade.h>
 
 // Port of ActressMAS E20 MasMobileConsole: a mobile agent visits every other environment, asks the
-// static agents there for information and reports once home. Three environments of this process, each
-// its own node: Mobile [url-c [url-a-b]]; by default loopback://mobile, in memory (D46). Zenoh peers on
-// 127.0.0.1 (C listening, A and B connecting, no router) or an MQTT URL work too, see the URLs in main.
+// static agents there for information and reports once home. Three environments of this process:
+// Mobile [protocol [host [port]]]; by default the loopback of the process, in memory, without configuration.
+// With Zenoh (C listening on the meeting point, B and A connecting to it, no router) or MQTT, see main.
 
 class StaticAgent : public cam::Agent {
 public:
@@ -146,23 +149,56 @@ public:
 };
 CAM_AGENT_TYPE(MobileAgent);  // its wire name, for programs that only receive it
 
+// The network named on the command line: <protocol> [host] [port], from p_first; none without protocol.
+std::optional<cam::NetworkConfig> network_of(const int p_argc, char** p_argv, const int p_first, const std::string& p_namespace) {
+	cam::NetworkConfig l_network{.m_namespace = p_namespace};
+	if (p_argc <= p_first) {
+		return l_network;
+	}
+	const std::string l_protocol = p_argv[p_first];
+	for (const auto& [l_name, l_value] : {std::pair{"loopback", cam::Protocol::Loopback}, std::pair{"zenoh", cam::Protocol::Zenoh},
+										   std::pair{"mqtt", cam::Protocol::Mqtt}, std::pair{"mqtts", cam::Protocol::Mqtts}}) {
+		if (l_protocol == l_name) {
+			l_network.m_protocol = l_value;
+		}
+	}
+	if (l_network.m_protocol == cam::Protocol::None) {
+		std::cerr << "Unknown protocol " << l_protocol << ": loopback, zenoh, mqtt or mqtts" << std::endl;
+		return std::nullopt;
+	}
+	if (p_argc > p_first + 1) {
+		l_network.m_host = p_argv[p_first + 1];
+	}
+	if (p_argc > p_first + 2) {
+		l_network.m_port = static_cast<std::uint16_t>(std::atoi(p_argv[p_first + 2]));
+	}
+	return l_network;
+}
+
 int main(int argc, char** argv) {
-	// Without argument the three environments share the in-process loopback, available in every build.
-	// With a URL they go through the network, for example:
-	//   Mobile "zenoh://?listen=tcp/127.0.0.1:17447&ns=mobile" "zenoh://127.0.0.1:17447/mobile"
-	//   Mobile "mqtt://127.0.0.1:1883/mobile"
-	const std::string l_url_c = argc > 1 ? argv[1] : "loopback://mobile";
-	const std::string l_url_ab = argc > 2 ? argv[2] : l_url_c;
+	// Without argument the three environments meet on the loopback of the process, available in every build.
+	// With a protocol they also connect to that network, the host and the port of the meeting point by default
+	// 127.0.0.1 and the port of the protocol, for example:
+	//   Mobile zenoh 127.0.0.1 17447
+	//   Mobile mqtt 127.0.0.1 1883
+	// Between the environments of this process, the traffic stays on the loopback.
+	const auto l_network = network_of(argc, argv, 1, "mobile");
+	if (!l_network) {
+		return 1;
+	}
 
 	// A turn every 100 ms: the peers have time to announce themselves and the trip stays readable.
-	cam::Environment l_environment_c({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_c});
-	cam::Environment l_environment_b({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_ab});
-	cam::Environment l_environment_a({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_url = l_url_ab});
-	// Connected before their threads start, so that every environment knows the others when the agent leaves
-	for (auto* const l_environment : {&l_environment_c, &l_environment_b, &l_environment_a}) {
-		if (const auto l_result = l_environment->connect(); !l_result) {
-			std::cerr << "Cannot connect to " << l_environment->transport_url() << ": " << l_result.error().m_message << std::endl;
-			return 1;
+	cam::Environment l_environment_c({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_network = *l_network});
+	cam::Environment l_environment_b({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_network = *l_network});
+	cam::Environment l_environment_a({.m_mode = cam::EnvironmentMasMode::Parallel, .m_delay_after_turn = 100, .m_network = *l_network});
+	// Connected before their threads start (C first: with Zenoh it is the peer that listens); without protocol, each
+	// joins the loopback at its start, and the agent waits a few turns before planning its trip
+	if (l_network->m_protocol != cam::Protocol::None) {
+		for (auto* const l_environment : {&l_environment_c, &l_environment_b, &l_environment_a}) {
+			if (const auto l_result = l_environment->connect(); !l_result) {
+				std::cerr << "Cannot connect: " << l_result.error().m_message << std::endl;
+				return 1;
+			}
 		}
 	}
 

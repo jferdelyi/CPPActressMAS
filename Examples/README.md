@@ -15,8 +15,9 @@ in `build/<preset>/Examples/`). Each folder has its own README with the C# examp
 | [`PrisonerDilemma/`](PrisonerDilemma/README.md) | `PrisonerDilemma` | Ten rounds of the prisoner's dilemma, tit for tat |
 | [`Serialization/`](Serialization/README.md) | `Serialization` | Saving and restoring the state of an agent |
 | [`Benchmarks/`](Benchmarks/README.md) | `PingPong`, `Skynet` | The two original C++ benchmarks |
-| [`Features/`](Features/README.md) | `TransportRoundTrip`, `SharedText` | Features of the C++ port without a C# original: transports chosen by URL, shared texts |
+| [`Features/`](Features/README.md) | `TransportRoundTrip`, `SharedText` | Features of the C++ port without a C# original: round trips between environments, shared texts |
 
-The examples run offline. `Mobile` and `MobilePingPong` connect their environments to `loopback://` by default
-(in memory, same process); a Zenoh or MQTT URL can be given instead, see their sources. The inventory of the
+The examples run offline. `Mobile` and `MobilePingPong` put their environments on the loopback of the process by
+default (in memory, same process); a Zenoh or MQTT network can be given instead (`[protocol [host [port]]]`, see their
+sources). The inventory of the
 C# examples and of what remains to port is kept outside the code, in the porting notes.

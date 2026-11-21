@@ -16,8 +16,8 @@
  **************************************************************************/
 
 // Environments of one process without any configuration: started, they reach each other through the loopback of the
-// process (namespace "default"), as with loopback://, hidden from is_connected() and statistics(); alone there, an
-// environment answers as offline. Each environment runs one turn per start(), so the turns interleave
+// process (namespace "default"), as with the Loopback protocol, hidden from is_connected() and statistics(); alone
+// there, an environment answers as offline. Each environment runs one turn per start(), so the turns interleave
 // deterministically on one thread, but for the concurrent case. Agents record into a Recorder and never assert.
 
 #include <doctest/doctest.h>
@@ -57,8 +57,8 @@ namespace {
 
 	// Environment with a label, one turn per start().
 	struct TestEnvironment final : cam::Environment {
-		explicit TestEnvironment(std::string p_label, const Mode p_mode = Mode::Sequential, std::string p_url = {}) :
-				Environment({.m_turns = 1, .m_mode = p_mode, .m_url = std::move(p_url)}), m_label(std::move(p_label)) {
+		explicit TestEnvironment(std::string p_label, const Mode p_mode = Mode::Sequential, cam::NetworkConfig p_network = {}) :
+				Environment({.m_turns = 1, .m_mode = p_mode, .m_network = std::move(p_network)}), m_label(std::move(p_label)) {
 			g_labels[get_id()] = m_label;
 		}
 		void on_environment_joined(const EnvironmentInfo&) override { g_recorder.record(m_label + ":joined"); }
@@ -232,8 +232,8 @@ TEST_SUITE("transparent_loopback") {
 	TEST_CASE("an environment that names its namespace is isolated from the others") {
 		g_recorder.clear();
 		TestEnvironment l_a("A");
-		TestEnvironment l_b("B", Mode::Sequential, "loopback://transparent-other");
-		TestEnvironment l_c("C", Mode::Sequential, "loopback://transparent-third");
+		TestEnvironment l_b("B", Mode::Sequential, {.m_protocol = cam::Protocol::Loopback, .m_namespace = "transparent-other"});
+		TestEnvironment l_c("C", Mode::Sequential, {.m_protocol = cam::Protocol::Loopback, .m_namespace = "transparent-third"});
 		const cam::AgentId l_receiver = l_a.add<Receiver>("r");
 		l_b.add<Sender>("s", l_receiver);
 		l_a.start();
@@ -256,12 +256,13 @@ TEST_SUITE("transparent_loopback") {
 		l_b.start();
 		l_a.start();
 		CHECK_FALSE(l_a.is_connected());
-		CHECK(l_a.transport_url().empty());
+		CHECK(l_a.get_network().m_protocol == cam::Protocol::None);
 		CHECK(l_a.statistics().m_sent == 0);
 		REQUIRE(l_a.environments().size() == 1);
-		REQUIRE(l_a.connect("loopback://transparent-explicit"));
+		REQUIRE(l_a.set_network({.m_protocol = cam::Protocol::Loopback, .m_namespace = "transparent-explicit"}));
+		REQUIRE(l_a.connect());
 		CHECK(l_a.is_connected());
-		CHECK(l_a.transport_url() == "loopback://transparent-explicit");
+		CHECK(l_a.get_network().m_namespace == "transparent-explicit");
 		l_b.start();
 		l_a.start();
 		CHECK(online(l_a.environments()) == 0);
