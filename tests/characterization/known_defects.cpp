@@ -432,7 +432,8 @@ TEST_SUITE("characterization") {
 		const int l_before = thread_count();
 		REQUIRE(l_before > 0);
 		cam::Environment l_env(1, Mode::Sequential);
-		CHECK(thread_count() == l_before);  // the turn threads exist in Parallel mode only
+		// no turn thread in Sequential mode; Linux may still count a thread joined just before, so the count can drop
+		CHECK(thread_count() <= l_before);
 	}
 #endif
 
