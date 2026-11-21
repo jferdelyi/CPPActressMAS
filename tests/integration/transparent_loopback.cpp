@@ -301,6 +301,52 @@ TEST_SUITE("transparent_loopback") {
 		CHECK(l_a.environments().empty());  // and did not join again
 	}
 
+	TEST_CASE("set_network takes an environment without configuration to the loopback of another namespace at once") {
+		g_recorder.clear();
+		TestEnvironment l_a("A");
+		TestEnvironment l_b("B");
+		TestEnvironment l_c("C");
+		REQUIRE(l_c.set_network({.m_namespace = "transparent-moved"}));  // offline: kept for its start
+		l_a.start();
+		l_b.start();
+		l_c.start();
+		l_a.start();
+		REQUIRE(online(l_a.environments()) == 1);  // B; C is in its own namespace
+		REQUIRE(l_a.set_network({.m_namespace = "transparent-moved"}));
+		CHECK_FALSE(l_a.is_connected());  // still the loopback joined without connect
+		l_b.start();
+		l_c.start();
+		l_a.start();
+		CHECK(online(l_b.environments()) == 0);  // A left the default namespace
+		CHECK(online(l_c.environments()) == 1);  // and joined C
+		const auto l_environments = l_a.environments();
+		CHECK(std::any_of(l_environments.begin(), l_environments.end(),
+						  [&l_c](const EnvironmentInfo& p_info) { return p_info.m_online && p_info.m_id == l_c.get_id(); }));
+	}
+
+	TEST_CASE("the Loopback protocol connects an environment to the loopback of its namespace, visibly") {
+		g_recorder.clear();
+		TestEnvironment l_a("A");
+		TestEnvironment l_b("B");
+		for (TestEnvironment* const l_environment: {&l_a, &l_b}) {
+			REQUIRE(l_environment->set_network({.m_protocol = cam::Protocol::Loopback, .m_namespace = "transparent-explicit"}));
+		}
+		const cam::AgentId l_receiver = l_a.add<Receiver>("r");
+		l_b.add<Sender>("s", l_receiver);
+		// A announced r before B joined: B learns it from the presence A answers, held a few turns behind the gap that
+		// announcement left in the order of A (the loopback joined without configuration announces nothing alone)
+		for (int l_round = 0; l_round < 6 && !g_recorder.contains("r:hello"); ++l_round) {
+			l_a.start();
+			l_b.start();
+		}
+		l_a.start();
+		CHECK(l_a.is_connected());
+		CHECK(l_b.is_connected());
+		CHECK(g_recorder.contains("r:hello"));
+		REQUIRE(l_a.disconnect());
+		REQUIRE(l_b.disconnect());
+	}
+
 	TEST_CASE("two environments of the process running at the same time reach each other") {
 		std::atomic<int> l_received_a{0};
 		std::atomic<int> l_received_b{0};

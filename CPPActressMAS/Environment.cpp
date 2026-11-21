@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <random>
 #include <shared_mutex>
+#include <stdexcept>
 #include <thread>
 
 #include "Agent.h"
@@ -51,6 +52,40 @@ namespace {
 				std::chrono::system_clock::now().time_since_epoch()).count());
 	}
 
+	// The port of the meeting point of a network: its own, or the one of its protocol.
+	std::string port_of(const cam::NetworkConfig& p_network) {
+		if (p_network.m_port != 0) {
+			return std::to_string(p_network.m_port);
+		}
+		switch (p_network.m_protocol) {
+			case cam::Protocol::Zenoh:
+				return "7447";
+			case cam::Protocol::Mqtt:
+				return "1883";
+			case cam::Protocol::Mqtts:
+				return "8883";
+			case cam::Protocol::ActressMas:
+				return "5000";
+			case cam::Protocol::None:
+			case cam::Protocol::Loopback:
+			default:
+				return {};
+		}
+	}
+
+	// The wire name of a codec.
+	std::string name_of(const cam::Codec p_codec) {
+		switch (p_codec) {
+			case cam::Codec::Compact:
+				return "compact";
+			case cam::Codec::Json:
+				return "json";
+			case cam::Codec::Protobuf:
+			default:
+				return "protobuf";
+		}
+	}
+
 } // namespace
 
 cam::Environment::Environment(const int p_no_turns, const EnvironmentMasMode& p_mode,
@@ -65,10 +100,17 @@ cam::Environment::Environment(const EnvironmentConfig& p_config) :
 		m_agent_collection(p_config.m_mode, p_config.m_seed.value_or(std::random_device()()), p_config.m_random,
 						   p_config.m_run_setup_separately),
 		m_transport_url(p_config.m_url),
-		m_connect_on_start(!p_config.m_url.empty()),
+		m_network(p_config.m_network),
+		m_connect_on_start(!p_config.m_url.empty() || p_config.m_network.m_protocol != Protocol::None),
 		m_endpoint_config(p_config.m_endpoint),
 		m_accepted_agent_types(p_config.m_accepted_agent_types),
 		m_boundary(0) {
+	if (!transport::is_valid_namespace(m_network.m_namespace)) {
+		throw std::invalid_argument("invalid namespace \"" + m_network.m_namespace + "\": [a-z0-9-]{1,32}");
+	}
+	if (!m_transport_url.empty() && m_network.m_protocol != Protocol::None) {
+		throw std::invalid_argument("a transport URL and a network protocol: give one of them");
+	}
 }
 
 cam::Environment::~Environment() {
@@ -427,10 +469,11 @@ cam::Environment::enqueue_content(transport::Endpoint& p_endpoint, const transpo
 }
 
 void cam::Environment::start() {
-	// The URL of the configuration connects at the first start(), before any turn; a failure is retried at the next one.
-	// Without configuration, the loopback of the process
-	if (m_connect_on_start && !m_endpoint) {
-		if (const auto l_result = connect(m_transport_url, m_endpoint_config); !l_result) {
+	// The URL or the network of the configuration connects at the first start(), before any turn, in place of the
+	// loopback joined without configuration; a failure is retried at the next one. Without configuration, the loopback
+	// of the process
+	if (m_connect_on_start && (!m_endpoint || m_implicit_loopback)) {
+		if (const auto l_result = connect(); !l_result) {
 			throw transport::TransportError(l_result.error());
 		}
 	} else if (m_join_loopback_on_start && !m_endpoint) {
@@ -688,10 +731,13 @@ void cam::Environment::process_buffers() {
 //###############################################################
 
 cam::transport::Result<void> cam::Environment::connect() {
-	if (m_transport_url.empty()) {
-		return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "no transport URL: call set_transport_url or connect(url)");
+	if (!m_transport_url.empty()) {
+		return connect(m_transport_url, m_endpoint_config);
 	}
-	return connect(m_transport_url, m_endpoint_config);
+	if (m_network.m_protocol != Protocol::None) {
+		return connect_network();
+	}
+	return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "nothing to connect to: give a network protocol");
 }
 
 cam::transport::Result<void> cam::Environment::connect(const std::string& p_url, transport::EndpointConfig p_config) {
@@ -704,19 +750,130 @@ cam::transport::Result<void> cam::Environment::connect(const std::string& p_url,
 		return l_transport.error();
 	}
 	const transport::EndpointConfig l_config = p_config;
-	if (const auto l_result = connect(std::move(l_transport.value()), std::move(p_config)); !l_result) {
+	if (const auto l_result = attach_transport(std::move(l_transport.value()), std::move(p_config)); !l_result) {
 		return l_result;
 	}
 	// A network transport opened from its URL keeps the environments of the process on the loopback (not one given by a
-	// factory of this environment)
-	if (!m_transport_factory) {
-		join_loopback_beside(p_url, l_config);
+	// factory of this environment); zenoh://, mqtt:// and mqtts:// only: loopback:// is the loopback already,
+	// actressmas:// goes through the C# server
+	if (const auto l_parsed = transport::parse_url(p_url); !m_transport_factory && l_parsed &&
+		(l_parsed.value().m_scheme == "zenoh" || l_parsed.value().m_scheme == "mqtt" || l_parsed.value().m_scheme == "mqtts")) {
+		join_loopback_beside(l_parsed.value().m_config.m_namespace, l_config);
 	}
 	return {};
 }
 
 cam::transport::Result<void>
 cam::Environment::connect(std::shared_ptr<transport::Transport> p_transport, transport::EndpointConfig p_config) {
+	if (m_endpoint && !m_implicit_loopback) {
+		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment already connected");
+	}
+	// One namespace per environment: the one of its network
+	if (p_transport && p_transport->config().m_namespace != m_network.m_namespace) {
+		return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration,
+						  "transport of namespace " + p_transport->config().m_namespace + " for an environment of namespace " +
+						  m_network.m_namespace);
+	}
+	return attach_transport(std::move(p_transport), std::move(p_config));
+}
+
+cam::transport::Result<void> cam::Environment::set_network(NetworkConfig p_network) {
+	if (!transport::is_valid_namespace(p_network.m_namespace)) {
+		return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "invalid namespace " + p_network.m_namespace);
+	}
+	if (is_connected()) {
+		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment connected: disconnect first");
+	}
+	if (!m_transport_url.empty() && p_network.m_protocol != Protocol::None) {
+		return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "a transport URL and a network protocol: give one of them");
+	}
+	// On the loopback joined without configuration (no connect), a new namespace takes the environment there at once
+	const bool l_moves = m_implicit_loopback && p_network.m_namespace != m_network.m_namespace;
+	m_network = std::move(p_network);
+	if (m_transport_url.empty()) {
+		m_connect_on_start = m_network.m_protocol != Protocol::None;
+	}
+	if (l_moves) {
+		(void) detach_endpoint();
+		join_loopback();
+	}
+	return {};
+}
+
+cam::transport::Result<void> cam::Environment::connect_network() {
+	if (m_endpoint && !m_implicit_loopback) {
+		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment already connected");
+	}
+	const std::string l_meeting_point = m_network.m_host + ":" + port_of(m_network);
+	transport::Result<std::shared_ptr<transport::Transport>> l_transport = make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration,
+																					  "nothing to connect to: give a network protocol");
+	switch (m_network.m_protocol) {
+		case Protocol::Loopback:
+			l_transport = open_transport("loopback://");
+			break;
+		case Protocol::Zenoh:
+			// Listen on the meeting point when this environment can (the first one), connect there otherwise
+			l_transport = open_transport("zenoh://?listen=tcp/" + l_meeting_point);
+			if (!l_transport) {
+				l_transport = open_transport("zenoh://" + l_meeting_point);
+				if (!l_transport) {
+					transport::Error l_error = l_transport.error();
+					l_error.m_message += " (listening on " + l_meeting_point + " failed too)";
+					return l_error;
+				}
+			}
+			break;
+		case Protocol::Mqtt:
+		case Protocol::Mqtts:
+			l_transport = open_transport(std::string(m_network.m_protocol == Protocol::Mqtts ? "mqtts://" : "mqtt://") + l_meeting_point +
+										 (m_network.m_mqtt_version == MqttVersion::V3_1_1 ? "?mqtt=3.1.1" : ""));
+			break;
+		case Protocol::ActressMas:
+			if (m_network.m_container.empty()) {
+				return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "an ActressMAS network needs the name of its container");
+			}
+			l_transport = open_transport("actressmas://" + l_meeting_point + "/" + m_network.m_container);
+			break;
+		case Protocol::None:
+		default:
+			break;
+	}
+	if (!l_transport) {
+		return l_transport.error();
+	}
+	if (const auto l_result = attach_transport(std::move(l_transport.value()), m_endpoint_config); !l_result) {
+		return l_result;
+	}
+	// A network transport keeps the environments of the process on the loopback of its namespace (not one given by a
+	// factory of this environment, nor ActressMAS, whose server must see the traffic)
+	const bool l_network = m_network.m_protocol == Protocol::Zenoh || m_network.m_protocol == Protocol::Mqtt ||
+						   m_network.m_protocol == Protocol::Mqtts;
+	if (l_network && !m_transport_factory) {
+		join_loopback_beside(m_network.m_namespace, m_endpoint_config);
+	}
+	return {};
+}
+
+cam::transport::Result<std::shared_ptr<cam::transport::Transport>> cam::Environment::open_transport(const std::string& p_url) const {
+	transport::TransportConfig l_config = transport_config();
+	return m_transport_factory ? m_transport_factory(p_url, std::move(l_config)) : transport::open(p_url, std::move(l_config));
+}
+
+cam::transport::TransportConfig cam::Environment::transport_config() const {
+	transport::TransportConfig l_config;
+	l_config.m_namespace = m_network.m_namespace;
+	l_config.m_codec = name_of(m_network.m_codec);
+	l_config.m_username = m_network.m_username;
+	l_config.m_password = m_network.m_password;
+	l_config.m_ca_file = m_network.m_ca_file;
+	l_config.m_certificate_file = m_network.m_certificate_file;
+	l_config.m_key_file = m_network.m_key_file;
+	l_config.m_verify_peer = m_network.m_verify_peer;
+	return l_config;
+}
+
+cam::transport::Result<void>
+cam::Environment::attach_transport(std::shared_ptr<transport::Transport> p_transport, transport::EndpointConfig p_config) {
 	if (m_endpoint && !m_implicit_loopback) {
 		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment already connected");
 	}
@@ -761,24 +918,23 @@ cam::transport::Result<void> cam::Environment::disconnect() {
 }
 
 void cam::Environment::join_loopback() {
-	// Without configuration the environments of the process reach each other through the loopback of the default
-	// namespace, as with loopback://; one that cannot join (namespace taken with another codec) stays alone, as offline
-	auto l_transport = transport::open("loopback://");
+	// Without configuration the environments of the process reach each other through the loopback of their namespace,
+	// as with loopback://; one that cannot join (namespace taken with another codec) stays alone, as offline
+	transport::TransportConfig l_config;
+	l_config.m_namespace = m_network.m_namespace;
+	auto l_transport = transport::open("loopback://", std::move(l_config));
 	if (!l_transport) {
 		return;
 	}
-	if (connect(std::move(l_transport.value()), m_endpoint_config)) {
+	if (attach_transport(std::move(l_transport.value()), m_endpoint_config)) {
 		m_implicit_loopback = true;
 	}
 }
 
-void cam::Environment::join_loopback_beside(const std::string& p_url, const transport::EndpointConfig& p_config) {
-	// zenoh://, mqtt:// and mqtts:// only: loopback:// is the loopback already, actressmas:// goes through the C# server
-	const auto l_parsed = transport::parse_url(p_url);
-	if (!l_parsed || (l_parsed.value().m_scheme != "zenoh" && l_parsed.value().m_scheme != "mqtt" && l_parsed.value().m_scheme != "mqtts")) {
-		return;
-	}
-	auto l_transport = transport::open("loopback://" + l_parsed.value().m_config.m_namespace);
+void cam::Environment::join_loopback_beside(const std::string& p_namespace, const transport::EndpointConfig& p_config) {
+	transport::TransportConfig l_config;
+	l_config.m_namespace = p_namespace;
+	auto l_transport = transport::open("loopback://", std::move(l_config));
 	if (!l_transport) {
 		return;  // the network transport alone, as before
 	}

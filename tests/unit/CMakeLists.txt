@@ -22,6 +22,9 @@ endif()
 # custom factory, and the shared loopback of a namespace.
 cam_add_doctest(connect cam_connect_tests connect.cpp)
 
+# The network of an environment: defaults, the URL and the configuration of each protocol, the role of Zenoh, refusals.
+cam_add_doctest(network_config cam_network_config_tests network_config.cpp)
+
 # Queue of the agent messages: arrival order, several producers at once, nodes recycled per thread.
 cam_add_doctest(mpsc_queue cam_mpsc_queue_tests mpsc_queue.cpp)
 

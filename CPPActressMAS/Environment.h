@@ -37,6 +37,7 @@ using json = nlohmann::json;
 #include "AggregateException.h"
 #include "AgentTypes.h"
 #include "Message.h"
+#include "NetworkConfig.h"
 #include "detail/AgentCollection.h"
 #include "detail/RecyclingAllocator.hpp"
 #include "transport/Endpoint.h"
@@ -72,7 +73,8 @@ namespace cam {
 	 * cam::Environment l_environment({.m_turns = 100, .m_mode = cam::EnvironmentMasMode::Sequential});
 	 * m_turns: maximum number of turns, 0 for no limit; m_delay_after_turn: in milliseconds; m_seed: seed of the
 	 * random order, drawn from std::random_device when absent; m_random: its generator; m_url: transport URL, the
-	 * environment connects through it at its first start() (offline when empty); m_endpoint: name and limits of that
+	 * environment connects through it at its first start() (offline when empty); m_network: protocol, host, port and
+	 * namespace, instead of a URL (an invalid namespace throws std::invalid_argument); m_endpoint: name and limits of that
 	 * connection; m_accepted_agent_types: wire names of the agent types that may arrive here by migration (every type
 	 * of the catalogue of the process when absent); m_run_setup_separately: false to run the setup of an agent in the
 	 * same turn as its first see and action.
@@ -107,6 +109,12 @@ namespace cam {
 		 * Transport URL: the environment connects through it at its first start() (offline when empty).
 		 **/
 		std::string m_url{};
+
+		/**
+		 * Network: protocol, meeting point (host and port) and namespace; the environment connects at its first start()
+		 * unless the protocol is None (the loopback of the process, in its namespace).
+		 **/
+		NetworkConfig m_network{};
 
 		/**
 		 * Name and limits of that connection.
@@ -265,6 +273,11 @@ namespace cam {
 		 * Transport URL of this environment (empty: none).
 		 **/
 		std::string m_transport_url;
+
+		/**
+		 * Network of this environment: protocol, meeting point and namespace.
+		 **/
+		NetworkConfig m_network;
 
 		/**
 		 * Factory that opens the transport URL (empty: the default one).
@@ -605,6 +618,22 @@ namespace cam {
 		[[nodiscard]] const std::string& transport_url() const { return m_transport_url; }
 
 		/**
+		 * The network of this environment: protocol, meeting point and namespace.
+		 * @return The network
+		 **/
+		[[nodiscard]] const NetworkConfig& get_network() const { return m_network; }
+
+		/**
+		 * Replace the network of this environment, used by the next start() or connect(). Called by the simulation thread,
+		 * outside a turn. On the loopback joined without configuration (no connect), a new namespace takes the
+		 * environment to the loopback of that namespace at once.
+		 * @param p_network The network
+		 * @return Success, InvalidConfiguration (invalid namespace) or AlreadyConnected (connected explicitly: disconnect
+		 * first)
+		 **/
+		transport::Result<void> set_network(NetworkConfig p_network);
+
+		/**
 		 * Replace the factory that turns the transport URL into a transport (extension point: a
 		 * scheme of your own). An empty factory restores the default one.
 		 * @param p_factory The factory
@@ -612,11 +641,12 @@ namespace cam {
 		void set_transport_factory(TransportFactory p_factory) { m_transport_factory = std::move(p_factory); }
 
 		/**
-		 * Connect the environment through its transport URL (set_transport_url). Without any configuration, start()
-		 * joins the loopback of the process (namespace "default"), as with loopback://: the environments of the process
-		 * reach each other without a URL; an explicit connection replaces it. Without URL this call refuses
-		 * (InvalidConfiguration).
-		 * @return Success, or an error (no URL, unknown scheme, transport not compiled in, broker unreachable...)
+		 * Connect the environment through its transport URL (set_transport_url) or its network (m_network). Without any
+		 * configuration, start() joins the loopback of the process in its namespace ("default"): the environments of the
+		 * process reach each other without connect; an explicit connection replaces it. With Zenoh, the environment
+		 * listens on the host and port of its network when it can, and connects there otherwise. Without URL nor protocol
+		 * this call refuses (InvalidConfiguration).
+		 * @return Success, or an error (nothing configured, transport not compiled in, broker unreachable...)
 		 **/
 		transport::Result<void> connect();
 
@@ -633,10 +663,11 @@ namespace cam {
 		 * Connect the environment to a transport built elsewhere: attach an endpoint, announce the
 		 * presence of the environment and learn the environments already there.
 		 * Called by the simulation thread, outside a turn (before start() or in
-		 * turn_finished()). An environment stays offline until this is called.
-		 * @param p_transport The transport (shared by the environments of the process)
+		 * turn_finished()). The transport is used alone, without the loopback of the process beside it.
+		 * @param p_transport The transport (shared by the environments of the process), in the namespace of the network of
+		 * this environment
 		 * @param p_config The endpoint configuration (name, capacities, delays)
-		 * @return Success, or an error (already connected, transport closed...)
+		 * @return Success, or an error (another namespace, already connected, transport closed...)
 		 **/
 		transport::Result<void> connect(std::shared_ptr<transport::Transport> p_transport, transport::EndpointConfig p_config = {});
 
@@ -1050,12 +1081,41 @@ namespace cam {
 		[[nodiscard]] bool knows_environment(const std::string& p_environment_id) const;
 
 		/**
-		 * Join, next to a network transport opened from a URL, the loopback of the namespace of that URL, hidden; without
-		 * it, the environment keeps its network transport alone.
-		 * @param p_url The URL of the network transport
+		 * Join, next to a network transport, the loopback of its namespace, hidden; without it, the environment keeps its
+		 * network transport alone.
+		 * @param p_namespace The namespace of the network transport
 		 * @param p_config The endpoint configuration of that connection
 		 **/
-		void join_loopback_beside(const std::string& p_url, const transport::EndpointConfig& p_config);
+		void join_loopback_beside(const std::string& p_namespace, const transport::EndpointConfig& p_config);
+
+		/**
+		 * Attach an endpoint to a transport, announce the presence of the environment and learn the environments already
+		 * there; an explicit connection replaces the loopback joined without configuration, which comes back if it fails.
+		 * @param p_transport The transport
+		 * @param p_config The endpoint configuration
+		 * @return Success, or an error (already connected, null or closed transport...)
+		 **/
+		transport::Result<void> attach_transport(std::shared_ptr<transport::Transport> p_transport, transport::EndpointConfig p_config);
+
+		/**
+		 * Connect through the network of this environment: the URL of its protocol, its meeting point and its namespace,
+		 * then the loopback of that namespace beside a network transport.
+		 * @return Success, or an error
+		 **/
+		transport::Result<void> connect_network();
+
+		/**
+		 * Open a transport for a URL built from the network, through the factory of this environment when it has one.
+		 * @param p_url The URL
+		 * @return The open transport, or an error
+		 **/
+		[[nodiscard]] transport::Result<std::shared_ptr<transport::Transport>> open_transport(const std::string& p_url) const;
+
+		/**
+		 * The configuration of a transport built from the network: namespace, codec, credentials and TLS.
+		 * @return The configuration
+		 **/
+		[[nodiscard]] transport::TransportConfig transport_config() const;
 
 		/**
 		 * True if the changes of the agents are announced: on a transport, or on the loopback joined without

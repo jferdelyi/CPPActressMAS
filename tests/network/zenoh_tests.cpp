@@ -489,6 +489,29 @@ TEST_SUITE("zenoh") {
 		CHECK(l_parsed.value().m_options.size() == 2);
 	}
 
+	TEST_CASE("two environments with the same Zenoh network: the first listens on the meeting point, the second connects") {
+		g_recorder.clear();
+		TestEnvironment l_env_a("A");
+		TestEnvironment l_env_b("B");
+		for (TestEnvironment* const l_environment: {&l_env_a, &l_env_b}) {
+			// A factory of the environment keeps the two of them on Zenoh (no loopback of the process beside it)
+			l_environment->set_transport_factory([](const std::string& p_url, TransportConfig p_config) {
+				return cam::transport::open(p_url, std::move(p_config));
+			});
+			REQUIRE(l_environment->set_network({.m_protocol = cam::Protocol::Zenoh, .m_port = 17466, .m_namespace = "cam-test-role"}));
+		}
+		REQUIRE(l_env_a.connect());  // listens on 127.0.0.1:17466
+		REQUIRE(l_env_b.connect());  // the port is taken: connects to A
+		const cam::AgentId l_receiver = l_env_b.add<Receiver>("receiver");
+		l_env_b.add<Keeper>("keeper-b");
+		l_env_a.add<RemoteSender>("sender", l_receiver);
+		l_env_a.add<Keeper>("keeper-a");
+		const bool l_delivered = run_until({&l_env_b, &l_env_a}, [] { return g_recorder.contains("receiver:\"hello from afar\""); }, 15s);
+		CHECK(l_delivered);
+		REQUIRE(l_env_a.disconnect());
+		REQUIRE(l_env_b.disconnect());
+	}
+
 	// Connected with connect(url), without a factory: the loopback of the process beside Zenoh.
 
 	TEST_CASE("two environments of this process on Zenoh reach each other through the loopback, even when their peers do not meet") {
