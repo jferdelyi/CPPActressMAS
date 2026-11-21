@@ -300,9 +300,4 @@ namespace cam::transport {
 		return l_transport;
 	}
 
-	Result<void> connect(Environment& p_environment, const std::string& p_url, EndpointConfig p_config) {
-		// Kept for the former callers: the environment owns its URL now.
-		return p_environment.connect(p_url, std::move(p_config));
-	}
-
 } // namespace cam::transport

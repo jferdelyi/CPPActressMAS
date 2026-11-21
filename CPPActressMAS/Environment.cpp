@@ -99,17 +99,13 @@ cam::Environment::Environment(const EnvironmentConfig& p_config) :
 		m_delay_after_turn(p_config.m_delay_after_turn),
 		m_agent_collection(p_config.m_mode, p_config.m_seed.value_or(std::random_device()()), p_config.m_random,
 						   p_config.m_run_setup_separately),
-		m_transport_url(p_config.m_url),
 		m_network(p_config.m_network),
-		m_connect_on_start(!p_config.m_url.empty() || p_config.m_network.m_protocol != Protocol::None),
+		m_connect_on_start(p_config.m_network.m_protocol != Protocol::None),
 		m_endpoint_config(p_config.m_endpoint),
 		m_accepted_agent_types(p_config.m_accepted_agent_types),
 		m_boundary(0) {
 	if (!transport::is_valid_namespace(m_network.m_namespace)) {
 		throw std::invalid_argument("invalid namespace \"" + m_network.m_namespace + "\": [a-z0-9-]{1,32}");
-	}
-	if (!m_transport_url.empty() && m_network.m_protocol != Protocol::None) {
-		throw std::invalid_argument("a transport URL and a network protocol: give one of them");
 	}
 }
 
@@ -469,7 +465,7 @@ cam::Environment::enqueue_content(transport::Endpoint& p_endpoint, const transpo
 }
 
 void cam::Environment::start() {
-	// The URL or the network of the configuration connects at the first start(), before any turn, in place of the
+	// The network of the configuration connects at the first start(), before any turn, in place of the
 	// loopback joined without configuration; a failure is retried at the next one. Without configuration, the loopback
 	// of the process
 	if (m_connect_on_start && (!m_endpoint || m_implicit_loopback)) {
@@ -731,36 +727,10 @@ void cam::Environment::process_buffers() {
 //###############################################################
 
 cam::transport::Result<void> cam::Environment::connect() {
-	if (!m_transport_url.empty()) {
-		return connect(m_transport_url, m_endpoint_config);
-	}
 	if (m_network.m_protocol != Protocol::None) {
 		return connect_network();
 	}
 	return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "nothing to connect to: give a network protocol");
-}
-
-cam::transport::Result<void> cam::Environment::connect(const std::string& p_url, transport::EndpointConfig p_config) {
-	if (m_endpoint && !m_implicit_loopback) {
-		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment already connected");
-	}
-	m_transport_url = p_url;
-	auto l_transport = m_transport_factory ? m_transport_factory(p_url, transport::TransportConfig{}) : transport::open(p_url);
-	if (!l_transport) {
-		return l_transport.error();
-	}
-	const transport::EndpointConfig l_config = p_config;
-	if (const auto l_result = attach_transport(std::move(l_transport.value()), std::move(p_config)); !l_result) {
-		return l_result;
-	}
-	// A network transport opened from its URL keeps the environments of the process on the loopback (not one given by a
-	// factory of this environment); zenoh://, mqtt:// and mqtts:// only: loopback:// is the loopback already,
-	// actressmas:// goes through the C# server
-	if (const auto l_parsed = transport::parse_url(p_url); !m_transport_factory && l_parsed &&
-		(l_parsed.value().m_scheme == "zenoh" || l_parsed.value().m_scheme == "mqtt" || l_parsed.value().m_scheme == "mqtts")) {
-		join_loopback_beside(l_parsed.value().m_config.m_namespace, l_config);
-	}
-	return {};
 }
 
 cam::transport::Result<void>
@@ -784,15 +754,10 @@ cam::transport::Result<void> cam::Environment::set_network(NetworkConfig p_netwo
 	if (is_connected()) {
 		return make_error(ErrorCategory::State, ErrorCode::AlreadyConnected, "environment connected: disconnect first");
 	}
-	if (!m_transport_url.empty() && p_network.m_protocol != Protocol::None) {
-		return make_error(ErrorCategory::State, ErrorCode::InvalidConfiguration, "a transport URL and a network protocol: give one of them");
-	}
 	// On the loopback joined without configuration (no connect), a new namespace takes the environment there at once
 	const bool l_moves = m_implicit_loopback && p_network.m_namespace != m_network.m_namespace;
 	m_network = std::move(p_network);
-	if (m_transport_url.empty()) {
-		m_connect_on_start = m_network.m_protocol != Protocol::None;
-	}
+	m_connect_on_start = m_network.m_protocol != Protocol::None;
 	if (l_moves) {
 		(void) detach_endpoint();
 		join_loopback();

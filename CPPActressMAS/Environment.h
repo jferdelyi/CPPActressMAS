@@ -72,10 +72,9 @@ namespace cam {
 	 * Configuration of an environment, written with designated initializers:
 	 * cam::Environment l_environment({.m_turns = 100, .m_mode = cam::EnvironmentMasMode::Sequential});
 	 * m_turns: maximum number of turns, 0 for no limit; m_delay_after_turn: in milliseconds; m_seed: seed of the
-	 * random order, drawn from std::random_device when absent; m_random: its generator; m_url: transport URL, the
-	 * environment connects through it at its first start() (offline when empty); m_network: protocol, host, port and
-	 * namespace, instead of a URL (an invalid namespace throws std::invalid_argument); m_endpoint: name and limits of that
-	 * connection; m_accepted_agent_types: wire names of the agent types that may arrive here by migration (every type
+	 * random order, drawn from std::random_device when absent; m_random: its generator; m_network: protocol, host, port
+	 * and namespace, the environment connects at its first start() unless the protocol is None (an invalid namespace
+	 * throws std::invalid_argument); m_endpoint: name and limits of that connection; m_accepted_agent_types: wire names of the agent types that may arrive here by migration (every type
 	 * of the catalogue of the process when absent); m_run_setup_separately: false to run the setup of an agent in the
 	 * same turn as its first see and action.
 	 **/
@@ -104,11 +103,6 @@ namespace cam {
 		 * Generator of the random order and of random_agent.
 		 **/
 		RandomEngine m_random = RandomEngine::Mt19937;
-
-		/**
-		 * Transport URL: the environment connects through it at its first start() (offline when empty).
-		 **/
-		std::string m_url{};
 
 		/**
 		 * Network: protocol, meeting point (host and port) and namespace; the environment connects at its first start()
@@ -145,9 +139,9 @@ namespace cam {
 
 	public:
 		/**
-		 * Builds a transport from a URL: the default one knows the schemes compiled in this build
-		 * (loopback://, and mqtt://, mqtts://, zenoh:// behind their CMake options); a custom one can
-		 * add schemes of its own and fall back on cam::transport::open for the others.
+		 * Builds the transport of the network from the URL the environment makes of it (loopback://, zenoh://, mqtt://,
+		 * mqtts://, actressmas://) and its configuration: the default one is cam::transport::open; a custom one can
+		 * replace the transport of a protocol and fall back on cam::transport::open for the others.
 		 **/
 		using TransportFactory = std::function<transport::Result<std::shared_ptr<transport::Transport>>(const std::string& p_url, transport::TransportConfig p_config)>;
 
@@ -264,15 +258,10 @@ namespace cam {
 		std::unique_ptr<transport::Endpoint> m_endpoint;
 
 		/**
-		 * Loopback of the process next to a network transport opened from a URL (same namespace): the environments of the
-		 * process are reached through it, the network serves the others; null otherwise.
+		 * Loopback of the process next to a network transport opened without a factory (same namespace): the environments
+		 * of the process are reached through it, the network serves the others; null otherwise.
 		 **/
 		std::unique_ptr<transport::Endpoint> m_loopback_endpoint;
-
-		/**
-		 * Transport URL of this environment (empty: none).
-		 **/
-		std::string m_transport_url;
 
 		/**
 		 * Network of this environment: protocol, meeting point and namespace.
@@ -280,12 +269,12 @@ namespace cam {
 		NetworkConfig m_network;
 
 		/**
-		 * Factory that opens the transport URL (empty: the default one).
+		 * Factory that opens the transport of the network (empty: the default one).
 		 **/
 		TransportFactory m_transport_factory;
 
 		/**
-		 * Connection asked by the configuration (m_url), made at the first start(); dropped once connected or after an
+		 * Connection asked by the network (a protocol), made at the first start(); dropped once connected or after an
 		 * explicit disconnect().
 		 **/
 		bool m_connect_on_start = false;
@@ -606,18 +595,6 @@ namespace cam {
 		//###############################################################
 
 		/**
-		 * Remember the transport URL of this environment without connecting; connect() uses it.
-		 * @param p_url The URL ("loopback://sim", "zenoh://127.0.0.1:7447/sim", "mqtt://host:1883/sim"...)
-		 **/
-		void set_transport_url(std::string p_url) { m_transport_url = std::move(p_url); }
-
-		/**
-		 * The transport URL of this environment, empty when none was given.
-		 * @return The URL
-		 **/
-		[[nodiscard]] const std::string& transport_url() const { return m_transport_url; }
-
-		/**
 		 * The network of this environment: protocol, meeting point and namespace.
 		 * @return The network
 		 **/
@@ -634,30 +611,20 @@ namespace cam {
 		transport::Result<void> set_network(NetworkConfig p_network);
 
 		/**
-		 * Replace the factory that turns the transport URL into a transport (extension point: a
-		 * scheme of your own). An empty factory restores the default one.
+		 * Replace the factory that opens the transport of the network (extension point: a transport of your own for a
+		 * protocol). An empty factory restores the default one.
 		 * @param p_factory The factory
 		 **/
 		void set_transport_factory(TransportFactory p_factory) { m_transport_factory = std::move(p_factory); }
 
 		/**
-		 * Connect the environment through its transport URL (set_transport_url) or its network (m_network). Without any
-		 * configuration, start() joins the loopback of the process in its namespace ("default"): the environments of the
-		 * process reach each other without connect; an explicit connection replaces it. With Zenoh, the environment
-		 * listens on the host and port of its network when it can, and connects there otherwise. Without URL nor protocol
-		 * this call refuses (InvalidConfiguration).
+		 * Connect the environment through its network (m_network). Without any configuration, start() joins the loopback
+		 * of the process in its namespace ("default"): the environments of the process reach each other without connect;
+		 * an explicit connection replaces it. With Zenoh, the environment listens on the host and port of its network when
+		 * it can, and connects there otherwise. Without protocol this call refuses (InvalidConfiguration).
 		 * @return Success, or an error (nothing configured, transport not compiled in, broker unreachable...)
 		 **/
 		transport::Result<void> connect();
-
-		/**
-		 * Remember the transport URL and connect through it. Called by the simulation thread, outside a
-		 * turn (before start() or in turn_finished()).
-		 * @param p_url The URL
-		 * @param p_config The endpoint configuration (name, capacities, delays)
-		 * @return Success, or an error
-		 **/
-		transport::Result<void> connect(const std::string& p_url, transport::EndpointConfig p_config = {});
 
 		/**
 		 * Connect the environment to a transport built elsewhere: attach an endpoint, announce the

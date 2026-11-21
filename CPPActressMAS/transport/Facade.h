@@ -22,12 +22,12 @@
 #include <utility>
 #include <vector>
 
-#include "../Environment.h"
 #include "Transport.h"
 
 /**
- * CPPActressMAS transport layer: the URL side of Environment::connect(url). The transports compiled in
- * are chosen by the scheme of a URL (selected at configuration time, no registry):
+ * CPPActressMAS transport layer: the URLs of the transports. Environment::connect() builds one from the network of the
+ * environment (NetworkConfig) and opens it here; open() also gives a transport by hand, for connect(transport). The
+ * transports compiled in are chosen by the scheme of a URL (selected at configuration time, no registry):
  *   loopback://[namespace]                               in-process transport, shared by the environments of the process that name it
  *   mqtt://host[:port][/namespace][?options]             MQTT broker (CAM_TRANSPORT_MQTT)
  *   mqtts://host[:port][/namespace][?options]            MQTT over TLS
@@ -92,15 +92,5 @@ namespace cam::transport {
 	 * @return The open transport, or an error (unknown scheme: NotSupported)
 	 **/
 	[[nodiscard]] Result<std::shared_ptr<Transport>> open(const std::string& p_url, TransportConfig p_config = {});
-
-	/**
-	 * Alias of Environment::connect(url, config), kept for the former callers; to be removed.
-	 * Prefer p_environment.connect(p_url, p_config).
-	 * @param p_environment The environment
-	 * @param p_url The URL
-	 * @param p_config The endpoint configuration
-	 * @return Success or an error
-	 **/
-	Result<void> connect(Environment& p_environment, const std::string& p_url, EndpointConfig p_config = {});
 
 } // namespace cam::transport

@@ -219,11 +219,4 @@ TEST_SUITE("connect") {
 		CHECK(l_calls == 2);
 		REQUIRE(l_env.disconnect());
 	}
-
-	TEST_CASE("the former facade connect is an alias of the environment's") {
-		cam::Environment l_env(1, cam::EnvironmentMasMode::Sequential);
-		REQUIRE(connect(l_env, "loopback://"));
-		CHECK(l_env.transport_url() == "loopback://");
-		REQUIRE(l_env.disconnect());
-	}
 }

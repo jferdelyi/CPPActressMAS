@@ -1,6 +1,6 @@
 # CPPActressMAS: transport layer
 
-How environments talk to each other: an environment connected to a URL owns an `Endpoint` attached to a `Transport`.
+How environments talk to each other: an environment connected to its network owns an `Endpoint` attached to a `Transport`.
 The layer is part of the core library; the network transports join it behind their CMake options
 (`CAM_TRANSPORT_MQTT`, `CAM_TRANSPORT_ZENOH`), with their own dependencies.
 
@@ -10,7 +10,7 @@ The layer is part of the core library; the network transports join it behind the
 | `Endpoint.{h,cpp}` | One environment on a transport: outbox flushed at the turn boundary, inbox, deduplication and reordering by sequence, directory of the agents of the other environments, presences, counters. |
 | `Envelope.h` | What travels: the `Envelope` and its payloads (`AgentTransfer`, `AgentControl`, `Presence`, `DirectoryEvent`). |
 | `Types.h` | Addresses and keys, send options, capabilities, configurations, statistics, events, `Error` and `Result`. |
-| `Facade.{h,cpp}` | `open(url)`, `parse_url`, `schemes`: the schemes compiled in (`loopback`, `mqtt`, `zenoh`); loopback transports shared per namespace in the process. |
+| `Facade.{h,cpp}` | `open(url)`, `parse_url`, `schemes`: the schemes compiled in (`loopback`, `mqtt`, `zenoh`, `actressmas`), from the URL an environment builds from its network or a transport opened by hand; loopback transports shared per namespace in the process. |
 
 | Folder | Role |
 |---|---|
